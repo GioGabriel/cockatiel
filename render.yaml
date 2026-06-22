@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: vocal-coach-api
+    runtime: python
+    region: singapore
+    rootDir: backend/vocal_coach_api
+    buildCommand: pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: AUTH_BYPASS
+        value: "true"
+      - key: OPENROUTER_ENABLED
+        value: "true"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: "meta-llama/llama-3.1-8b-instruct:free"
+      - key: PYTHON_VERSION
+        value: "3.11.9"

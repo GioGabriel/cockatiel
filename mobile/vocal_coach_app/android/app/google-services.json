@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "66590686803",
+    "project_id": "cockatiel-enhanced",
+    "storage_bucket": "cockatiel-enhanced.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:66590686803:android:856d5003d456feed3510a6",
+        "android_client_info": {
+          "package_name": "com.company.cockatiel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaQpfwAeApsZ-Ock5bSXR6LXozK5u0iLs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:66590686803:android:4c6deea0bee9cb753510a6",
+        "android_client_info": {
+          "package_name": "com.example.vocal_coach_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaQpfwAeApsZ-Ock5bSXR6LXozK5u0iLs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

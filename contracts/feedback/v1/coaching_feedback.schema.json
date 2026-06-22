@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/feedback/v1/coaching_feedback.schema.json",
+  "title": "CoachingFeedbackV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "session_id",
+    "overall_score",
+    "strengths",
+    "improvements",
+    "next_exercises",
+    "model_used",
+    "prompt_version"
+  ],
+  "properties": {
+    "session_id": { "type": "string" },
+    "overall_score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "strengths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "improvements": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_exercises": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "model_used": { "type": "string" },
+    "prompt_version": { "type": "string" },
+    "latency_ms": { "type": "integer", "minimum": 0 }
+  }
+}

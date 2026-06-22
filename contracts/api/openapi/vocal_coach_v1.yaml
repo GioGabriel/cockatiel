@@ -1,0 +1,179 @@
+openapi: 3.1.0
+info:
+  title: Vocal Coach API
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /v1/auth/me:
+    get:
+      summary: Get current user profile
+      responses:
+        "200":
+          description: OK
+  /v1/ai/health:
+    get:
+      summary: Get AI runtime diagnostics
+      responses:
+        "200":
+          description: OK
+  /v1/ai/jobs:
+    get:
+      summary: List user AI evaluation jobs
+      responses:
+        "200":
+          description: OK
+  /v1/ai/jobs/{jobId}:
+    get:
+      summary: Get AI evaluation job details
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+  /v1/training/catalog:
+    get:
+      summary: Get Vocal Coach training catalog
+      responses:
+        "200":
+          description: OK
+  /v1/training/progress:
+    get:
+      summary: Get per-exercise training progress
+      responses:
+        "200":
+          description: OK
+  /v1/training/recommendations:
+    get:
+      summary: Get recommended next exercises
+      responses:
+        "200":
+          description: OK
+  /v1/sessions:
+    post:
+      summary: Create session
+      responses:
+        "201":
+          description: Created
+  /v1/sessions/{sessionId}/metrics:
+    post:
+      summary: Submit canonical metric batch
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Accepted
+  /v1/sessions/{sessionId}/attempts:
+    post:
+      summary: Save completed training attempt
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Created
+  /v1/sessions/{sessionId}/finalize:
+    post:
+      summary: Finalize session and trigger evaluation
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Finalized
+  /v1/sessions/{sessionId}:
+    get:
+      summary: Get session details
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+  /v1/sessions/{sessionId}/feedback:
+    get:
+      summary: Get session feedback
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+  /v1/sessions/{sessionId}/audio-snippets:
+    post:
+      summary: Upload session audio snippet
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Created
+    get:
+      summary: List session audio snippets
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+  /v1/audio-snippets/cleanup:
+    post:
+      summary: Cleanup expired audio snippets
+      parameters:
+        - name: before_ms
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+  /v1/analytics/dashboard:
+    get:
+      summary: Get user analytics dashboard
+      responses:
+        "200":
+          description: OK
+  /v1/analytics/trends:
+    get:
+      summary: Get user analytics trend points
+      parameters:
+        - name: range
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["7d", "30d", "90d"]
+      responses:
+        "200":
+          description: OK

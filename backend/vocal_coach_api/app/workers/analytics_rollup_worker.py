@@ -1,0 +1,1 @@
+"""Analytics rollup worker scaffold."""

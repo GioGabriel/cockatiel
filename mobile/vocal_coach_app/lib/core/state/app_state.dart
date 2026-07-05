@@ -28,6 +28,7 @@ class AppState extends ChangeNotifier {
   bool _isSendingPasswordReset = false;
   bool _isRefreshingAIJobs = false;
   UserProfile? _currentUser;
+  AccessTier _accessTier = AccessTier.registered; // ignore: prefer_final_fields
   String? _authError;
   String? _authNotice;
   List<AIJob> _aiJobs = const [];
@@ -36,8 +37,10 @@ class AppState extends ChangeNotifier {
   bool get isAuthenticating => _isAuthenticating;
   bool get isSendingPasswordReset => _isSendingPasswordReset;
   bool get isAuthenticated => _currentUser != null;
+  bool get isGuest => !isAuthenticated;
   bool get isRefreshingAIJobs => _isRefreshingAIJobs;
   UserProfile? get currentUser => _currentUser;
+  AccessTier get accessTier => isAuthenticated ? _accessTier : AccessTier.guest;
   String? get authError => _authError;
   String? get authNotice => _authNotice;
   List<AIJob> get aiJobs => List.unmodifiable(_aiJobs);

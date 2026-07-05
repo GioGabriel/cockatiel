@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
+import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/training_models.dart';
 import '../domain/vocal_coach_catalog.dart';
 import 'training_session_page.dart';
@@ -211,7 +212,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
       }
 
       Navigator.of(context).push(
-        MaterialPageRoute(
+        slideUpRoute(
           builder: (_) => TrainingSessionPage(
             apiClient: widget.apiClient,
             appState: widget.appState,
@@ -285,11 +286,17 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    _exerciseName,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+                  Hero(
+                    tag: 'exercise_title_${widget.exercise.id}',
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Text(
+                        _exerciseName,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),

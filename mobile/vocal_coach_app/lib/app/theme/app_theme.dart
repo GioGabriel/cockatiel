@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
+  /// Light theme — clean white surfaces on light gray background.
   static ThemeData light() {
     const primary = Color(0xFF0E7C86);
     const secondary = Color(0xFFE1B261);
@@ -14,27 +15,12 @@ class AppTheme {
       surface: Colors.white,
     );
 
-    final baseTextTheme = GoogleFonts.manropeTextTheme(
-      Typography.material2021().black,
-    );
-    final displayTextTheme = GoogleFonts.soraTextTheme(baseTextTheme).copyWith(
-      displayLarge: GoogleFonts.sora(fontWeight: FontWeight.w700),
-      displayMedium: GoogleFonts.sora(fontWeight: FontWeight.w700),
-      headlineLarge: GoogleFonts.sora(fontWeight: FontWeight.w700),
-      headlineMedium: GoogleFonts.sora(fontWeight: FontWeight.w700),
-      headlineSmall: GoogleFonts.sora(fontWeight: FontWeight.w700),
-      titleLarge: GoogleFonts.sora(fontWeight: FontWeight.w700),
-      titleMedium: GoogleFonts.sora(fontWeight: FontWeight.w600),
-      titleSmall: GoogleFonts.sora(fontWeight: FontWeight.w600),
-      bodyLarge: GoogleFonts.manrope(height: 1.45),
-      bodyMedium: GoogleFonts.manrope(height: 1.42),
-      labelLarge: GoogleFonts.manrope(fontWeight: FontWeight.w700),
-    );
+    final textTheme = _buildTextTheme(Brightness.light);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      textTheme: displayTextTheme,
+      textTheme: textTheme,
       scaffoldBackgroundColor: background,
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -94,6 +80,171 @@ class AppTheme {
         textStyle: GoogleFonts.manrope(),
       ),
       dividerColor: scheme.outlineVariant.withValues(alpha: 0.5),
+    );
+  }
+
+  /// Dark theme — deep black/navy surfaces with glowing teal accents.
+  ///
+  /// Designed to match modern dark-UI patterns: subtle card elevation via
+  /// lighter surface tones, glowing primary accents, and high-contrast text.
+  static ThemeData dark() {
+    const primary = Color(0xFF14B8C4);
+    const secondary = Color(0xFFE1B261);
+    const background = Color(0xFF0A0E14);
+    const surfaceColor = Color(0xFF131920);
+    const cardColor = Color(0xFF1A2230);
+
+    final scheme = ColorScheme.fromSeed(
+      seedColor: primary,
+      secondary: secondary,
+      brightness: Brightness.dark,
+      surface: surfaceColor,
+    ).copyWith(
+      primary: primary,
+      secondary: secondary,
+      surface: surfaceColor,
+      onSurface: const Color(0xFFE8ECF0),
+      onSurfaceVariant: const Color(0xFF8B95A5),
+      outline: const Color(0xFF2A3545),
+      outlineVariant: const Color(0xFF1E2835),
+    );
+
+    final textTheme = _buildTextTheme(Brightness.dark);
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: scheme,
+      textTheme: textTheme,
+      scaffoldBackgroundColor: background,
+      appBarTheme: AppBarTheme(
+        centerTitle: false,
+        elevation: 0,
+        backgroundColor: background,
+        foregroundColor: scheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: cardColor,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: scheme.outline.withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: cardColor,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.outline),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.outline),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.primary, width: 1.6),
+        ),
+        hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(54),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(54),
+          foregroundColor: scheme.onSurface,
+          side: BorderSide(color: scheme.outline),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: cardColor,
+        selectedColor: primary.withValues(alpha: 0.2),
+        side: BorderSide(color: scheme.outline),
+        labelStyle: GoogleFonts.manrope(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w500,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: surfaceColor,
+        selectedItemColor: primary,
+        unselectedItemColor: scheme.onSurfaceVariant,
+        type: BottomNavigationBarType.fixed,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: surfaceColor,
+        indicatorColor: primary.withValues(alpha: 0.15),
+        surfaceTintColor: Colors.transparent,
+      ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: GoogleFonts.manrope(color: scheme.onSurface),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: surfaceColor,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: cardColor,
+        contentTextStyle: GoogleFonts.manrope(
+          color: scheme.onSurface,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+      dividerColor: scheme.outline.withValues(alpha: 0.5),
+    );
+  }
+
+  /// Shared text theme construction for both light and dark.
+  static TextTheme _buildTextTheme(Brightness brightness) {
+    final base = brightness == Brightness.light
+        ? Typography.material2021().black
+        : Typography.material2021().white;
+
+    final baseTextTheme = GoogleFonts.manropeTextTheme(base);
+    return GoogleFonts.soraTextTheme(baseTextTheme).copyWith(
+      displayLarge: GoogleFonts.sora(fontWeight: FontWeight.w700),
+      displayMedium: GoogleFonts.sora(fontWeight: FontWeight.w700),
+      headlineLarge: GoogleFonts.sora(fontWeight: FontWeight.w700),
+      headlineMedium: GoogleFonts.sora(fontWeight: FontWeight.w700),
+      headlineSmall: GoogleFonts.sora(fontWeight: FontWeight.w700),
+      titleLarge: GoogleFonts.sora(fontWeight: FontWeight.w700),
+      titleMedium: GoogleFonts.sora(fontWeight: FontWeight.w600),
+      titleSmall: GoogleFonts.sora(fontWeight: FontWeight.w600),
+      bodyLarge: GoogleFonts.manrope(height: 1.45),
+      bodyMedium: GoogleFonts.manrope(height: 1.42),
+      labelLarge: GoogleFonts.manrope(fontWeight: FontWeight.w700),
     );
   }
 }

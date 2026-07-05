@@ -177,3 +177,114 @@ paths:
       responses:
         "200":
           description: OK
+  /v1/profile:
+    get:
+      summary: Get full user profile with access tier and vocal preferences
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+        "401":
+          description: Unauthorized
+  /v1/profile/preferences:
+    put:
+      summary: Update vocal preferences
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VocalPreferencesIn'
+      responses:
+        "200":
+          description: Updated profile
+        "401":
+          description: Unauthorized
+        "422":
+          description: Validation error
+  /v1/profile/tier/upgrade:
+    post:
+      summary: Upgrade user to premium tier
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Upgraded profile
+        "401":
+          description: Unauthorized
+  /v1/karaoke/catalog:
+    get:
+      summary: Get full karaoke drill catalog
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Karaoke catalog
+        "401":
+          description: Unauthorized
+  /v1/karaoke/catalog/preview:
+    get:
+      summary: Get lightweight karaoke catalog preview (guest accessible)
+      responses:
+        "200":
+          description: Catalog preview
+  /v1/karaoke/catalog/{drillId}:
+    get:
+      summary: Get single karaoke drill detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: drillId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Drill detail
+        "401":
+          description: Unauthorized
+        "404":
+          description: Drill not found
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    VocalPreferencesIn:
+      type: object
+      required:
+        - vocal_range
+        - preferred_categories
+        - training_goal
+      properties:
+        vocal_range:
+          type: string
+          enum: [soprano, mezzo-soprano, alto, tenor, baritone, bass]
+        preferred_categories:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 3
+        training_goal:
+          type: string
+          enum: [pitch_improvement, breath_control, tone_quality, range_extension, general_skill_building]
+    AccessTier:
+      type: string
+      enum: [guest, registered, premium]
+    TierInsufficientError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: TIER_INSUFFICIENT
+            message:
+              type: string

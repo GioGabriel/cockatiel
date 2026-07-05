@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
-import 'karaoke_session_setup_page.dart';
+import 'karaoke_catalog_page.dart';
 
 class KaraokePracticePage extends StatelessWidget {
   const KaraokePracticePage({
@@ -16,15 +16,9 @@ class KaraokePracticePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return KaraokeSessionSetupPage(
+    return KaraokeCatalogPage(
       apiClient: apiClient,
       appState: appState,
-      title: 'Karaoke Practice',
-      exerciseOptions: const [
-        'karaoke_pop_hook',
-        'karaoke_ballad_phrase',
-        'karaoke_timing_focus',
-      ],
     );
   }
 }

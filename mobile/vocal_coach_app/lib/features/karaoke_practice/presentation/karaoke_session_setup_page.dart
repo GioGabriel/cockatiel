@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
+import '../../../shared/animations/page_transitions.dart';
 import '../../vocal_training/presentation/training_session_page.dart';
 
 class KaraokeSessionSetupPage extends StatefulWidget {
@@ -45,7 +46,7 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
       }
 
       Navigator.of(context).push(
-        MaterialPageRoute(
+        slideUpRoute(
           builder: (_) => TrainingSessionPage(
             apiClient: widget.apiClient,
             appState: widget.appState,

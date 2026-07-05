@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Full Validation After Task",
+      "description": "Runs both backend tests and Dart analysis after completing a spec task to catch regressions immediately.",
+      "trigger": "PostTaskExec",
+      "action": {
+        "type": "command",
+        "command": "cd /Users/giogabrielsanchez/cockatiel-enhanced/backend/vocal_coach_api && python3 -m pytest tests/unit tests/integration -q 2>&1 | tail -15 && echo '---DART---' && cd /Users/giogabrielsanchez/cockatiel-enhanced/mobile/vocal_coach_app && dart analyze lib/ 2>&1 | tail -10"
+      },
+      "enabled": true
+    }
+  ]
+}

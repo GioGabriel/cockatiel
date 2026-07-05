@@ -13,6 +13,7 @@ class AppBootstrap extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Vocal Coach',
       theme: AppTheme.light(),
+      themeMode: ThemeMode.light,
       onGenerateRoute: router.onGenerateRoute,
     );
   }

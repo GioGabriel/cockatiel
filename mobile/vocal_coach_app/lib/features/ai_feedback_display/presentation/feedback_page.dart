@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/models/session_models.dart';
+import '../../../shared/widgets/animated_score_display.dart';
 
 class FeedbackPage extends StatelessWidget {
   const FeedbackPage({super.key, required this.result});
@@ -34,9 +35,10 @@ class FeedbackPage extends StatelessWidget {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            feedback.overallScore.toStringAsFixed(1),
-                            style: Theme.of(context).textTheme.displaySmall,
+                          AnimatedScoreDisplay(
+                            score: feedback.overallScore.round(),
+                            style:
+                                Theme.of(context).textTheme.displaySmall,
                           ),
                           const SizedBox(height: 8),
                           Text(

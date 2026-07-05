@@ -15,6 +15,11 @@ def _settings(**overrides):
     "ollama_models": ("llama3.1:8b",),
     "ollama_timeout_s": 10,
     "ollama_temperature": 0.2,
+    "openrouter_enabled": False,
+    "openrouter_api_key": "",
+    "openrouter_model": "",
+    "openrouter_timeout_s": 30,
+    "openrouter_temperature": 0.2,
   }
   base.update(overrides)
   return SimpleNamespace(**base)

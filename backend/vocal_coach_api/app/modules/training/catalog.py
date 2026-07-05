@@ -55,6 +55,8 @@ def _pattern(
   }
 
 
+# Scope: Thesis-documented categories only (Vocal Training, Do Re Mi Pitch, Breathing Exercises).
+# Sprint 11 features (diction, pronunciation, phrase clarity) are excluded per Requirements 9.1, 9.4.
 _VOCAL_COACH_CATALOG: dict[str, Any] = {
   "module_id": "vocal_coach",
   "title": "Vocal Coach",

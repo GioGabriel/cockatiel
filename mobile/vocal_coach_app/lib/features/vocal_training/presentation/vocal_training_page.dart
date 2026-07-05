@@ -3,7 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
+import '../../../shared/animations/entrance_animation.dart';
+import '../../../shared/animations/micro_interaction.dart';
 import '../../../shared/models/training_models.dart';
+import '../../../shared/widgets/shimmer_skeleton.dart';
 import '../domain/vocal_coach_catalog.dart';
 import 'exercise_briefing_page.dart';
 
@@ -244,6 +247,26 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
     );
   }
 
+  Widget _buildShimmerSkeleton(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        ShimmerSkeleton(child: SkeletonShapes.dashboardCard(theme: theme)),
+        const SizedBox(height: 18),
+        ShimmerSkeleton(child: SkeletonShapes.listItem(theme: theme)),
+        const SizedBox(height: 12),
+        ShimmerSkeleton(child: SkeletonShapes.listItem(theme: theme)),
+        const SizedBox(height: 12),
+        ShimmerSkeleton(child: SkeletonShapes.listItem(theme: theme)),
+        const SizedBox(height: 18),
+        ShimmerSkeleton(child: SkeletonShapes.dashboardCard(theme: theme)),
+        const SizedBox(height: 14),
+        ShimmerSkeleton(child: SkeletonShapes.dashboardCard(theme: theme)),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalSessions = _progressByExercise.values.fold<int>(
@@ -268,7 +291,7 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
         ],
       ),
       body: _isLoading
-          ? const _VocalCoachSkeleton()
+          ? _buildShimmerSkeleton(context)
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               children: [
@@ -294,31 +317,60 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 10),
-                  for (final item in _recommendations.take(3))
-                    _RecommendationCard(
-                      recommendation: item,
-                      exercise: _findExercise(item.exerciseId),
-                      onTap: () {
-                        final category =
-                            _findCategoryByExerciseId(item.exerciseId);
-                        final exercise = _findExercise(item.exerciseId);
-                        if (category == null || exercise == null) {
-                          return;
-                        }
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ExerciseBriefingPage(
-                              categoryTitle: category.title,
-                              exercise: exercise,
-                              recommendation: item,
-                              progress: _progressByExercise[exercise.id],
-                              apiClient: widget.apiClient,
-                              appState: widget.appState,
-                            ),
+                  StaggeredEntrance(
+                    staggerDelay: const Duration(milliseconds: 50),
+                    children: [
+                      for (final item in _recommendations.take(3))
+                        Pressable(
+                          onTap: () {
+                            final category =
+                                _findCategoryByExerciseId(item.exerciseId);
+                            final exercise = _findExercise(item.exerciseId);
+                            if (category == null || exercise == null) {
+                              return;
+                            }
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ExerciseBriefingPage(
+                                  categoryTitle: category.title,
+                                  exercise: exercise,
+                                  recommendation: item,
+                                  progress:
+                                      _progressByExercise[exercise.id],
+                                  apiClient: widget.apiClient,
+                                  appState: widget.appState,
+                                ),
+                              ),
+                            );
+                          },
+                          child: _RecommendationCard(
+                            recommendation: item,
+                            exercise: _findExercise(item.exerciseId),
+                            onTap: () {
+                              final category =
+                                  _findCategoryByExerciseId(item.exerciseId);
+                              final exercise = _findExercise(item.exerciseId);
+                              if (category == null || exercise == null) {
+                                return;
+                              }
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ExerciseBriefingPage(
+                                    categoryTitle: category.title,
+                                    exercise: exercise,
+                                    recommendation: item,
+                                    progress:
+                                        _progressByExercise[exercise.id],
+                                    apiClient: widget.apiClient,
+                                    appState: widget.appState,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                    ],
+                  ),
                 ],
                 const SizedBox(height: 18),
                 Text(
@@ -326,31 +378,55 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 10),
-                for (final category in _categories)
-                  _TrackCard(
-                    category: category,
-                    completedExercises: category.exercises
-                        .where((exercise) =>
-                            _progressByExercise.containsKey(exercise.id))
-                        .length,
-                    recommendedCount: category.exercises
-                        .where((exercise) =>
-                            _recommendationByExercise.containsKey(exercise.id))
-                        .length,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => _ExerciseCategoryPage(
-                            category: category,
-                            apiClient: widget.apiClient,
-                            appState: widget.appState,
-                            progressByExercise: _progressByExercise,
-                            recommendationByExercise: _recommendationByExercise,
-                          ),
+                StaggeredEntrance(
+                  staggerDelay: const Duration(milliseconds: 50),
+                  children: [
+                    for (final category in _categories)
+                      Pressable(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => _ExerciseCategoryPage(
+                                category: category,
+                                apiClient: widget.apiClient,
+                                appState: widget.appState,
+                                progressByExercise: _progressByExercise,
+                                recommendationByExercise:
+                                    _recommendationByExercise,
+                              ),
+                            ),
+                          );
+                        },
+                        child: _TrackCard(
+                          category: category,
+                          completedExercises: category.exercises
+                              .where((exercise) =>
+                                  _progressByExercise
+                                      .containsKey(exercise.id))
+                              .length,
+                          recommendedCount: category.exercises
+                              .where((exercise) =>
+                                  _recommendationByExercise
+                                      .containsKey(exercise.id))
+                              .length,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => _ExerciseCategoryPage(
+                                  category: category,
+                                  apiClient: widget.apiClient,
+                                  appState: widget.appState,
+                                  progressByExercise: _progressByExercise,
+                                  recommendationByExercise:
+                                      _recommendationByExercise,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                  ],
+                ),
               ],
             ),
     );
@@ -844,26 +920,49 @@ class _ExerciseCategoryPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          for (final exercise in category.exercises)
-            _ExerciseCard(
-              exercise: exercise,
-              progress: progressByExercise[exercise.id],
-              recommendation: recommendationByExercise[exercise.id],
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ExerciseBriefingPage(
-                      categoryTitle: category.title,
-                      exercise: exercise,
-                      progress: progressByExercise[exercise.id],
-                      recommendation: recommendationByExercise[exercise.id],
-                      apiClient: apiClient,
-                      appState: appState,
-                    ),
+          StaggeredEntrance(
+            staggerDelay: const Duration(milliseconds: 50),
+            children: [
+              for (final exercise in category.exercises)
+                Pressable(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ExerciseBriefingPage(
+                          categoryTitle: category.title,
+                          exercise: exercise,
+                          progress: progressByExercise[exercise.id],
+                          recommendation:
+                              recommendationByExercise[exercise.id],
+                          apiClient: apiClient,
+                          appState: appState,
+                        ),
+                      ),
+                    );
+                  },
+                  child: _ExerciseCard(
+                    exercise: exercise,
+                    progress: progressByExercise[exercise.id],
+                    recommendation: recommendationByExercise[exercise.id],
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ExerciseBriefingPage(
+                            categoryTitle: category.title,
+                            exercise: exercise,
+                            progress: progressByExercise[exercise.id],
+                            recommendation:
+                                recommendationByExercise[exercise.id],
+                            apiClient: apiClient,
+                            appState: appState,
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -1079,68 +1178,4 @@ class _CoachIntroStep extends StatelessWidget {
   }
 }
 
-class _VocalCoachSkeleton extends StatelessWidget {
-  const _VocalCoachSkeleton();
 
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      children: const [
-        _SkeletonBlock(height: 240, radius: 28),
-        SizedBox(height: 18),
-        _SkeletonBlock(height: 92, radius: 22),
-        SizedBox(height: 12),
-        _SkeletonBlock(height: 92, radius: 22),
-        SizedBox(height: 18),
-        _SkeletonBlock(height: 170, radius: 24),
-        SizedBox(height: 14),
-        _SkeletonBlock(height: 170, radius: 24),
-        SizedBox(height: 14),
-        _SkeletonBlock(height: 170, radius: 24),
-      ],
-    );
-  }
-}
-
-class _SkeletonBlock extends StatefulWidget {
-  const _SkeletonBlock({required this.height, required this.radius});
-
-  final double height;
-  final double radius;
-
-  @override
-  State<_SkeletonBlock> createState() => _SkeletonBlockState();
-}
-
-class _SkeletonBlockState extends State<_SkeletonBlock>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1400),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final alpha = 0.08 + (_controller.value * 0.08);
-        return Container(
-          height: widget.height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.radius),
-            color:
-                Theme.of(context).colorScheme.primary.withValues(alpha: alpha),
-          ),
-        );
-      },
-    );
-  }
-}

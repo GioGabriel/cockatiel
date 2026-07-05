@@ -14,9 +14,11 @@ from app.core.exceptions import ApiError
 from app.modules.users.service import (
   downgrade_tier,
   get_access_tier,
+  get_retention_days,
   get_user_profile,
   update_vocal_preferences,
   upgrade_tier,
+  upgrade_to_premium,
   upsert_user,
 )
 from app.repositories.provider import reset_repository_bundle
@@ -145,3 +147,40 @@ class TestGetAccessTier:
     _create_user("u1")
     upgrade_tier("u1")
     assert get_access_tier("u1") == "premium"
+
+
+class TestUpgradeToPremium:
+  def test_upgrades_to_premium(self) -> None:
+    _create_user("u1")
+    result = upgrade_to_premium("u1")
+    assert result["access_tier"] == "premium"
+    assert result["premium_expires_at"] is not None
+
+  def test_raises_404_for_missing_user(self) -> None:
+    with pytest.raises(ApiError) as exc_info:
+      upgrade_to_premium("nope")
+    assert exc_info.value.status_code == 404
+
+
+class TestGetRetentionDays:
+  def test_premium_365(self) -> None:
+    assert get_retention_days("premium") == 365
+
+  def test_registered_90(self) -> None:
+    assert get_retention_days("registered") == 90
+
+  def test_guest_0(self) -> None:
+    assert get_retention_days("guest") == 0
+
+  def test_unknown_tier_0(self) -> None:
+    assert get_retention_days("unknown") == 0
+
+
+class TestDowngradePreservesPremiumData:
+  def test_preserves_premium_expires_at(self) -> None:
+    _create_user("u1")
+    upgraded = upgrade_tier("u1")
+    expires = upgraded["premium_expires_at"]
+    downgraded = downgrade_tier("u1")
+    assert downgraded["access_tier"] == "registered"
+    assert downgraded["premium_expires_at"] == expires

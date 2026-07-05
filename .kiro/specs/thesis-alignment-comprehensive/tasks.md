@@ -23,8 +23,8 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - Modify dequeue logic to select lowest priority first, FIFO within same priority
     - _Requirements: 2.4_
 
-- [ ] 2. Backend services (business logic)
-  - [ ] 2.1 Implement profile service in `backend/vocal_coach_api/app/modules/users/service.py`
+- [x] 2. Backend services (business logic)
+  - [x] 2.1 Implement profile service in `backend/vocal_coach_api/app/modules/users/service.py`
     - Implement `get_user_profile(user_id)` returning full profile with access tier and preferences
     - Implement `update_vocal_preferences(user_id, preferences)` with validation and persistence
     - Implement `upgrade_to_premium(user_id)` with idempotent tier change and expiry tracking
@@ -33,57 +33,57 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - Preserve premium-period sessions on downgrade
     - _Requirements: 2.1, 2.2, 2.3, 2.6, 2.7, 3.2, 3.3, 3.4_
 
-  - [ ] 2.2 Create karaoke catalog data in `backend/vocal_coach_api/app/modules/karaoke/catalog.py` (new)
+  - [x] 2.2 Create karaoke catalog data in `backend/vocal_coach_api/app/modules/karaoke/catalog.py` (new)
     - Define static karaoke catalog with minimum 3 categories (distinct style labels)
     - Each category has at least 1 song with full metadata (title, artist, difficulty, tempo, vocal range, tips)
     - Follow the same pattern as `training/catalog.py`
     - _Requirements: 7.1, 7.6, 13.1, 13.2_
 
-  - [ ] 2.3 Implement karaoke service in `backend/vocal_coach_api/app/modules/karaoke/service.py` (new)
+  - [x] 2.3 Implement karaoke service in `backend/vocal_coach_api/app/modules/karaoke/service.py` (new)
     - Implement `get_karaoke_catalog()` returning the full catalog
     - Implement `get_song_by_id(song_id)` returning a single song or None
     - Implement `list_songs_by_category(category)` for filtered retrieval
     - _Requirements: 7.1, 13.1, 13.3_
 
-  - [ ] 2.4 Enhance recommendation filtering in `backend/vocal_coach_api/app/modules/training/service.py`
+  - [x] 2.4 Enhance recommendation filtering in `backend/vocal_coach_api/app/modules/training/service.py`
     - Modify recommendation logic to filter by user's `preferred_categories` and `vocal_range`
     - Fall back to performance-based recommendations if no preferences are set
     - _Requirements: 3.6, 3.7_
 
-  - [ ] 2.5 Enhance AI queue producer in `backend/vocal_coach_api/app/queue/producers/ai_evaluation.py`
+  - [x] 2.5 Enhance AI queue producer in `backend/vocal_coach_api/app/queue/producers/ai_evaluation.py`
     - Pass user's access tier to queue item as priority field
     - Premium users get priority=1, registered users get priority=2
     - _Requirements: 2.4_
 
-- [ ] 3. Backend API endpoints (API layer)
-  - [ ] 3.1 Create profile endpoint in `backend/vocal_coach_api/app/api/v1/endpoints/profile.py` (new)
+- [x] 3. Backend API endpoints (API layer)
+  - [x] 3.1 Create profile endpoint in `backend/vocal_coach_api/app/api/v1/endpoints/profile.py` (new)
     - `GET /v1/profile` — return full user profile with access tier and vocal preferences
     - `PATCH /v1/profile/preferences` — validate and update vocal preferences
     - `POST /v1/profile/upgrade` — upgrade user to premium tier
     - Apply Firebase Auth dependency for all routes
     - _Requirements: 2.2, 3.1, 3.2, 3.3, 3.4, 10.4_
 
-  - [ ] 3.2 Create karaoke endpoint in `backend/vocal_coach_api/app/api/v1/endpoints/karaoke.py` (new)
+  - [x] 3.2 Create karaoke endpoint in `backend/vocal_coach_api/app/api/v1/endpoints/karaoke.py` (new)
     - `GET /v1/karaoke/catalog` — return full karaoke catalog
     - `GET /v1/karaoke/catalog/{song_id}` — return single song detail (404 if not found)
     - Apply Firebase Auth dependency
     - _Requirements: 7.1, 13.1, 13.3_
 
-  - [ ] 3.3 Register new routers in `backend/vocal_coach_api/app/api/v1/router.py`
+  - [x] 3.3 Register new routers in `backend/vocal_coach_api/app/api/v1/router.py`
     - Import and include `profile_router` and `karaoke_router`
     - _Requirements: 10.1_
 
-  - [ ] 3.4 Add guest catalog access parameter to training endpoint `backend/vocal_coach_api/app/api/v1/endpoints/training.py`
+  - [x] 3.4 Add guest catalog access parameter to training endpoint `backend/vocal_coach_api/app/api/v1/endpoints/training.py`
     - Add optional `?guest=true` query parameter to `GET /v1/training/catalog`
     - When guest=true, return catalog metadata without session-creation capability
     - Allow unauthenticated access for catalog browsing only
     - _Requirements: 1.1, 1.2_
 
-- [ ] 4. Checkpoint - Backend foundation verification
+- [x] 4. Checkpoint - Backend foundation verification
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Backend tests (verification)
-  - [ ] 5.1 Create unit tests for profile service in `backend/vocal_coach_api/tests/unit/test_profile_service.py` (new)
+- [x] 5. Backend tests (verification)
+  - [x] 5.1 Create unit tests for profile service in `backend/vocal_coach_api/tests/unit/test_profile_service.py` (new)
     - Test `get_user_profile` returns correct profile structure
     - Test `update_vocal_preferences` accepts valid payloads and rejects invalid
     - Test `upgrade_to_premium` changes tier and sets expiry
@@ -92,20 +92,20 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - Test downgrade preserves premium-period sessions
     - _Requirements: 2.1, 2.2, 2.3, 2.7, 3.2, 3.3, 3.4_
 
-  - [ ] 5.2 Create unit tests for karaoke service in `backend/vocal_coach_api/tests/unit/test_karaoke_service.py` (new)
+  - [x] 5.2 Create unit tests for karaoke service in `backend/vocal_coach_api/tests/unit/test_karaoke_service.py` (new)
     - Test catalog returns minimum 3 categories with distinct style labels
     - Test each category has at least 1 song
     - Test `get_song_by_id` returns correct song or None
     - Test song metadata validity (duration, tempo, vocal range fields)
     - _Requirements: 7.1, 7.6, 13.1, 13.2_
 
-  - [ ] 5.3 Create unit tests for AI queue priority in `backend/vocal_coach_api/tests/unit/test_queue_priority.py` (new)
+  - [x] 5.3 Create unit tests for AI queue priority in `backend/vocal_coach_api/tests/unit/test_queue_priority.py` (new)
     - Test premium requests dequeue before registered requests submitted after them
     - Test FIFO ordering within same priority tier
     - Test mixed queue sequences
     - _Requirements: 2.4_
 
-  - [ ] 5.4 Create integration tests for profile endpoints in `backend/vocal_coach_api/tests/integration/test_profile_endpoints.py` (new)
+  - [x] 5.4 Create integration tests for profile endpoints in `backend/vocal_coach_api/tests/integration/test_profile_endpoints.py` (new)
     - Test GET /v1/profile returns full profile
     - Test PATCH /v1/profile/preferences with valid and invalid payloads
     - Test POST /v1/profile/upgrade changes tier
@@ -113,7 +113,7 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - Test 422 for invalid preference values
     - _Requirements: 2.2, 3.1, 3.2, 3.3, 3.4, 10.3, 10.4_
 
-  - [ ] 5.5 Create integration tests for karaoke endpoints in `backend/vocal_coach_api/tests/integration/test_karaoke_endpoints.py` (new)
+  - [x] 5.5 Create integration tests for karaoke endpoints in `backend/vocal_coach_api/tests/integration/test_karaoke_endpoints.py` (new)
     - Test GET /v1/karaoke/catalog returns valid catalog structure
     - Test GET /v1/karaoke/catalog/{song_id} returns song or 404
     - Test 401 for unauthenticated requests
@@ -175,16 +175,16 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - **Property 22: Input validation rejects malformed requests** — out-of-range values get 422
     - **Validates: Requirements 10.3**
 
-- [ ] 6. Checkpoint - Backend tests passing
+- [x] 6. Checkpoint - Backend tests passing
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Mobile models and API client (data layer)
-  - [ ] 7.1 Create karaoke models in `mobile/vocal_coach_app/lib/shared/models/karaoke_models.dart` (new)
+- [x] 7. Mobile models and API client (data layer)
+  - [x] 7.1 Create karaoke models in `mobile/vocal_coach_app/lib/shared/models/karaoke_models.dart` (new)
     - Define `KaraokeSong`, `KaraokeCategory`, `KaraokeCatalog` DTOs with `fromJson` factories
     - Include all metadata fields: songId, title, styleCategory, difficulty, durationSec, artistReference, tempoBpm, vocalRangeLow, vocalRangeHigh, objective, performanceTips
     - _Requirements: 7.6, 13.2_
 
-  - [ ] 7.2 Enhance user models in `mobile/vocal_coach_app/lib/shared/models/user_models.dart`
+  - [x] 7.2 Enhance user models in `mobile/vocal_coach_app/lib/shared/models/user_models.dart`
     - Add `AccessTier` enum (guest, registered, premium)
     - Add `VocalRange` enum with six classifications
     - Add `TrainingGoal` enum with five values
@@ -193,7 +193,7 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - Add `VocalPreferencesUpdate` class for PATCH payload
     - _Requirements: 2.1, 3.1, 3.2, 3.5_
 
-  - [ ] 7.3 Extend API client in `mobile/vocal_coach_app/lib/core/network/api_client.dart`
+  - [x] 7.3 Extend API client in `mobile/vocal_coach_app/lib/core/network/api_client.dart`
     - Add `fetchKaraokeCatalog()` method → `GET /v1/karaoke/catalog`
     - Add `fetchKaraokeSong({required String songId})` → `GET /v1/karaoke/catalog/{songId}`
     - Add `fetchFullProfile()` → `GET /v1/profile`
@@ -201,8 +201,8 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - Add `upgradeToPremium()` → `POST /v1/profile/upgrade`
     - _Requirements: 3.3, 7.1, 13.3_
 
-- [ ] 8. Mobile feature implementations (UI/UX)
-  - [ ] 8.1 Implement karaoke catalog page in `mobile/vocal_coach_app/lib/features/karaoke_practice/presentation/karaoke_catalog_page.dart` (new)
+- [x] 8. Mobile feature implementations (UI/UX)
+  - [x] 8.1 Implement karaoke catalog page in `mobile/vocal_coach_app/lib/features/karaoke_practice/presentation/karaoke_catalog_page.dart` (new)
     - Fetch karaoke catalog from backend via API client
     - Display categories with style labels and song cards
     - Show song metadata: title, difficulty, duration, artist reference
@@ -210,94 +210,94 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - Navigate to song briefing on tap
     - _Requirements: 7.1, 13.1, 13.2, 13.3, 13.5_
 
-  - [ ] 8.2 Implement karaoke song briefing page in `mobile/vocal_coach_app/lib/features/karaoke_practice/presentation/karaoke_song_briefing_page.dart` (new)
+  - [x] 8.2 Implement karaoke song briefing page in `mobile/vocal_coach_app/lib/features/karaoke_practice/presentation/karaoke_song_briefing_page.dart` (new)
     - Display: song title, style category, difficulty, duration, objective, performance tips
     - Show vocal range information (low–high)
     - Provide "Start Session" button that creates a karaoke session
     - _Requirements: 13.4_
 
-  - [ ] 8.3 Update karaoke practice page in `mobile/vocal_coach_app/lib/features/karaoke_practice/presentation/karaoke_practice_page.dart`
+  - [x] 8.3 Update karaoke practice page in `mobile/vocal_coach_app/lib/features/karaoke_practice/presentation/karaoke_practice_page.dart`
     - Route through catalog → briefing → session flow instead of direct session start
     - Integrate with updated karaoke catalog navigation
     - _Requirements: 7.2_
 
-  - [ ] 8.4 Implement vocal preferences page in `mobile/vocal_coach_app/lib/features/user_profile/presentation/vocal_preferences_page.dart` (new)
+  - [x] 8.4 Implement vocal preferences page in `mobile/vocal_coach_app/lib/features/user_profile/presentation/vocal_preferences_page.dart` (new)
     - Form with vocal range dropdown (6 options), category multi-select (max 3), training goal dropdown
     - Client-side validation matching backend constraints
     - Submit to API client `updateVocalPreferences`
     - Handle success confirmation and error display (field-level)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 8.5 Enhance user profile page in `mobile/vocal_coach_app/lib/features/user_profile/presentation/user_profile_page.dart`
+  - [x] 8.5 Enhance user profile page in `mobile/vocal_coach_app/lib/features/user_profile/presentation/user_profile_page.dart`
     - Display full profile: name, email, access tier badge, vocal preferences summary
     - Add "Edit Preferences" navigation to vocal preferences page
     - Add premium upgrade CTA if user is registered tier
     - Show premium expiry date if premium
     - _Requirements: 3.1, 2.1, 2.2_
 
-  - [ ] 8.6 Enhance home dashboard page in `mobile/vocal_coach_app/lib/features/home_dashboard/presentation/`
+  - [x] 8.6 Enhance home dashboard page in `mobile/vocal_coach_app/lib/features/home_dashboard/presentation/`
     - Add progress summary card: total sessions, streak days, 7-day average score
     - Add recent evaluations section showing 3 most recent sessions (exercise name, score, timestamp)
     - Add personalized recommendation card from training recommendations
     - Add quick-access navigation cards to all thesis modules
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 9. Checkpoint - Mobile feature structure verification
+- [x] 9. Checkpoint - Mobile feature structure verification
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Mobile state and integration
-  - [ ] 10.1 Enhance app state for access tiers in `mobile/vocal_coach_app/lib/core/state/app_state.dart`
+- [x] 10. Mobile state and integration
+  - [x] 10.1 Enhance app state for access tiers in `mobile/vocal_coach_app/lib/core/state/app_state.dart`
     - Add `isGuest` getter (true when not authenticated)
     - Add `accessTier` getter resolving from user profile
     - Add guest mode feature restriction logic
     - Track authenticated user's premium status
     - _Requirements: 1.1, 1.2, 2.1_
 
-  - [ ] 10.2 Implement guest access restrictions across feature pages
+  - [x] 10.2 Implement guest access restrictions across feature pages
     - Show lock indicators on restricted features (sessions, progress, AI feedback) when guest
     - Display registration prompt on Dashboard in guest mode
     - Navigate to registration flow with feature name when guest taps restricted feature
     - _Requirements: 1.2, 1.3, 1.4_
 
-  - [ ] 10.3 Wire karaoke catalog navigation in app routing
+  - [x] 10.3 Wire karaoke catalog navigation in app routing
     - Update app router to include karaoke catalog and briefing routes
     - Connect bottom navigation karaoke tab to catalog page
     - Ensure back navigation works through catalog → briefing → session flow
     - _Requirements: 7.1, 7.2_
 
-  - [ ] 10.4 Add error handling for catalog load failures in karaoke and training pages
+  - [x] 10.4 Add error handling for catalog load failures in karaoke and training pages
     - Show "Catalog temporarily unavailable" error state with retry action
     - Apply to both training catalog (guest mode) and karaoke catalog
     - _Requirements: 1.5, 13.5_
 
-- [ ] 11. Sprint 11 removal and scope cleanup
-  - [ ] 11.1 Verify training catalog excludes Sprint 11 content in `backend/vocal_coach_api/app/modules/training/catalog.py`
+- [x] 11. Sprint 11 removal and scope cleanup
+  - [x] 11.1 Verify training catalog excludes Sprint 11 content in `backend/vocal_coach_api/app/modules/training/catalog.py`
     - Confirm no diction, pronunciation, or phrase clarity exercises exist in catalog
     - Confirm only Vocal Training, Do Re Mi Pitch, and Breathing Exercises categories present
     - Add a code comment documenting the scope constraint
     - _Requirements: 9.1, 9.4_
 
-  - [ ] 11.2 Remove Sprint 11 planned artifacts from mobile build
+  - [x] 11.2 Remove Sprint 11 planned artifacts from mobile build
     - Verify no diction/pronunciation widgets, models, or routes exist in the compiled feature set
     - Verify Sprint 11 planned scope in Sprint.md does not produce runtime artifacts
     - Confirm no Whisper/transcription references in mobile code
     - _Requirements: 9.1, 9.2, 9.3_
 
-  - [ ] 11.3 Update `contracts/api/openapi/vocal_coach_v1.yaml` with new endpoints
+  - [x] 11.3 Update `contracts/api/openapi/vocal_coach_v1.yaml` with new endpoints
     - Add profile endpoints (GET, PATCH, POST) schemas
     - Add karaoke catalog endpoints (GET catalog, GET song) schemas
     - Add AccessTier, VocalPreferences, KaraokeCatalog response models
     - _Requirements: 10.1, 10.5_
 
-- [ ] 12. Final validation and ISO 25010 verification
-  - [ ] 12.1 Create smoke test script in `backend/vocal_coach_api/tests/integration/test_smoke_thesis_modules.py` (new)
+- [x] 12. Final validation and ISO 25010 verification
+  - [x] 12.1 Create smoke test script in `backend/vocal_coach_api/tests/integration/test_smoke_thesis_modules.py` (new)
     - Verify all six thesis module endpoints respond (auth, sessions, training, karaoke, analytics, profile)
     - Verify no Sprint 11 artifacts accessible via API
     - Verify karaoke catalog returns non-empty response
     - Verify training catalog contains only thesis categories
     - _Requirements: 9.1, 10.1_
 
-  - [ ] 12.2 Verify ISO 25010 compliance evidence across the codebase
+  - [x] 12.2 Verify ISO 25010 compliance evidence across the codebase
     - Confirm modular architecture: API → service → repository separation
     - Confirm input validation on all new endpoints (Pydantic constraints + 422 responses)
     - Confirm Firebase Auth enforcement on all protected routes
@@ -305,7 +305,7 @@ This plan implements the thesis alignment features across 9 logical groups: back
     - Confirm loading states and Material Design navigation patterns in mobile
     - _Requirements: 10.2, 10.3, 10.4, 10.5, 10.6_
 
-- [ ] 13. Final checkpoint - Full system validation
+- [x] 13. Final checkpoint - Full system validation
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

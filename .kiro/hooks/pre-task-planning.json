@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Sprint-Aware Task Planning",
+      "description": "Before starting any spec task, review Sprint.md context and the architecture steering to plan the correct file targets and approach.",
+      "trigger": "PreTaskExec",
+      "action": {
+        "type": "agent",
+        "prompt": "Before starting this task:\n1. Read Sprint.md to confirm the current sprint status and which files are targeted.\n2. Identify which layer this task touches (endpoint, service, repository, mobile feature, shared model).\n3. Plan the file creation/modification order: contracts → backend schemas → service → endpoint → mobile DTO → API client → UI.\n4. Confirm no existing patterns will be violated (check steering: project-architecture, coding-standards).\n5. For mobile UI work: confirm the feature module exists under features/<name>/{data,domain,presentation}.\n6. For backend work: confirm the module exists under modules/<name>/ and router is registered.\nProceed only with a clear file-level plan."
+      },
+      "enabled": true
+    }
+  ]
+}

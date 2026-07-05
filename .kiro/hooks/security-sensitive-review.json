@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Security-Sensitive File Review",
+      "description": "When auth, config, or dependency files are modified, review for security implications.",
+      "trigger": "PostFileSave",
+      "matcher": "(backend/.*core/config\\.py$|backend/.*dependencies\\.py$|backend/.*auth/.*$|mobile/.*auth/.*[^/]*\\.dart$|mobile/.*config/.*[^/]*\\.dart$|.*pubspec\\.yaml$|.*pyproject\\.toml$)",
+      "action": {
+        "type": "agent",
+        "prompt": "A security-sensitive file was modified. Review for:\n\nAUTH:\n- AUTH_BYPASS should only be true in dev; ensure it's not accidentally hardcoded true.\n- User ID must always come from the auth token dependency, never from request body.\n- Firebase Auth token validation is not bypassed in production paths.\n\nCONFIG:\n- No secrets hardcoded (API keys, tokens, passwords). All via env vars.\n- New settings have sensible, secure defaults.\n- Firestore project ID is not committed with real values.\n\nDEPENDENCIES:\n- New packages are from well-known publishers with active maintenance.\n- No overly broad version ranges (e.g., '*' or '>0.0.0').\n- Check for known vulnerable patterns in the package name.\n\nMOBILE:\n- Auth emulator config is gated behind a build-time flag, not always active.\n- Token storage doesn't leak to logs or telemetry.\n\nFlag any concerns. Approve if changes are safe."
+      },
+      "enabled": true
+    }
+  ]
+}

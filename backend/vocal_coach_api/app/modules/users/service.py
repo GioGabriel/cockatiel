@@ -116,8 +116,18 @@ def upgrade_tier(user_id: str, target_tier: str = "premium") -> dict[str, Any]:
   return updated  # type: ignore[return-value]
 
 
+def upgrade_to_premium(user_id: str) -> dict[str, Any]:
+  """Upgrade user to premium tier. Convenience wrapper around upgrade_tier.
+
+  Sets premium_expires_at to 365 days from now (in ms).
+  Raises ApiError(404) if user not found.
+  """
+  return upgrade_tier(user_id, target_tier="premium")
+
+
 def downgrade_tier(user_id: str) -> dict[str, Any]:
-  """Downgrade user to registered tier. Clears premium_expires_at. Returns updated profile.
+  """Downgrade user to registered tier. Preserves premium_expires_at for
+  historical retention policy. Returns updated profile.
 
   Raises ApiError(404) if user not found.
   """
@@ -132,7 +142,6 @@ def downgrade_tier(user_id: str) -> dict[str, Any]:
 
   updated = repository.update(user_id, {
     "access_tier": "registered",
-    "premium_expires_at": None,
   })
   return updated  # type: ignore[return-value]
 
@@ -144,3 +153,17 @@ def get_access_tier(user_id: str) -> str:
   if user is None:
     return "guest"
   return user.get("access_tier", "guest")
+
+
+def get_retention_days(tier: str) -> int:
+  """Return the session retention window in days based on access tier.
+
+  Premium: 365 days
+  Registered: 90 days
+  Guest: 0 days (no session storage)
+  """
+  if tier == "premium":
+    return 365
+  if tier == "registered":
+    return 90
+  return 0

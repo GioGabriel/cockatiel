@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.api.v1.dependencies import get_current_user
+from app.api.v1.dependencies import get_current_user, get_current_user_or_guest
 from app.api.v1.schemas import TrainingCatalogOut, TrainingProgressOut, TrainingRecommendationsOut
 from app.modules.training.service import get_training_catalog, get_training_progress, get_training_recommendations
 
@@ -8,7 +8,7 @@ router = APIRouter(prefix="/training", tags=["training"])
 
 
 @router.get("/catalog", response_model=TrainingCatalogOut)
-def fetch_training_catalog(_: dict = Depends(get_current_user)) -> TrainingCatalogOut:
+def fetch_training_catalog(_: dict = Depends(get_current_user_or_guest)) -> TrainingCatalogOut:
   return TrainingCatalogOut.model_validate(get_training_catalog())
 
 

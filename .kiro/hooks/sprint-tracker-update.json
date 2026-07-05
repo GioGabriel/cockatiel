@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Sprint Tracker Update",
+      "description": "After agent execution completes, remind to update Sprint.md with progress and validation evidence.",
+      "trigger": "Stop",
+      "action": {
+        "type": "agent",
+        "prompt": "Work session ending. Before closing:\n1. If implementation was done: update Sprint.md progress log with today's date and what was delivered.\n2. If tests were run: note the result (e.g., '38 passed', 'dart analyze clean').\n3. If new files were created: add them to the sprint's 'Key files' section.\n4. If a checklist item was completed: mark it [x] in Sprint.md.\n5. If the sprint scope changed: note the deviation and rationale.\nKeep Sprint.md as the single source of truth for project status."
+      },
+      "enabled": true
+    }
+  ]
+}

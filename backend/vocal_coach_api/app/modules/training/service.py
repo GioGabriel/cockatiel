@@ -290,12 +290,36 @@ def get_training_progress(user_id: str) -> dict[str, Any]:
   }
 
 
-def get_training_recommendations(user_id: str) -> dict[str, Any]:
+_GOAL_METRIC_MAP: dict[str, str | None] = {
+  "pitch_improvement": "pitch_accuracy",
+  "breath_control": "breath_control",
+  "tone_quality": "pitch_stability",
+  "range_extension": "note_transition_smoothness",
+  "general_skill_building": None,
+}
+
+
+def get_training_recommendations(
+  user_id: str,
+  preferred_categories: list[str] | None = None,
+  vocal_range: str | None = None,
+  training_goal: str | None = None,
+) -> dict[str, Any]:
   progress = get_training_progress(user_id)
   progress_by_exercise = {item["exercise_id"]: item for item in progress["items"]}
 
+  catalog_categories = get_catalog()["categories"]
+
+  if preferred_categories:
+    catalog_categories = [
+      cat for cat in catalog_categories
+      if cat["category_id"] in preferred_categories
+    ]
+
+  goal_metric = _GOAL_METRIC_MAP.get(training_goal or "") if training_goal else None
+
   recommendations: list[dict[str, Any]] = []
-  for category in get_catalog()["categories"]:
+  for category in catalog_categories:
     for exercise in category["exercises"]:
       exercise_id = exercise["exercise_id"]
       progress_item = progress_by_exercise.get(exercise_id)
@@ -308,6 +332,9 @@ def get_training_recommendations(user_id: str) -> dict[str, Any]:
         weakest_focus = next(iter(exercise.get("focus_metrics") or []), "technique")
         reason = f"Revisit this drill to strengthen {weakest_focus.replace('_', ' ')}."
         priority = max(0.0, 100.0 - avg_score) + max(0.0, 10.0 - recommended_order)
+
+      if goal_metric and goal_metric in list(exercise.get("focus_metrics") or []):
+        priority += 5
 
       recommendations.append(
         {

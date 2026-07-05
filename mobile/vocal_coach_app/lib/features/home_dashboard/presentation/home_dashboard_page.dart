@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
+import 'package:vocal_coach_app/shared/animations/metric_animator.dart';
+import 'package:vocal_coach_app/shared/animations/page_transitions.dart';
+import 'package:vocal_coach_app/shared/widgets/shimmer_skeleton.dart';
+
+import '../../../app/shell/main_shell_page.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
+import '../../../shared/models/analytics_models.dart';
+import '../../../shared/models/training_models.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../analytics_dashboard/presentation/analytics_dashboard_page.dart';
-import '../../karaoke_practice/presentation/karaoke_practice_page.dart';
-import '../../user_profile/presentation/user_profile_page.dart';
-import '../../vocal_training/presentation/vocal_training_page.dart';
 
-class HomeDashboardPage extends StatelessWidget {
+class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({
     super.key,
     required this.appState,
@@ -19,51 +23,103 @@ class HomeDashboardPage extends StatelessWidget {
   final ApiClient apiClient;
 
   @override
+  State<HomeDashboardPage> createState() => _HomeDashboardPageState();
+}
+
+class _HomeDashboardPageState extends State<HomeDashboardPage> {
+  AnalyticsDashboard? _dashboard;
+  TrainingRecommendations? _recommendations;
+  bool _loadingDashboard = true;
+  bool _loadingRecommendations = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    _fetchDashboard();
+    _fetchRecommendations();
+  }
+
+  Future<void> _fetchDashboard() async {
+    try {
+      final result = await widget.apiClient.fetchAnalyticsDashboard();
+      if (!mounted) return;
+      setState(() {
+        _dashboard = result;
+        _loadingDashboard = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingDashboard = false);
+    }
+  }
+
+  Future<void> _fetchRecommendations() async {
+    try {
+      final result = await widget.apiClient.fetchTrainingRecommendations();
+      if (!mounted) return;
+      setState(() {
+        _recommendations = result;
+        _loadingRecommendations = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingRecommendations = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final user = appState.currentUser;
+    final user = widget.appState.currentUser;
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vocal Coach'),
         actions: [
+          // AI Queue badge
           AnimatedBuilder(
-            animation: appState,
+            animation: widget.appState,
             builder: (_, __) {
-              final pending = appState.pendingAIJobsCount;
+              final pending = widget.appState.pendingAIJobsCount;
               return Stack(
                 clipBehavior: Clip.none,
                 children: [
                   IconButton(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
+                        slideForwardRoute(
                           builder: (_) => AnalysisQueuePage(
-                            appState: appState,
-                            apiClient: apiClient,
+                            appState: widget.appState,
+                            apiClient: widget.apiClient,
                           ),
                         ),
                       );
                     },
-                    icon: const Icon(Icons.auto_awesome_motion_outlined),
-                    tooltip: 'AI Queue',
+                    icon: const Icon(Icons.auto_awesome_rounded),
+                    tooltip: 'AI Analysis',
                   ),
                   if (pending > 0)
                     Positioned(
-                      right: 8,
-                      top: 8,
+                      right: 6,
+                      top: 6,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primary,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           '$pending',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -73,105 +129,350 @@ class HomeDashboardPage extends StatelessWidget {
               );
             },
           ),
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => UserProfilePage(appState: appState),
-                ),
-              );
-            },
-            icon: const Icon(Icons.account_circle_outlined),
-            tooltip: 'Profile',
-          ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0C6A73), Color(0xFF1596A3)],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            _loadingDashboard = true;
+            _loadingRecommendations = true;
+          });
+          await _loadData();
+        },
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          children: [
+            // Welcome greeting
+            _buildWelcomeSection(user, theme),
+            const SizedBox(height: 24),
+
+            // Progress summary
+            _buildProgressSection(theme),
+            const SizedBox(height: 24),
+
+            // Quick actions
+            _buildQuickActions(theme),
+            const SizedBox(height: 24),
+
+            // Recommendations
+            _buildRecommendations(theme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeSection(
+    dynamic user,
+    ThemeData theme,
+  ) {
+    final name = user?.name ?? 'Singer';
+    final greeting = _getGreeting();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$greeting,',
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          name,
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  Widget _buildProgressSection(ThemeData theme) {
+    if (_loadingDashboard) {
+      return ShimmerSkeleton(
+        child: SkeletonShapes.dashboardCard(theme: theme),
+      );
+    }
+
+    final dashboard = _dashboard;
+    if (dashboard == null) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Icon(
+                Icons.music_note_outlined,
+                size: 40,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x290C6A73),
-                  blurRadius: 14,
-                  offset: Offset(0, 8),
+              const SizedBox(height: 12),
+              Text(
+                'Start your first session',
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Go to Training or Karaoke to begin practicing.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Your Progress', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 20),
+            Row(
               children: [
-                Text(
-                  'Welcome, ${user?.name ?? 'Singer'}',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: _StatTile(
+                    value: dashboard.totalCompletedSessions.toDouble(),
+                    label: 'Sessions',
+                    icon: Icons.headphones_rounded,
+                    theme: theme,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Pick your next session and keep building consistency with guided feedback.',
-                  style: TextStyle(color: Color(0xFFE7FCFF), height: 1.35),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatTile(
+                    value: dashboard.streakDays.toDouble(),
+                    label: 'Day Streak',
+                    icon: Icons.local_fire_department_rounded,
+                    theme: theme,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatTile(
+                    value: dashboard.avgScore7d,
+                    label: 'Avg Score',
+                    icon: Icons.star_rounded,
+                    theme: theme,
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 18),
-          Text('Practice Modules', style: theme.textTheme.titleLarge),
-          const SizedBox(height: 10),
-          _ModuleCard(
-            icon: Icons.mic_none_rounded,
-            title: 'Vocal Coach',
-            subtitle:
-                'Vocal training, Do Re Mi pitch drills, and breathing exercises.',
-            cta: 'Open Vocal Coach',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => VocalTrainingPage(
-                    apiClient: apiClient,
-                    appState: appState,
+            const SizedBox(height: 16),
+            // View full analytics link
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    slideForwardRoute(
+                      builder: (_) => AnalyticsDashboardPage(
+                        apiClient: widget.apiClient,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.trending_up_rounded, size: 18),
+                label: const Text('View Analytics'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Quick Start', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.mic_rounded,
+                label: 'Vocal\nTraining',
+                color: theme.colorScheme.primary,
+                onTap: () {
+                  // Switch to Training tab (index 1) via ancestor shell
+                  _switchToTab(1);
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.music_note_rounded,
+                label: 'Karaoke\nPractice',
+                color: theme.colorScheme.secondary,
+                onTap: () {
+                  // Switch to Karaoke tab (index 2) via ancestor shell
+                  _switchToTab(2);
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.trending_up_rounded,
+                label: 'Progress\nAnalytics',
+                color: const Color(0xFF6C63FF),
+                onTap: () {
+                  Navigator.of(context).push(
+                    slideForwardRoute(
+                      builder: (_) => AnalyticsDashboardPage(
+                        apiClient: widget.apiClient,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _switchToTab(int index) {
+    // Find the nearest NavigationBar ancestor and switch tabs.
+    // The MainShellPage uses IndexedStack, so we need to communicate
+    // the desired tab. Use a simple approach: pop to root and let user tap.
+    // For a seamless experience, we'll use a callback if available.
+    final scaffoldState = Scaffold.maybeOf(context);
+    if (scaffoldState != null) {
+      // Navigate via notification pattern
+      TabSwitchNotification(index).dispatch(context);
+    }
+  }
+
+  Widget _buildRecommendations(ThemeData theme) {
+    if (_loadingRecommendations) {
+      return const SizedBox.shrink();
+    }
+
+    final recs = _recommendations;
+    if (recs == null || recs.items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final displayItems = recs.items.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Recommended for You', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 12),
+        ...displayItems.map(
+          (rec) => Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.lightbulb_outline_rounded,
+                      color: theme.colorScheme.onSecondaryContainer,
+                      size: 20,
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-          _ModuleCard(
-            icon: Icons.graphic_eq_rounded,
-            title: 'Karaoke Practice',
-            subtitle: 'Practice timing and expression in song-style drills.',
-            cta: 'Start Karaoke',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => KaraokePracticePage(
-                    apiClient: apiClient,
-                    appState: appState,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          rec.exerciseName,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          rec.reason,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
           ),
-          _ModuleCard(
-            icon: Icons.trending_up_rounded,
-            title: 'Analytics Dashboard',
-            subtitle: 'Track streaks, trends, and score improvement over time.',
-            cta: 'Open Analytics',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => AnalyticsDashboardPage(apiClient: apiClient),
-                ),
-              );
-            },
+        ),
+      ],
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.theme,
+  });
+
+  final double value;
+  final String label;
+  final IconData icon;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: theme.colorScheme.primary, size: 22),
+          const SizedBox(height: 8),
+          CountUpText(
+            value: value,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -179,55 +480,45 @@ class HomeDashboardPage extends StatelessWidget {
   }
 }
 
-class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({
+class _QuickActionCard extends StatelessWidget {
+  const _QuickActionCard({
     required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.cta,
+    required this.label,
+    required this.color,
     required this.onTap,
   });
 
   final IconData icon;
-  final String title;
-  final String subtitle;
-  final String cta;
+  final String label;
+  final Color color;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: color.withValues(alpha: 0.15),
+          ),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child:
-                      Icon(icon, color: theme.colorScheme.onPrimaryContainer),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(title, style: theme.textTheme.titleMedium),
-                ),
-              ],
-            ),
+            Icon(icon, color: color, size: 28),
             const SizedBox(height: 10),
-            Text(subtitle),
-            const SizedBox(height: 12),
-            FilledButton.tonal(
-              onPressed: onTap,
-              child: Text(cta),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+                height: 1.3,
+              ),
             ),
           ],
         ),

@@ -7,8 +7,12 @@ import 'package:flutter/services.dart';
 import '../../../core/audio/live_audio_analyzer.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
+import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/session_models.dart';
 import '../../../shared/models/training_models.dart';
+import '../../../shared/widgets/animated_score_display.dart';
+import '../../../shared/widgets/audio_waveform_visualizer.dart';
+import '../../../shared/widgets/glass_card.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../ai_feedback_display/presentation/feedback_page.dart';
 
@@ -587,6 +591,18 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         _attempts.length < _maxAttempts;
   }
 
+  /// Normalized amplitude (0.0–1.0) for the waveform visualizer.
+  /// Maps loudness from the floor to 0 dB into a visual range.
+  double get _liveWaveformAmplitude {
+    if (!_isMicrophoneReady || _liveLoudnessDb <= _loudnessFloorDb) {
+      return 0.0;
+    }
+    // Map from loudnessFloor..0 dB to 0.0..1.0
+    final range = (0.0 - _loudnessFloorDb).abs();
+    if (range <= 0) return 0.0;
+    return ((_liveLoudnessDb - _loudnessFloorDb) / range).clamp(0.0, 1.0);
+  }
+
   void _startLoudnessCalibration() {
     if (_isCalibratingLoudness || !_isMicrophoneReady || _isAttemptRunning) {
       return;
@@ -918,7 +934,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     }
     unawaited(HapticFeedback.mediumImpact());
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
+      resultRevealRoute(
         builder: (_) => FeedbackPage(
           result: FinalizeResponse(
             sessionId: widget.sessionId,
@@ -1074,7 +1090,18 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         : (widget.exerciseName ?? 'Session In Progress');
 
     return Scaffold(
-      appBar: AppBar(title: Text(exerciseTitle)),
+      appBar: AppBar(
+        title: Hero(
+          tag: 'exercise_title_${widget.exerciseType}',
+          child: Material(
+            color: Colors.transparent,
+            child: Text(
+              exerciseTitle,
+              style: Theme.of(context).appBarTheme.titleTextStyle,
+            ),
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
@@ -1247,6 +1274,30 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                       label: const Text('Enable Microphone'),
                     ),
                   ],
+                  if (_requiresMicrophone &&
+                      _isMicrophoneReady &&
+                      !_isAttemptRunning) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.mic_rounded,
+                          color: Colors.white.withValues(alpha: 0.7),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: CompactWaveformIndicator(
+                            amplitude: _liveWaveformAmplitude,
+                            isActive: true,
+                            barCount: 24,
+                            height: 24.0,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (_isAttemptRunning) ...[
                     const SizedBox(height: 14),
                     Text(
@@ -1263,6 +1314,26 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                       valueColor:
                           const AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
+                    if (_requiresMicrophone) ...[
+                      const SizedBox(height: 16),
+                      Center(
+                        child: AudioWaveformVisualizer(
+                          amplitude: _liveWaveformAmplitude,
+                          isActive: _isMicrophoneReady,
+                          barCount: 32,
+                          barWidth: 3.0,
+                          barSpacing: 2.0,
+                          maxBarHeight: 56.0,
+                          minBarHeight: 4.0,
+                          activeColor: const Color(0xFF14B8C4),
+                          inactiveColor:
+                              Colors.white.withValues(alpha: 0.15),
+                          glowEnabled: true,
+                          glowIntensity: 0.7,
+                          style: WaveformStyle.mirrored,
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -1423,8 +1494,17 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                             style: theme.textTheme.titleSmall,
                           ),
                           const SizedBox(height: 6),
+                          AnimatedScoreDisplay(
+                            score: latestAttempt.score.round(),
+                            isPersonalBest: latestAttempt.isBest,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
                           Text(
-                            'Score ${latestAttempt.score.toStringAsFixed(1)} • ${_difficultyLabel(latestAttempt.difficulty)} • ${latestAttempt.durationSec}s',
+                            '${_difficultyLabel(latestAttempt.difficulty)} • ${latestAttempt.durationSec}s',
                           ),
                           if (latestAttempt.strongestMetric != null ||
                               latestAttempt.weakestMetric != null) ...[
@@ -1442,6 +1522,38 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                             ),
                           ],
                         ],
+                      ),
+                    ),
+                  ],
+                  if (_isAttemptRunning && _bestAttemptScore != null) ...[
+                    const SizedBox(height: 14),
+                    GlassCard.dark(
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.emoji_events_rounded,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Best: ${_bestAttemptScore!.toStringAsFixed(1)}',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              'Beat it!',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

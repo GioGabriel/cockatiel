@@ -8,6 +8,7 @@ import '../../shared/models/analytics_models.dart';
 import '../../shared/models/audio_snippet_models.dart';
 import '../../shared/models/session_models.dart';
 import '../../shared/models/training_models.dart';
+import '../../shared/models/karaoke_models.dart';
 import '../../shared/models/user_models.dart';
 
 class ApiException implements Exception {
@@ -258,6 +259,64 @@ class ApiClient {
     _throwIfError(response);
     return AudioSnippetList.fromJson(
         jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<KaraokeCatalog> fetchKaraokeCatalog() async {
+    final response = await _httpClient.get(
+      Uri.parse('${_config.apiBaseUrl}/v1/karaoke/catalog'),
+      headers: await _headers(),
+    );
+    _throwIfError(response);
+    return KaraokeCatalog.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<KaraokeDrill> fetchKaraokeDrill({required String drillId}) async {
+    final response = await _httpClient.get(
+      Uri.parse('${_config.apiBaseUrl}/v1/karaoke/catalog/$drillId'),
+      headers: await _headers(),
+    );
+    _throwIfError(response);
+    return KaraokeDrill.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<UserProfileFull> fetchFullProfile() async {
+    final response = await _httpClient.get(
+      Uri.parse('${_config.apiBaseUrl}/v1/profile'),
+      headers: await _headers(),
+    );
+    _throwIfError(response);
+    return UserProfileFull.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<UserProfileFull> updateVocalPreferences(
+    VocalPreferencesUpdate prefs,
+  ) async {
+    final response = await _httpClient.put(
+      Uri.parse('${_config.apiBaseUrl}/v1/profile/preferences'),
+      headers: await _headers(),
+      body: jsonEncode(prefs.toJson()),
+    );
+    _throwIfError(response);
+    return UserProfileFull.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<UserProfileFull> upgradeToPremium() async {
+    final response = await _httpClient.post(
+      Uri.parse('${_config.apiBaseUrl}/v1/profile/tier/upgrade'),
+      headers: await _headers(),
+    );
+    _throwIfError(response);
+    return UserProfileFull.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   static void _throwIfError(http.Response response) {

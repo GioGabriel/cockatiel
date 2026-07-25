@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:vocal_coach_app/shared/animations/metric_animator.dart';
@@ -25,15 +27,40 @@ class HomeDashboardPage extends StatefulWidget {
   State<HomeDashboardPage> createState() => _HomeDashboardPageState();
 }
 
-class _HomeDashboardPageState extends State<HomeDashboardPage> {
+class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
   AnalyticsDashboard? _dashboard;
   TrainingRecommendations? _recommendations;
   bool _loadingDashboard = true;
   bool _loadingRecommendations = true;
+  Timer? _refreshTimer;
 
   void initState() {
     super.initState();
     _loadData();
+    // Auto-refresh analytics every 30 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _loadDataSilently();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Silent refresh — doesn't show loading spinners
+  Future<void> _loadDataSilently() async {
+    try {
+      final result = await widget.apiClient.fetchAnalyticsDashboard();
+      if (!mounted) return;
+      setState(() => _dashboard = result);
+    } catch (_) {}
+    try {
+      final result = await widget.apiClient.fetchTrainingRecommendations();
+      if (!mounted) return;
+      setState(() => _recommendations = result);
+    } catch (_) {}
   }
 
   Future<void> _loadData() async {

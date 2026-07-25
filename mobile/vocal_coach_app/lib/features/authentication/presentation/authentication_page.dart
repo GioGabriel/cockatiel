@@ -131,22 +131,78 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: AnimatedBuilder(
-          animation: widget.appState,
-          builder: (_, __) {
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              switchInCurve: Curves.easeOutCubic,
-              child: switch (_view) {
-                _AuthView.signIn => _buildSignInPage(theme),
-                _AuthView.signUp => _buildSignUpPage(theme),
-                _AuthView.forgotPassword => _buildForgotPasswordPage(theme),
+      backgroundColor: const Color(0xFF09090F),
+      body: Stack(
+        children: [
+          // Dark gradient background
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF09090F),
+                    Color(0xFF0D0D1A),
+                    Color(0xFF0A0A14),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Decorative glow orbs
+          Positioned(
+            top: -80,
+            right: -60,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    theme.colorScheme.primary.withValues(alpha: 0.18),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -100,
+            left: -80,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    theme.colorScheme.tertiary.withValues(alpha: 0.12),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Content
+          SafeArea(
+            child: AnimatedBuilder(
+              animation: widget.appState,
+              builder: (_, __) {
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeOutCubic,
+                  child: switch (_view) {
+                    _AuthView.signIn => _buildSignInPage(theme),
+                    _AuthView.signUp => _buildSignUpPage(theme),
+                    _AuthView.forgotPassword => _buildForgotPasswordPage(theme),
+                  },
+                );
               },
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../../shared/models/session_models.dart';
 
@@ -9,11 +9,11 @@ class PitchPoint {
   const PitchPoint(this.elapsedSec, this.frequencyHz);
 }
 
-/// Yousician-style scrolling pitch visualizer.
+/// Yousician-style scrolling pitch visualizer with rainbow note blocks.
 ///
-/// Shows target note blocks scrolling left, with the user live pitch
-/// rendered as a glowing neon line. Always visible — shows a static preview
-/// of the song before the session starts.
+/// Shows target note blocks scrolling left (colored by pitch height),
+/// with the user's live pitch rendered as a glowing orange squiggly line.
+/// Also shows a vertical rainbow pitch scale on the left side.
 class KaraokePitchVisualizer extends StatefulWidget {
   const KaraokePitchVisualizer({
     super.key,
@@ -89,7 +89,7 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
             borderRadius: BorderRadius.circular(16),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.55),
+                color: Colors.black.withValues(alpha: 0.72),
                 border: Border.all(
                   color: theme.colorScheme.primary.withValues(alpha: 0.18),
                   width: 1,
@@ -120,6 +120,13 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
   }
 }
 
+/// Maps a normalized pitch position (0=low, 1=high) to a rainbow color.
+/// Low = deep red/orange, mid = green, high = violet/purple.
+Color _pitchColor(double norm) {
+  final hue = (norm * 270).clamp(0.0, 270.0);
+  return HSVColor.fromAHSV(1.0, hue, 0.80, 0.90).toColor();
+}
+
 class _PitchPainter extends CustomPainter {
   final List<TrainingRuntimeStage> stages;
   final double currentElapsedSec;
@@ -143,7 +150,8 @@ class _PitchPainter extends CustomPainter {
 
   static const double _windowSec = 5.0;
   static const double _playheadFraction = 0.28;
-  static const double _blockHeight = 26.0;
+  static const double _blockHeight = 28.0;
+  static const double _scaleWidth = 36.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -152,10 +160,10 @@ class _PitchPainter extends CustomPainter {
       return;
     }
 
-    final playheadX = size.width * _playheadFraction;
-    final pxPerSec = size.width / _windowSec;
+    final plotWidth = size.width - _scaleWidth;
+    final playheadX = _scaleWidth + plotWidth * _playheadFraction;
+    final pxPerSec = plotWidth / _windowSec;
 
-    // Compute Hz range from actual notes + vocal range.
     final allHz = stages.map((s) => getTargetFrequency(s.targetLabel)).toList();
     double loHz = min(minHz, allHz.reduce(min) * 0.80);
     double hiHz = max(maxHz, allHz.reduce(max) * 1.20);
@@ -174,29 +182,34 @@ class _PitchPainter extends CustomPainter {
       return size.height - (norm * size.height).clamp(-60.0, size.height + 60.0);
     }
 
-    // When previewing (not running), display from t = -0.5 so first note is just to the right of playhead.
-    final double refSec = isRunning ? currentElapsedSec : -0.5;
+    double hzToNorm(double hz) {
+      if (hz <= 0) return 0;
+      final midi = _hzToMidi(hz);
+      return ((midi - loMidi) / midiRange).clamp(0.0, 1.0);
+    }
 
+    final double refSec = isRunning ? currentElapsedSec : -0.5;
     double secToX(double sec) => playheadX + (sec - refSec) * pxPerSec;
 
-    // Grid
-    _drawGrid(canvas, size, loMidi, hiMidi, midiRange);
+    _drawPitchScale(canvas, size, loMidi, hiMidi, midiRange);
+    _drawGrid(canvas, size, loMidi, hiMidi, midiRange, _scaleWidth);
 
-    // Note blocks
     for (final stage in stages) {
       final startX = secToX(stage.startSec.toDouble());
       final endX = secToX(stage.endSec.toDouble());
-      if (endX < -8 || startX > size.width + 8) continue;
+      if (endX < _scaleWidth - 8 || startX > size.width + 8) continue;
 
       final hz = getTargetFrequency(stage.targetLabel);
       final cy = hzToY(hz).clamp(0.0, size.height);
+      final norm = hzToNorm(hz);
+      final noteColor = _pitchColor(norm);
 
       final isPast = isRunning && currentElapsedSec >= stage.endSec;
       final isActive = isRunning &&
           currentElapsedSec >= stage.startSec &&
           currentElapsedSec < stage.endSec;
 
-      final rectL = max(0.0, startX);
+      final rectL = max(_scaleWidth, startX);
       final rectR = min(size.width, endX);
       if (rectR <= rectL) continue;
 
@@ -207,16 +220,16 @@ class _PitchPainter extends CustomPainter {
         canvas.drawRRect(
           rRect,
           Paint()
-            ..color = primaryColor.withValues(alpha: 0.4)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
+            ..color = noteColor.withValues(alpha: 0.45)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
         );
       }
 
       final Color fill = isActive
-          ? primaryColor
+          ? noteColor
           : isPast
-              ? Colors.white.withValues(alpha: 0.10)
-              : primaryColor.withValues(alpha: 0.38);
+              ? noteColor.withValues(alpha: 0.18)
+              : noteColor.withValues(alpha: 0.55);
 
       canvas.drawRRect(rRect, Paint()..color = fill);
 
@@ -225,7 +238,7 @@ class _PitchPainter extends CustomPainter {
           Offset(rect.left + 7, rect.top + 1.5),
           Offset(rect.right - 7, rect.top + 1.5),
           Paint()
-            ..color = Colors.white.withValues(alpha: isActive ? 0.65 : 0.22)
+            ..color = Colors.white.withValues(alpha: isActive ? 0.6 : 0.20)
             ..strokeWidth = 1.5
             ..strokeCap = StrokeCap.round,
         );
@@ -236,10 +249,8 @@ class _PitchPainter extends CustomPainter {
       }
     }
 
-    // Playhead
     _drawPlayhead(canvas, size, playheadX);
 
-    // Live pitch line
     if (isRunning && pitchHistory.length > 1) {
       _drawPitchLine(canvas, size, hzToY, secToX);
     }
@@ -249,23 +260,63 @@ class _PitchPainter extends CustomPainter {
     }
   }
 
-  void _drawGrid(Canvas canvas, Size size, double loMidi, double hiMidi, double midiRange) {
+  void _drawPitchScale(Canvas canvas, Size size, double loMidi, double hiMidi, double midiRange) {
+    final scaleRect = Rect.fromLTWH(0, 0, _scaleWidth - 4, size.height);
+    final gradient = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        _pitchColor(1.0).withValues(alpha: 0.7),
+        _pitchColor(0.67).withValues(alpha: 0.7),
+        _pitchColor(0.5).withValues(alpha: 0.7),
+        _pitchColor(0.33).withValues(alpha: 0.7),
+        _pitchColor(0.0).withValues(alpha: 0.7),
+      ],
+    ).createShader(scaleRect);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(2, 0, 6, size.height), const Radius.circular(3)),
+      Paint()..shader = gradient,
+    );
+
+    const noteNames = ['C', 'D', 'E', 'G', 'A'];
+    for (int m = loMidi.ceil(); m <= hiMidi.floor(); m++) {
+      final noteName = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][m % 12];
+      if (!noteNames.contains(noteName)) continue;
+      final norm = (m - loMidi) / midiRange;
+      final y = size.height - norm * size.height;
+      if (y < 8 || y > size.height - 8) continue;
+
+      final span = TextSpan(
+        text: noteName,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.5),
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+      final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
+      tp.paint(canvas, Offset(10, y - tp.height / 2));
+    }
+  }
+
+  void _drawGrid(Canvas canvas, Size size, double loMidi, double hiMidi, double midiRange, double offsetX) {
     final faint = Paint()
       ..color = Colors.white.withValues(alpha: 0.04)
       ..strokeWidth = 0.5;
     final mid = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = Colors.white.withValues(alpha: 0.09)
       ..strokeWidth = 0.5;
 
     for (int m = loMidi.ceil(); m <= hiMidi.floor(); m++) {
       final norm = (m - loMidi) / midiRange;
       final y = size.height - norm * size.height;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), faint);
+      canvas.drawLine(Offset(offsetX, y), Offset(size.width, y), faint);
     }
     for (int m = (loMidi / 12).floor() * 12; m <= hiMidi + 12; m += 12) {
       final norm = (m - loMidi) / midiRange;
       final y = size.height - norm * size.height;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), mid);
+      canvas.drawLine(Offset(offsetX, y), Offset(size.width, y), mid);
     }
   }
 
@@ -280,7 +331,7 @@ class _PitchPainter extends CustomPainter {
       Offset(x, 0),
       Offset(x, size.height),
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.45)
+        ..color = Colors.white.withValues(alpha: 0.50)
         ..strokeWidth = 1.5,
     );
   }
@@ -293,7 +344,7 @@ class _PitchPainter extends CustomPainter {
     for (final pt in pitchHistory) {
       if (pt.frequencyHz <= 0) { started = false; prevSec = null; continue; }
       final x = secToX(pt.elapsedSec);
-      if (x < -4 || x > size.width + 4) { started = false; prevSec = null; continue; }
+      if (x < _scaleWidth - 4 || x > size.width + 4) { started = false; prevSec = null; continue; }
       final y = hzToY(pt.frequencyHz).clamp(2.0, size.height - 2.0);
 
       if (!started || (prevSec != null && pt.elapsedSec - prevSec > 0.15)) {
@@ -307,29 +358,36 @@ class _PitchPainter extends CustomPainter {
 
     if (!started) return;
 
+    // Orange glow
     canvas.drawPath(path, Paint()
-      ..color = const Color(0xFF39FF14).withValues(alpha: 0.35)
+      ..color = const Color(0xFFFFA040).withValues(alpha: 0.30)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
+      ..strokeWidth = 12
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
 
+    // Orange line
     canvas.drawPath(path, Paint()
-      ..color = const Color(0xFF39FF14)
+      ..color = const Color(0xFFFFA040)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.8
+      ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round);
 
+    // Dot at current pitch
     final latest = pitchHistory.last;
     if (latest.frequencyHz > 0) {
       final lx = secToX(latest.elapsedSec);
       final ly = hzToY(latest.frequencyHz).clamp(2.0, size.height - 2.0);
-      canvas.drawCircle(Offset(lx, ly), 12,
-          Paint()..color = const Color(0xFF39FF14).withValues(alpha: 0.25)
+      canvas.drawCircle(Offset(lx, ly), 14,
+          Paint()..color = const Color(0xFFFFA040).withValues(alpha: 0.22)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
       canvas.drawCircle(Offset(lx, ly), 5, Paint()..color = Colors.white);
+      canvas.drawCircle(Offset(lx, ly), 5,
+          Paint()..color = const Color(0xFFFFA040).withValues(alpha: 0.6)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5);
     }
   }
 
@@ -337,7 +395,9 @@ class _PitchPainter extends CustomPainter {
     final span = TextSpan(
       text: text,
       style: TextStyle(
-        color: isPast ? Colors.white.withValues(alpha: 0.28) : Colors.white.withValues(alpha: isActive ? 1.0 : 0.82),
+        color: isPast
+            ? Colors.white.withValues(alpha: 0.25)
+            : Colors.white.withValues(alpha: isActive ? 1.0 : 0.88),
         fontSize: 11,
         fontWeight: FontWeight.bold,
         letterSpacing: 0.2,

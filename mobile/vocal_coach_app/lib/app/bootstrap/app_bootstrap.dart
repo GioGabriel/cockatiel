@@ -10,7 +10,7 @@ class AppBootstrap extends StatelessWidget {
     final router = AppRouter();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Vocal Coach',
+      title: 'Cockatiel',
       theme: AppTheme.dark(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,

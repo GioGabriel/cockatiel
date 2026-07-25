@@ -2,7 +2,6 @@
 <html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Cockatiel - Your Gateway to Vocal Mastery">
@@ -10,8 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Cockatiel">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
+  <link rel="icon" type="image/png" href="cockatiel_logo.jpg"/>
   <title>Cockatiel</title>
   <link rel="manifest" href="manifest.json">
 
@@ -25,21 +23,18 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    /* ── SPLASH WRAPPER ─────────────────────────────── */
+    /* ── SPLASH ─────────────────────────────────────── */
     #splash {
       position: fixed;
       inset: 0;
-      background-color: #09090F;
+      background: #09090F;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 9999;
-      /* Subtle green glow from top, purple from bottom-right */
-      background-image:
-        radial-gradient(ellipse 70% 45% at 50% -5%,  rgba(0,255,127,0.14) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 40% at 90% 100%, rgba(120,80,255,0.08) 0%, transparent 60%);
-      transition: opacity 0.6s ease-out;
+      /* Fade out on dismiss */
+      transition: opacity 0.5s ease-out;
     }
 
     #splash.hidden {
@@ -47,155 +42,67 @@
       pointer-events: none;
     }
 
-    /* ── LOGO IMAGE ─────────────────────────────────── */
-    .splash-logo-wrap {
-      position: relative;
-      width: 130px;
-      height: 130px;
-      margin-bottom: 32px;
-      /* Entrance: scale up from 0.6 + fade in */
-      animation: logo-enter 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    /* ── LOGO ───────────────────────────────────────── */
+    .splash-logo {
+      width: 96px;
+      height: 96px;
+      border-radius: 22px;
+      overflow: hidden;
+      margin-bottom: 28px;
+      /* Entrance: fade in + subtle scale from 0.92 */
+      animation: enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
-    /* Outer pulsing glow ring */
-    .splash-logo-wrap::before {
-      content: '';
-      position: absolute;
-      inset: -12px;
-      border-radius: 44px;
-      background: radial-gradient(ellipse at center, rgba(0,255,127,0.18) 0%, transparent 70%);
-      animation: glow-breathe 3s ease-in-out infinite;
-    }
-
-    /* Subtle border ring */
-    .splash-logo-wrap::after {
-      content: '';
-      position: absolute;
-      inset: -4px;
-      border-radius: 38px;
-      border: 1px solid rgba(0,255,127,0.2);
-      animation: ring-breathe 3s ease-in-out infinite;
-    }
-
-    .splash-logo-img {
+    .splash-logo img {
       width: 100%;
       height: 100%;
-      border-radius: 32px;
       object-fit: cover;
-      position: relative;
-      z-index: 1;
-      /* Slight green tint filter to unify with brand */
-      filter: brightness(1.05) saturate(1.1);
-      box-shadow:
-        0 0 40px rgba(0,255,127,0.20),
-        0 20px 60px rgba(0,0,0,0.6);
+      display: block;
     }
 
-    /* ── TITLE ──────────────────────────────────────── */
-    .splash-title {
-      font-size: 38px;
-      font-weight: 900;
+    /* ── WORDMARK ───────────────────────────────────── */
+    .splash-wordmark {
+      font-size: 28px;
+      font-weight: 700;
       color: #ffffff;
-      letter-spacing: -1.5px;
-      line-height: 1;
-      margin-bottom: 10px;
-      animation: text-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      animation: enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
     }
 
-    .splash-title .accent {
-      color: #00FF7F;
-      text-shadow: 0 0 20px rgba(0,255,127,0.5);
+    /* ── TAGLINE ────────────────────────────────────── */
+    .splash-tagline {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.5px;
+      animation: enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
     }
 
-    /* ── SUBTITLE ───────────────────────────────────── */
-    .splash-subtitle {
-      font-size: 13px;
-      color: rgba(255,255,255,0.38);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      margin-bottom: 48px;
-      animation: text-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
-    }
-
-    /* ── LOADER BAR ─────────────────────────────────── */
-    .splash-bar-track {
-      width: 56px;
-      height: 3px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 2px;
-      overflow: hidden;
-      animation: text-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.65s both;
-    }
-
-    .splash-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #00FF7F, #00cc66);
-      border-radius: 2px;
-      box-shadow: 0 0 10px rgba(0,255,127,0.7);
-      animation: bar-sweep 1.6s ease-in-out infinite 0.65s;
-    }
-
-    /* ── KEYFRAMES ──────────────────────────────────── */
-
-    /* Logo bouncy scale-in */
-    @keyframes logo-enter {
-      0%   { opacity: 0; transform: scale(0.6); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-
-    /* Text/elements slide up and fade in */
-    @keyframes text-rise {
-      0%   { opacity: 0; transform: translateY(18px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Logo outer glow breathes in and out */
-    @keyframes glow-breathe {
-      0%, 100% { opacity: 0.6; transform: scale(1); }
-      50%       { opacity: 1;   transform: scale(1.06); }
-    }
-
-    /* Border ring pulses */
-    @keyframes ring-breathe {
-      0%, 100% { opacity: 0.2; transform: scale(1); }
-      50%       { opacity: 0.6; transform: scale(1.04); }
-    }
-
-    /* Loading bar sweeps left to right */
-    @keyframes bar-sweep {
-      0%   { transform: translateX(-100%); width: 40%; }
-      50%  { width: 70%; }
-      100% { transform: translateX(220%); width: 40%; }
+    /* ── SINGLE ANIMATION: fade up ──────────────────── */
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(8px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Premium Splash Screen -->
   <div id="splash">
-
-    <!-- Logo: Option A AI-generated image -->
-    <div class="splash-logo-wrap">
-      <img class="splash-logo-img" src="cockatiel_logo.jpg" alt="Cockatiel Logo" />
+    <div class="splash-logo">
+      <img src="cockatiel_logo.jpg" alt="Cockatiel" />
     </div>
-
-    <div class="splash-title">Cock<span class="accent">a</span>tiel</div>
-    <div class="splash-subtitle">Your Gateway to Vocal Mastery</div>
-
-    <div class="splash-bar-track">
-      <div class="splash-bar-fill"></div>
-    </div>
+    <div class="splash-wordmark">Cockatiel</div>
+    <div class="splash-tagline">Your Gateway to Vocal Mastery</div>
   </div>
 
   <script src="flutter_bootstrap.js" async></script>
 
   <script>
-    // Fade-out splash once Flutter's first frame is painted
     window.addEventListener('flutter-first-frame', function () {
       const splash = document.getElementById('splash');
       if (splash) {
         splash.classList.add('hidden');
-        setTimeout(() => splash.remove(), 700);
+        setTimeout(() => splash.remove(), 550);
       }
     });
   </script>

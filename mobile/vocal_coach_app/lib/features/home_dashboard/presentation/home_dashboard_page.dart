@@ -13,6 +13,7 @@ import '../../../shared/models/analytics_models.dart';
 import '../../../shared/models/training_models.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../analytics_dashboard/presentation/analytics_dashboard_page.dart';
+import '../../history/presentation/practice_history_page.dart';
 
 class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({
@@ -104,6 +105,20 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
       appBar: AppBar(
         title: const Text('Vocal Coach'),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                slideForwardRoute(
+                  builder: (_) => PracticeHistoryPage(
+                    appState: widget.appState,
+                    apiClient: widget.apiClient,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history_rounded),
+            tooltip: 'Practice History',
+          ),
           // AI Queue badge
           AnimatedBuilder(
             animation: widget.appState,
@@ -293,22 +308,38 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
               ],
             ),
             const SizedBox(height: 16),
-            // View full analytics link
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    slideForwardRoute(
-                      builder: (_) => AnalyticsDashboardPage(
-                        apiClient: widget.apiClient,
+            // Practice history and analytics links
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      slideForwardRoute(
+                        builder: (_) => PracticeHistoryPage(
+                          appState: widget.appState,
+                          apiClient: widget.apiClient,
+                        ),
                       ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.trending_up_rounded, size: 18),
-                label: const Text('View Analytics'),
-              ),
+                    );
+                  },
+                  icon: const Icon(Icons.history_rounded, size: 18),
+                  label: const Text('Practice History'),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      slideForwardRoute(
+                        builder: (_) => AnalyticsDashboardPage(
+                          apiClient: widget.apiClient,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.trending_up_rounded, size: 18),
+                  label: const Text('View Analytics'),
+                ),
+              ],
             ),
           ],
         ),

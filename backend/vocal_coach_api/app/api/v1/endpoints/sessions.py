@@ -50,6 +50,15 @@ async def start_session(
   return SessionCreateOut(session_id=session["session_id"], status=session["status"])
 
 
+@router.get("", response_model=list[SessionOut])
+async def list_sessions(
+  current_user: dict = Depends(get_current_user),
+  svc: SessionService = Depends(get_session_service),
+) -> list[SessionOut]:
+  sessions = await run_in_threadpool(svc.list_sessions_for_user, user_id=current_user["uid"])
+  return [SessionOut(**session) for session in sessions]
+
+
 @router.get("/{session_id}", response_model=SessionOut)
 async def fetch_session(
   session_id: str,

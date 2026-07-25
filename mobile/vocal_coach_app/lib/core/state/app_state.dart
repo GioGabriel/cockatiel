@@ -55,6 +55,7 @@ class AppState extends ChangeNotifier {
     _hasInitialized = true;
     _apiClient = apiClient;
     _isBootstrapping = true;
+    unawaited(apiClient.pingBackend());
     await _notificationService.initialize();
     notifyListeners();
 
@@ -226,7 +227,7 @@ class AppState extends ChangeNotifier {
 
     try {
       // First, hit /auth/me to guarantee the user is upserted in the backend database
-      final basicProfile = await apiClient.fetchCurrentUser();
+      await apiClient.fetchCurrentUser();
       
       // Then fetch the full profile which contains vocal_preferences
       final profile = await apiClient.fetchFullProfile();
@@ -237,6 +238,7 @@ class AppState extends ChangeNotifier {
       final effectiveEmail = (user.email ?? '').trim().isNotEmpty
           ? user.email!.trim()
           : profile.email;
+
       _currentUser = UserProfileFull(
         uid: profile.uid,
         email: effectiveEmail,
@@ -245,14 +247,18 @@ class AppState extends ChangeNotifier {
         vocalPreferences: profile.vocalPreferences,
         premiumExpiresAt: profile.premiumExpiresAt,
       );
+      _accessTier = _currentUser!.accessTier;
       _authError = null;
+      _authNotice = null;
+
       _startAIJobsPolling();
       await refreshAIJobs();
-    } catch (_) {
+    } catch (error) {
+      _authError = 'Failed to sync account: $error';
       _currentUser = null;
+      _accessTier = AccessTier.registered;
       _aiJobs = const [];
       _stopAIJobsPolling();
-      _authError = 'Authenticated, but failed to load profile from backend.';
     } finally {
       _isBootstrapping = false;
       notifyListeners();
@@ -260,9 +266,9 @@ class AppState extends ChangeNotifier {
   }
 
   void _startAIJobsPolling() {
-    _stopAIJobsPolling();
+    _aiJobsPollTimer?.cancel();
     _aiJobsPollTimer = Timer.periodic(
-      const Duration(seconds: 3),
+      const Duration(seconds: 10),
       (_) => refreshAIJobs(),
     );
   }
@@ -274,18 +280,16 @@ class AppState extends ChangeNotifier {
 
   String _authMessageForCode(String code) {
     switch (code) {
+      case 'invalid-credential':
+      case 'user-not-found':
+      case 'wrong-password':
+        return 'Invalid email or password.';
+      case 'email-already-in-use':
+        return 'An account already exists with this email address.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters.';
       case 'invalid-email':
         return 'Please enter a valid email address.';
-      case 'invalid-credential':
-      case 'wrong-password':
-      case 'user-not-found':
-        return 'Email or password is incorrect.';
-      case 'email-already-in-use':
-        return 'This email is already registered.';
-      case 'weak-password':
-        return 'Use a stronger password (at least 6 characters).';
-      case 'too-many-requests':
-        return 'Too many attempts. Please wait and try again.';
       case 'network-request-failed':
         return 'Network unavailable. Check your internet connection.';
       default:
@@ -293,6 +297,7 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  @override
   void dispose() {
     _authSubscription?.cancel();
     _stopAIJobsPolling();

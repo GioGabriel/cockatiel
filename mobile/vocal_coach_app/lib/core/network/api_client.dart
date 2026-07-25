@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../auth/auth_token_provider.dart';
@@ -43,6 +44,16 @@ class ApiClient {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
     };
+  }
+
+  Future<void> pingBackend() async {
+    try {
+      await _httpClient
+          .get(Uri.parse('${_config.apiBaseUrl}/health'))
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Ignore keep-alive errors or timeouts during cold start
+    }
   }
 
   Future<SessionCreateResponse> createSession({
@@ -124,6 +135,19 @@ class ApiClient {
     _throwIfError(response);
     return SessionDetailsResponse.fromJson(
         jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<List<SessionDetailsResponse>> listSessions() async {
+    final response = await _httpClient.get(
+      Uri.parse('${_config.apiBaseUrl}/v1/sessions'),
+      headers: await _headers(),
+    );
+    _throwIfError(response);
+    final payload = jsonDecode(response.body) as List<dynamic>;
+    return payload
+        .map((item) =>
+            SessionDetailsResponse.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<AIJob>> fetchAIJobs() async {
@@ -321,7 +345,7 @@ class ApiClient {
 
   static void _throwIfError(http.Response response) {
     if (response.statusCode < 200 || response.statusCode > 299) {
-      print('API Error ${response.statusCode}: ${response.body}');
+      debugPrint('API Error ${response.statusCode}: ${response.body}');
       throw ApiException(statusCode: response.statusCode, body: response.body);
     }
   }

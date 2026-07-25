@@ -512,9 +512,27 @@ def build_dashboard(user_id: str) -> dict[str, Any]:
   }
 
 
+_DASHBOARD_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_TRENDS_CACHE: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
+_CACHE_TTL_SEC = 300.0
+
+
+def _invalidate_analytics_cache(user_id: str) -> None:
+  _DASHBOARD_CACHE.pop(user_id, None)
+  keys_to_remove = [k for k in _TRENDS_CACHE if k[0] == user_id]
+  for k in keys_to_remove:
+    _TRENDS_CACHE.pop(k, None)
+
+
 def build_trends(user_id: str, range_key: str) -> dict[str, Any]:
-  now_ms = int(time() * 1000)
+  now = time()
   normalized_range = (range_key or "30d").lower().strip()
+  cache_key = (user_id, normalized_range)
+  cached = _TRENDS_CACHE.get(cache_key)
+  if cached and (now - cached[0]) < _CACHE_TTL_SEC:
+    return cached[1]
+
+  now_ms = int(now * 1000)
   days = _RANGE_DAY_MAP.get(normalized_range, 30)
   resolved_range = f"{days}d"
 
@@ -565,29 +583,41 @@ def build_trends(user_id: str, range_key: str) -> dict[str, Any]:
     point.update(_legacy_averages_from_metrics(metric_totals, metric_counts))
     points.append(point)
 
-  return {
+  result = {
     "user_id": user_id,
     "range": resolved_range,
     "points": points,
     "generated_at": now_ms,
   }
+  _TRENDS_CACHE[cache_key] = (now, result)
+  return result
 
 
 def rebuild_dashboard(user_id: str) -> dict[str, Any]:
+  _invalidate_analytics_cache(user_id)
   dashboard = build_dashboard(user_id)
   repository = get_analytics_repository()
-  return repository.upsert_dashboard(user_id, dashboard)
+  res = repository.upsert_dashboard(user_id, dashboard)
+  _DASHBOARD_CACHE[user_id] = (time(), res)
+  return res
 
 
 def get_or_build_dashboard(user_id: str) -> dict[str, Any]:
+  now = time()
+  cached = _DASHBOARD_CACHE.get(user_id)
+  if cached and (now - cached[0]) < _CACHE_TTL_SEC:
+    return cached[1]
+
   repository = get_analytics_repository()
   existing = repository.get_dashboard(user_id)
   if existing:
+    _DASHBOARD_CACHE[user_id] = (now, existing)
     return existing
   return rebuild_dashboard(user_id)
 
 
 def record_completed_session(user_id: str, session: dict[str, Any]) -> dict[str, Any]:
+  _invalidate_analytics_cache(user_id)
   rollup = _rollup_from_session(session)
   if not rollup:
     return rebuild_dashboard(user_id)

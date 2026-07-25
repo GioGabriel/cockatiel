@@ -37,6 +37,15 @@ def get_audio_snippet_storage():
     logger.info("audio_snippet_storage backend=metadata-only")
     return NoopAudioSnippetStorage()
 
+  if settings.firestore_enabled or backend in {"firestore", "firebase", "firebase_storage", "gcs"}:
+    try:
+      from app.repositories.firestore.client import build_firestore_client
+      from app.storage.audio_snippets.adapters.firestore.storage import FirestoreAudioSnippetStorage
+      logger.info("audio_snippet_storage backend=firestore")
+      return FirestoreAudioSnippetStorage(build_firestore_client())
+    except Exception as exc:
+      logger.warning("audio_snippet_storage firestore init failed, falling back to local: %s", exc)
+
   if backend in {"local", "filesystem", "fs"}:
     logger.info("audio_snippet_storage backend=local root=%s", settings.audio_snippet_local_dir)
     return LocalAudioSnippetStorage(settings.audio_snippet_local_dir)

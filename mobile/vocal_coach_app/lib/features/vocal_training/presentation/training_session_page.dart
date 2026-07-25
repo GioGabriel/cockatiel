@@ -43,6 +43,7 @@ class TrainingSessionPage extends StatefulWidget {
   final String? initialKey;
   final int? initialOctave;
 
+  @override
   State<TrainingSessionPage> createState() => _TrainingSessionPageState();
 }
 
@@ -122,9 +123,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   String _status = 'Prepare your first take.';
   String _microphoneStatus = 'Initializing microphone...';
   String _exerciseName = '';
-  String _exerciseObjective = '';
-  List<String> _exerciseInstructions = const [];
-  List<String> _focusMetrics = const [];
   String _selectedDifficulty = 'beginner';
   String _selectedKey = 'C';
   int _selectedOctave = 4;
@@ -167,13 +165,14 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   int _breathingCompletedPhaseCount = 0;
   int _breathingInterruptionCount = 0;
 
+  @override
   void initState() {
     super.initState();
     final prefs = widget.appState.currentUser?.vocalPreferences;
     int minFreq = 80;
     int maxFreq = 520;
-    if (prefs != null && prefs.vocalRange != null) {
-      final range = prefs.vocalRange!.name.toLowerCase();
+    if (prefs != null) {
+      final range = prefs.vocalRange.name.toLowerCase();
       if (range.contains('bass')) { minFreq = 70; maxFreq = 330; }
       else if (range.contains('baritone')) { minFreq = 90; maxFreq = 400; }
       else if (range.contains('tenor')) { minFreq = 130; maxFreq = 520; }
@@ -191,6 +190,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     _loadSessionMetadata();
   }
 
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _tipsTimer?.cancel();
@@ -202,6 +202,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     super.dispose();
   }
 
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_isAttemptRunning || !_isBreathingExercise) {
       return;
@@ -499,16 +500,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       final runtimePlan = session.runtimePlan;
       var resolvedName =
           exerciseSpec?.name ?? widget.exerciseName ?? widget.exerciseType;
-      var resolvedObjective = exerciseSpec?.objective ?? '';
       var resolvedInstructions = exerciseSpec?.instructions ??
           widget.exerciseInstructions ??
-          const <String>[];
-      var resolvedFocusMetrics = exerciseSpec?.focusMetrics
-              .map((metric) => _displayMetricLabel(
-                    metric,
-                    exerciseMode: exerciseSpec.exerciseMode,
-                  ))
-              .toList() ??
           const <String>[];
 
       if (resolvedInstructions.isEmpty) {
@@ -519,14 +512,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
               if (exercise.exerciseId ==
                   (session.exerciseId ?? widget.exerciseType)) {
                 resolvedName = exercise.name;
-                resolvedObjective = exercise.objective;
                 resolvedInstructions = exercise.instructions;
-                resolvedFocusMetrics = exercise.focusMetrics
-                    .map((metric) => _displayMetricLabel(
-                          metric,
-                          exerciseMode: exercise.exerciseMode,
-                        ))
-                    .toList();
                 break;
               }
             }
@@ -546,9 +532,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
               widget.exerciseType != 'long_phrase_breathing');
       setState(() {
         _exerciseName = resolvedName;
-        _exerciseObjective = resolvedObjective;
-        _exerciseInstructions = resolvedInstructions;
-        _focusMetrics = resolvedFocusMetrics;
         _exerciseSpec = exerciseSpec;
         _runtimePlan = runtimePlan;
         _selectedDifficulty =
@@ -585,9 +568,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
               widget.exerciseType != 'long_phrase_breathing';
       setState(() {
         _exerciseName = widget.exerciseName ?? widget.exerciseType;
-        _exerciseObjective = '';
-        _exerciseInstructions = widget.exerciseInstructions ?? const [];
-        _focusMetrics = const [];
         _exerciseSpec = null;
         _runtimePlan = null;
         _selectedDifficulty =
@@ -703,6 +683,10 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     unawaited(HapticFeedback.lightImpact());
     _resetMetricsWindow();
 
+    _startAttemptTimerLoop();
+  }
+
+  void _startAttemptTimerLoop() {
     _attemptTimer?.cancel();
     _attemptTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -738,6 +722,182 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     });
   }
 
+  void _onBackPressed() {
+    if (_isAttemptRunning) {
+      _attemptStopwatch.stop();
+      _attemptTimer?.cancel();
+      setState(() {
+        _status = '$_attemptNoun paused.';
+      });
+    }
+    _showExitConfirmSheet();
+  }
+
+  void _showExitConfirmSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final isKaraoke = widget.mode == 'karaoke';
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D121F),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                blurRadius: 30,
+                offset: const Offset(0, -10),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _isAttemptRunning ? 'Pause Session?' : 'Leave Session?',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _isAttemptRunning
+                      ? 'Your active ${_attemptNoun.toLowerCase()} is paused. What would you like to do?'
+                      : (_attempts.isNotEmpty
+                          ? 'You have completed ${_attempts.length} ${_attemptNoun.toLowerCase()}(s). You can finalize now to save your progress and get AI feedback, or leave.'
+                          : 'You haven\'t recorded any takes yet. Are you sure you want to leave this session?'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                if (_isAttemptRunning) ...[
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _attemptStopwatch.start();
+                      _startAttemptTimerLoop();
+                      setState(() {
+                        _status = '$_attemptNoun ${_attempts.length + 1} resumed.';
+                      });
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Resume Session'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      unawaited(_completeAttempt());
+                    },
+                    icon: const Icon(Icons.stop_rounded),
+                    label: Text('End $_attemptNoun & Save'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Stay in Session'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  if (_attempts.isNotEmpty && _canFinalizeSession) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        unawaited(_finalizeSession());
+                      },
+                      icon: const Icon(Icons.analytics_rounded),
+                      label: const Text('Finalize & Get AI Feedback'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.primary,
+                        side: BorderSide(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).pop();
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    'Quit Without Saving',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _completeAttempt() async {
     _attemptTimer?.cancel();
     _attemptStopwatch.stop();
@@ -757,16 +917,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
           _isSavingAttempt = false;
           _status = '$_attemptNoun ended with no audio input.';
         });
-        return;
-      }
-
-      if (widget.mode == 'karaoke') {
-        setState(() {
-          _isSavingAttempt = false;
-          _status = 'Karaoke practice complete.';
-        });
-        unawaited(HapticFeedback.lightImpact());
-        _resetMetricsWindow();
         return;
       }
 
@@ -1155,6 +1305,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
 
   String get _attemptNoun => _isBreathingExercise ? 'Cycle' : 'Take';
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final latestAttempt = _latestAttempt;
@@ -1166,9 +1317,15 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         ? _exerciseName
         : (widget.exerciseName ?? 'Session In Progress');
 
-    print('DEBUG TRAINING PAGE: mode=${widget.mode}, runtimePlan=${_runtimePlan != null}, isKaraoke=${widget.mode == 'karaoke'}');
+    debugPrint('DEBUG TRAINING PAGE: mode=${widget.mode}, runtimePlan=${_runtimePlan != null}, isKaraoke=${widget.mode == 'karaoke'}');
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _onBackPressed();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Hero(
           tag: 'exercise_title_${widget.exerciseType}',
@@ -1323,7 +1480,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                         ],
                       ],
                     ),
-                  if (widget.mode == 'karaoke') ...[
+                  if (_requiresMicrophone || widget.mode == 'karaoke') ...[
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 200,
@@ -1343,7 +1500,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                               isLoading: _isLoadingSessionMeta,
                             ),
                     ),
-                  ] else if (_runtimePlan != null) ...[
+                  ],
+                  if (widget.mode != 'karaoke' && _runtimePlan != null) ...[
                     const SizedBox(height: 14),
                     _StageStepper(
                       stages: _runtimePlan!.stages,
@@ -1836,8 +1994,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _CoachBadge extends StatelessWidget {
@@ -1845,6 +2004,7 @@ class _CoachBadge extends StatelessWidget {
 
   final String label;
 
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -1927,6 +2087,7 @@ class _HeroFocusTile extends StatelessWidget {
   final String value;
   final String supporting;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -1971,6 +2132,7 @@ class _CoachMiniChip extends StatelessWidget {
 
   final String label;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -2008,6 +2170,7 @@ class _AttemptCountdownRing extends StatefulWidget {
   final bool isRunning;
   final String label;
 
+  @override
   State<_AttemptCountdownRing> createState() => _AttemptCountdownRingState();
 }
 
@@ -2035,11 +2198,13 @@ class _AttemptCountdownRingState extends State<_AttemptCountdownRing>
   );
   late double _displayedProgress = widget.progress;
 
+  @override
   void initState() {
     super.initState();
     _syncPulseState();
   }
 
+  @override
   void didUpdateWidget(covariant _AttemptCountdownRing oldWidget) {
     super.didUpdateWidget(oldWidget);
     if ((oldWidget.progress - widget.progress).abs() < 0.0001) {
@@ -2067,12 +2232,14 @@ class _AttemptCountdownRingState extends State<_AttemptCountdownRing>
     _pulseController.value = 0.0;
   }
 
+  @override
   void dispose() {
     _controller.dispose();
     _pulseController.dispose();
     super.dispose();
   }
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progress = widget.isRunning ? _displayedProgress : 0.0;
@@ -2188,6 +2355,7 @@ class _StageStepper extends StatelessWidget {
   final int activeStageIndex;
   final int elapsedSec;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
@@ -2236,6 +2404,7 @@ class _StageStepperChip extends StatelessWidget {
   final bool isActive;
   final bool isCompleted;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final backgroundColor = isActive

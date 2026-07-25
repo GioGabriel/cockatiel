@@ -42,6 +42,28 @@ class CoachingLogicEngine:
     return strengths[:3], improvements[:3], next_exercises[:3]
 
   @staticmethod
+  def generate_fallback_summary(
+    overall_score: float,
+    exercise_type: str,
+    metric_summary: dict[str, Any],
+    strengths: list[str],
+    improvements: list[str],
+  ) -> str:
+    score_int = int(round(overall_score))
+    mode_label = "Karaoke song performance" if "karaoke" in exercise_type.lower() else "Vocal Coach training session"
+    
+    parts = [f"You achieved an overall score of {score_int}% on this {mode_label}."]
+    if strengths:
+      parts.append(f"Your primary strength was your {strengths[0].lower()}.")
+    if improvements:
+      parts.append(f"To reach the next level, focus on improving where {improvements[0].lower()}.")
+    else:
+      parts.append("Your acoustic metrics were outstanding across the board with no major technical flaws detected.")
+      
+    parts.append("Keep practicing consistently to build muscular memory and vocal agility!")
+    return " ".join(parts)
+
+  @staticmethod
   def _evaluate_voice(metrics: dict[str, Any], strengths: list[str], improvements: list[str], next_exercises: list[str]) -> None:
     pitch_accuracy = metrics.get("pitch_accuracy", 0.0)
     pitch_stability = metrics.get("pitch_stability", 0.0)

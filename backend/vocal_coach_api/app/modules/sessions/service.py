@@ -41,6 +41,9 @@ class SessionService:
   def get_session(self, *args, **kwargs):
     return get_session(*args, **kwargs)
 
+  def list_sessions_for_user(self, *args, **kwargs):
+    return list_sessions_for_user(*args, **kwargs)
+
   def summarize_metrics(self, *args, **kwargs):
     return summarize_metrics(*args, **kwargs)
 
@@ -297,15 +300,15 @@ def save_training_attempt(
   metric_summary: dict[str, float | int],
 ) -> dict[str, Any]:
   session = get_session(session_id, user_id)
-  if session.get("mode") != "training":
+  if session.get("mode") not in ("training", "karaoke"):
     raise ApiError(
       code="SESSION_MODE_INVALID",
-      message="Training attempts can only be saved for training sessions.",
+      message="Attempts can only be saved for training or karaoke sessions.",
       status_code=409,
     )
 
   attempts = list(session.get("attempts") or [])
-  max_attempts = int((session.get("attempt_policy") or {}).get("max_attempts") or 3)
+  max_attempts = int((session.get("attempt_policy") or {}).get("max_attempts") or (session.get("training_config") or {}).get("max_attempts") or 3)
   if len(attempts) >= max_attempts:
     raise ApiError(
       code="MAX_ATTEMPTS_REACHED",

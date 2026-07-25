@@ -103,6 +103,17 @@ def generate_feedback(
       failure_reason = _classify_model_exception(exc)
       increment(f"ai_feedback_model_failure_reason_{_metric_name_for_reason(failure_reason)}_total")
 
+  if not summary:
+    summary = CoachingLogicEngine.generate_fallback_summary(
+      overall_score=overall_score,
+      exercise_type=exercise_type,
+      metric_summary=metric_summary,
+      strengths=strengths,
+      improvements=improvements,
+    )
+    if model_used == "coaching-logic-engine" and settings.openrouter_enabled and settings.openrouter_api_keys:
+      model_used = "coaching-logic-engine-fallback"
+
   total_latency_ms = int((perf_counter() - start) * 1000)
 
   return CoachingFeedback(

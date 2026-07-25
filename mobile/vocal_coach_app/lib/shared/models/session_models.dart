@@ -512,6 +512,8 @@ class SessionDetailsResponse {
     this.selectedBestAttemptId,
     this.bestAttemptScore,
     this.attempts,
+    this.createdAt,
+    this.completedAt,
   });
 
   final String sessionId;
@@ -531,6 +533,8 @@ class SessionDetailsResponse {
   final String? selectedBestAttemptId;
   final double? bestAttemptScore;
   final List<TrainingAttempt>? attempts;
+  final int? createdAt;
+  final int? completedAt;
 
   factory SessionDetailsResponse.fromJson(Map<String, dynamic> json) {
     return SessionDetailsResponse(
@@ -570,6 +574,8 @@ class SessionDetailsResponse {
           ?.map(
               (item) => TrainingAttempt.fromJson(item as Map<String, dynamic>))
           .toList(),
+      createdAt: (json['created_at'] as num?)?.toInt() ?? (json['saved_at'] as num?)?.toInt() ?? (json['updated_at'] as num?)?.toInt(),
+      completedAt: (json['completed_at'] as num?)?.toInt(),
     );
   }
 }

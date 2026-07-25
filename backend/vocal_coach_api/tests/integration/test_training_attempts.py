@@ -149,3 +149,25 @@ def test_breathing_attempt_uses_breathing_metric_contract(client, auth_headers):
     "pace_adherence",
     "cycle_consistency",
   ]
+
+
+def test_karaoke_attempt_saves_and_finalizes(client, auth_headers):
+  response = client.post(
+    "/v1/sessions",
+    headers=auth_headers,
+    json={
+      "mode": "karaoke",
+      "exercise_type": "bohemian_rhapsody",
+      "training_config": {"difficulty": "intermediate"},
+    },
+  )
+  assert response.status_code == 201
+  session_id = response.json()["session_id"]
+
+  attempt_resp = client.post(
+    f"/v1/sessions/{session_id}/attempts",
+    headers=auth_headers,
+    json=_voice_attempt_payload(index=1, score_seed=82),
+  )
+  assert attempt_resp.status_code == 201
+  assert attempt_resp.json()["attempt"]["score"] > 0

@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/user_models.dart';
 import '../../analytics_dashboard/presentation/analytics_dashboard_page.dart';
+import '../../history/presentation/practice_history_page.dart';
 import 'vocal_preferences_page.dart';
 
 class UserProfilePage extends StatefulWidget {
@@ -109,6 +110,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
       slideForwardRoute(
         builder: (_) => AnalyticsDashboardPage(
           apiClient: widget.apiClient,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToHistory() {
+    Navigator.of(context).push(
+      slideForwardRoute(
+        builder: (_) => PracticeHistoryPage(
+          apiClient: widget.apiClient,
+          appState: widget.appState,
         ),
       ),
     );
@@ -231,6 +243,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
           label: 'Analytics & Progress',
           value: 'View stats and trends',
           onTap: _navigateToAnalytics,
+        ),
+        _SettingsItem(
+          icon: Icons.history_rounded,
+          label: 'Practice History & Logs',
+          value: 'Review takes & AI feedback',
+          onTap: _navigateToHistory,
         ),
         _SettingsItem(
           icon: Icons.star_outline_rounded,

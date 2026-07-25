@@ -20,29 +20,30 @@
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* Dark splash screen - matches our app theme */
     html, body {
       margin: 0;
       padding: 0;
       background-color: #09090F;
       height: 100%;
       width: 100%;
+      overflow: hidden;
     }
 
-    /* Loading splash */
     #splash {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background-color: #09090F;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
       z-index: 9999;
-      transition: opacity 0.4s ease-out;
+      opacity: 1;
+      transition: opacity 0.5s ease-out;
+      /* Radial glow effect to make it feel premium and alive */
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 255, 127, 0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(100, 80, 255, 0.08) 0%, transparent 60%);
     }
 
     #splash.hidden {
@@ -50,65 +51,144 @@
       pointer-events: none;
     }
 
-    .splash-icon {
-      width: 80px;
-      height: 80px;
-      background: rgba(0, 255, 127, 0.1);
-      border: 1px solid rgba(0, 255, 127, 0.3);
-      border-radius: 24px;
+    .splash-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 25vh;
+    }
+
+    /* Animated ring around the logo */
+    .splash-ring {
+      position: relative;
+      width: 104px;
+      height: 104px;
+      margin-bottom: 28px;
+    }
+
+    .splash-ring::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 34px;
+      border: 1.5px solid rgba(0, 255, 127, 0.25);
+      animation: ring-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes ring-pulse {
+      0%, 100% { opacity: 0.25; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.03); }
+    }
+
+    .splash-icon-box {
+      width: 96px;
+      height: 96px;
+      background: linear-gradient(135deg, rgba(0,255,127,0.15) 0%, rgba(0,200,100,0.08) 100%);
+      border: 1px solid rgba(0, 255, 127, 0.35);
+      border-radius: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
     }
 
-    .splash-icon svg {
-      width: 40px;
-      height: 40px;
+    .splash-icon-box svg {
+      width: 48px;
+      height: 48px;
       fill: #00FF7F;
+      filter: drop-shadow(0 0 8px rgba(0, 255, 127, 0.5));
     }
 
     .splash-title {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 28px;
-      font-weight: 800;
+      font-size: 36px;
+      font-weight: 900;
       color: #ffffff;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .splash-title span {
+      color: #00FF7F;
     }
 
     .splash-subtitle {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13px;
+      font-size: 14px;
       color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 0.3px;
+      margin-bottom: 40px;
+      text-align: center;
     }
 
-    .splash-dot {
-      width: 6px;
-      height: 6px;
+    /* Pill-shaped loading bar */
+    .splash-loader {
+      width: 48px;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .splash-loader-fill {
+      height: 100%;
+      width: 30%;
       background: #00FF7F;
-      border-radius: 50%;
-      margin-top: 32px;
-      animation: pulse 1.2s ease-in-out infinite;
+      border-radius: 2px;
+      animation: loader-slide 1.4s ease-in-out infinite;
+      box-shadow: 0 0 8px rgba(0, 255, 127, 0.6);
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 0.3; transform: scale(0.8); }
-      50% { opacity: 1; transform: scale(1.2); }
+    @keyframes loader-slide {
+      0%   { transform: translateX(-100%); width: 40%; }
+      50%  { transform: translateX(150%); width: 60%; }
+      100% { transform: translateX(350%); width: 40%; }
     }
   </style>
+
 </head>
 <body>
-  <!-- Dark Splash Screen -->
+  <!-- Premium Dark Splash Screen -->
   <div id="splash">
-    <div class="splash-icon">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-      </svg>
+    <div class="splash-content">
+      <!-- Logo with animated outer ring -->
+      <div class="splash-ring">
+        <div class="splash-icon-box">
+          <!-- Cockatiel bird silhouette as SVG -->
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <!-- Body -->
+            <ellipse cx="32" cy="38" rx="14" ry="16" fill="#00FF7F"/>
+            <!-- Head -->
+            <circle cx="32" cy="20" r="10" fill="#00FF7F"/>
+            <!-- Crest feathers (3 lines going up from head) -->
+            <line x1="28" y1="11" x2="24" y2="2" stroke="#09090F" stroke-width="2" stroke-linecap="round"/>
+            <line x1="32" y1="10" x2="32" y2="0" stroke="#09090F" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="36" y1="11" x2="40" y2="2" stroke="#09090F" stroke-width="2" stroke-linecap="round"/>
+            <!-- Eye -->
+            <circle cx="36" cy="18" r="2.5" fill="#09090F"/>
+            <circle cx="37" cy="17" r="0.8" fill="#00FF7F"/>
+            <!-- Beak -->
+            <path d="M40 22 L46 24 L40 26 Z" fill="#09090F" opacity="0.7"/>
+            <!-- Wing detail -->
+            <path d="M20 38 Q18 30 22 26 Q28 32 32 38" fill="#09090F" opacity="0.15"/>
+            <!-- Music note on body -->
+            <circle cx="34" cy="40" r="2.5" fill="#09090F" opacity="0.5"/>
+            <line x1="36.5" y1="40" x2="36.5" y2="33" stroke="#09090F" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+            <line x1="36.5" y1="33" x2="41" y2="34.5" stroke="#09090F" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="splash-title">Cock<span>a</span>tiel</div>
+      <div class="splash-subtitle">Your Gateway to Vocal Mastery</div>
+
+      <!-- Sliding loader bar -->
+      <div class="splash-loader">
+        <div class="splash-loader-fill"></div>
+      </div>
     </div>
-    <div class="splash-title">Cockatiel</div>
-    <div class="splash-subtitle">Your Gateway to Vocal Mastery</div>
-    <div class="splash-dot"></div>
   </div>
 
   <script src="flutter_bootstrap.js" async></script>

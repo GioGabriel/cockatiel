@@ -78,33 +78,29 @@ class _OnboardingPageState extends State<OnboardingPage> {
       backgroundColor: const Color(0xFF09090F),
       body: Stack(
         children: [
-          // Background Collage
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: MediaQuery.of(context).size.height * 0.65,
+          // Background Collage covers the ENTIRE screen
+          Positioned.fill(
             child: Image.asset(
               'assets/images/onboarding_collage.jpg',
               fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
             ),
           ),
           
-          // Dark Gradient Overlay
+          // Dark Gradient Overlay (matching Login screen aesthetic)
           Positioned.fill(
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.35, 0.60, 1.0],
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF09090F).withOpacity(0.2),
-                    const Color(0xFF09090F).withOpacity(0.8),
-                    const Color(0xFF09090F),
-                    const Color(0xFF09090F),
+                    const Color(0xFF09090F).withOpacity(0.35),
+                    const Color(0xFF09090F).withOpacity(0.80),
+                    const Color(0xFF09090F).withOpacity(0.92),
                   ],
-                  stops: const [0.0, 0.4, 0.55, 0.7, 1.0],
                 ),
               ),
             ),

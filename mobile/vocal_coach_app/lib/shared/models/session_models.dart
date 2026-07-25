@@ -175,9 +175,9 @@ class TrainingRuntimeStage {
   final String title;
   final String targetLabel;
   final String instruction;
-  final int durationSec;
-  final int startSec;
-  final int endSec;
+  final double durationSec;
+  final double startSec;
+  final double endSec;
 
   factory TrainingRuntimeStage.fromJson(Map<String, dynamic> json) {
     final targetLabel = (json['target_label'] as String?) ??
@@ -189,9 +189,9 @@ class TrainingRuntimeStage {
       title: json['title'] as String,
       targetLabel: targetLabel,
       instruction: json['instruction'] as String,
-      durationSec: (json['duration_sec'] as num).toInt(),
-      startSec: (json['start_sec'] as num).toInt(),
-      endSec: (json['end_sec'] as num).toInt(),
+      durationSec: (json['duration_sec'] as num).toDouble(),
+      startSec: (json['start_sec'] as num).toDouble(),
+      endSec: (json['end_sec'] as num).toDouble(),
     );
   }
 }

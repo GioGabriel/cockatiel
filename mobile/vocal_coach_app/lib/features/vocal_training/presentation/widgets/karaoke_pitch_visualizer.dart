@@ -57,45 +57,91 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 10, left: 2, right: 2),
           child: Row(
             children: [
-              Icon(Icons.graphic_eq_rounded, size: 16, color: theme.colorScheme.primary),
-              const SizedBox(width: 6),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.isRunning ? const Color(0xFF00FF7F) : const Color(0xFF00E5FF),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (widget.isRunning ? const Color(0xFF00FF7F) : const Color(0xFF00E5FF)).withValues(alpha: 0.8),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               Text(
-                widget.isRunning ? 'Live Pitch' : 'Song Preview',
+                widget.isRunning ? 'REAL-TIME VOCAL TRAJECTORY' : 'SONG PITCH MAP',
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
                 ),
               ),
               const Spacer(),
-              Text(
-                '${widget.stages.length} notes',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: primaryColor.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  '${widget.stages.length} TARGET NOTES',
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ],
           ),
         ),
         Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.72),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.18),
-                  width: 1,
-                ),
-                borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF0C0C16), Color(0xFF07070C)],
               ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.35),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryColor.withValues(alpha: 0.12),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
               child: AnimatedBuilder(
                 animation: _ticker,
                 builder: (context, _) => CustomPaint(
@@ -107,7 +153,7 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
                     maxHz: widget.maxHz,
                     getTargetFrequency: widget.getTargetFrequency,
                     isRunning: widget.isRunning,
-                    primaryColor: theme.colorScheme.primary,
+                    primaryColor: primaryColor,
                   ),
                   child: const SizedBox.expand(),
                 ),
@@ -120,11 +166,10 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
   }
 }
 
-/// Maps a normalized pitch position (0=low, 1=high) to a rainbow color.
-/// Low = deep red/orange, mid = green, high = violet/purple.
+/// Maps a normalized pitch position (0=low, 1=high) to a neon color.
 Color _pitchColor(double norm) {
-  final hue = (norm * 270).clamp(0.0, 270.0);
-  return HSVColor.fromAHSV(1.0, hue, 0.80, 0.90).toColor();
+  final hue = (norm * 260).clamp(0.0, 260.0);
+  return HSVColor.fromAHSV(1.0, hue, 0.85, 0.95).toColor();
 }
 
 class _PitchPainter extends CustomPainter {
@@ -148,10 +193,10 @@ class _PitchPainter extends CustomPainter {
     required this.primaryColor,
   });
 
-  static const double _windowSec = 5.0;
-  static const double _playheadFraction = 0.28;
-  static const double _blockHeight = 28.0;
-  static const double _scaleWidth = 36.0;
+  static const double _windowSec = 8.5;
+  static const double _playheadFraction = 0.25;
+  static const double _blockHeight = 26.0;
+  static const double _scaleWidth = 40.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -214,32 +259,38 @@ class _PitchPainter extends CustomPainter {
       if (rectR <= rectL) continue;
 
       final rect = Rect.fromLTRB(rectL, cy - _blockHeight / 2, rectR, cy + _blockHeight / 2);
-      final rRect = RRect.fromRectAndRadius(rect, const Radius.circular(7));
+      final rRect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
 
       if (isActive) {
         canvas.drawRRect(
           rRect,
           Paint()
-            ..color = noteColor.withValues(alpha: 0.45)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+            ..color = const Color(0xFF00FF7F).withValues(alpha: 0.55)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
+        );
+        canvas.drawRRect(
+          rRect,
+          Paint()
+            ..color = noteColor.withValues(alpha: 0.7)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 8),
         );
       }
 
       final Color fill = isActive
           ? noteColor
           : isPast
-              ? noteColor.withValues(alpha: 0.18)
-              : noteColor.withValues(alpha: 0.55);
+              ? noteColor.withValues(alpha: 0.15)
+              : noteColor.withValues(alpha: 0.65);
 
       canvas.drawRRect(rRect, Paint()..color = fill);
 
       if (!isPast) {
         canvas.drawLine(
-          Offset(rect.left + 7, rect.top + 1.5),
-          Offset(rect.right - 7, rect.top + 1.5),
+          Offset(rect.left + 8, rect.top + 2),
+          Offset(rect.right - 8, rect.top + 2),
           Paint()
-            ..color = Colors.white.withValues(alpha: isActive ? 0.6 : 0.20)
-            ..strokeWidth = 1.5
+            ..color = Colors.white.withValues(alpha: isActive ? 0.8 : 0.25)
+            ..strokeWidth = 2.0
             ..strokeCap = StrokeCap.round,
         );
       }
@@ -261,52 +312,59 @@ class _PitchPainter extends CustomPainter {
   }
 
   void _drawPitchScale(Canvas canvas, Size size, double loMidi, double hiMidi, double midiRange) {
-    final scaleRect = Rect.fromLTWH(0, 0, _scaleWidth - 4, size.height);
-    final gradient = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        _pitchColor(1.0).withValues(alpha: 0.7),
-        _pitchColor(0.67).withValues(alpha: 0.7),
-        _pitchColor(0.5).withValues(alpha: 0.7),
-        _pitchColor(0.33).withValues(alpha: 0.7),
-        _pitchColor(0.0).withValues(alpha: 0.7),
-      ],
-    ).createShader(scaleRect);
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(2, 0, 6, size.height), const Radius.circular(3)),
-      Paint()..shader = gradient,
+    final scaleRect = Rect.fromLTWH(0, 0, _scaleWidth, size.height);
+    canvas.drawRect(
+      scaleRect,
+      Paint()..color = const Color(0xFF07070C).withValues(alpha: 0.9),
     );
 
-    const noteNames = ['C', 'D', 'E', 'G', 'A'];
+    canvas.drawLine(
+      const Offset(_scaleWidth - 1, 0),
+      Offset(_scaleWidth - 1, size.height),
+      Paint()
+        ..color = primaryColor.withValues(alpha: 0.25)
+        ..strokeWidth = 1.0,
+    );
+
+    const noteNames = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    double? lastDrawnY;
     for (int m = loMidi.ceil(); m <= hiMidi.floor(); m++) {
       final noteName = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][m % 12];
       if (!noteNames.contains(noteName)) continue;
       final norm = (m - loMidi) / midiRange;
       final y = size.height - norm * size.height;
-      if (y < 8 || y > size.height - 8) continue;
+      if (y < 12 || y > size.height - 12) continue;
+      if (lastDrawnY != null && (lastDrawnY - y).abs() < 14) continue;
+      lastDrawnY = y;
+
+      canvas.drawLine(
+        Offset(_scaleWidth - 5, y),
+        Offset(_scaleWidth, y),
+        Paint()
+          ..color = primaryColor.withValues(alpha: 0.6)
+          ..strokeWidth = 1.5,
+      );
 
       final span = TextSpan(
         text: noteName,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.5),
-          fontSize: 9,
-          fontWeight: FontWeight.w600,
+          color: Colors.white.withValues(alpha: 0.75),
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
         ),
       );
       final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
-      tp.paint(canvas, Offset(10, y - tp.height / 2));
+      tp.paint(canvas, Offset((_scaleWidth - 6 - tp.width) / 2, y - tp.height / 2));
     }
   }
 
   void _drawGrid(Canvas canvas, Size size, double loMidi, double hiMidi, double midiRange, double offsetX) {
     final faint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
+      ..color = primaryColor.withValues(alpha: 0.04)
       ..strokeWidth = 0.5;
     final mid = Paint()
-      ..color = Colors.white.withValues(alpha: 0.09)
-      ..strokeWidth = 0.5;
+      ..color = primaryColor.withValues(alpha: 0.12)
+      ..strokeWidth = 1.0;
 
     for (int m = loMidi.ceil(); m <= hiMidi.floor(); m++) {
       final norm = (m - loMidi) / midiRange;
@@ -322,18 +380,34 @@ class _PitchPainter extends CustomPainter {
 
   void _drawPlayhead(Canvas canvas, Size size, double x) {
     canvas.drawRect(
-      Rect.fromLTWH(x - 2, 0, 4, size.height),
+      Rect.fromLTWH(x - 6, 0, 12, size.height),
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.06)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        ..color = const Color(0xFF00E5FF).withValues(alpha: 0.15)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
     );
     canvas.drawLine(
       Offset(x, 0),
       Offset(x, size.height),
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.50)
-        ..strokeWidth = 1.5,
+        ..color = const Color(0xFF00E5FF).withValues(alpha: 0.9)
+        ..strokeWidth = 2.0,
     );
+    canvas.drawCircle(
+      Offset(x, 4),
+      3,
+      Paint()
+        ..color = const Color(0xFF00E5FF)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    canvas.drawCircle(Offset(x, 4), 2, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      Offset(x, size.height - 4),
+      3,
+      Paint()
+        ..color = const Color(0xFF00E5FF)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    canvas.drawCircle(Offset(x, size.height - 4), 2, Paint()..color = Colors.white);
   }
 
   void _drawPitchLine(Canvas canvas, Size size, double Function(double) hzToY, double Function(double) secToX) {
@@ -345,7 +419,7 @@ class _PitchPainter extends CustomPainter {
       if (pt.frequencyHz <= 0) { started = false; prevSec = null; continue; }
       final x = secToX(pt.elapsedSec);
       if (x < _scaleWidth - 4 || x > size.width + 4) { started = false; prevSec = null; continue; }
-      final y = hzToY(pt.frequencyHz).clamp(2.0, size.height - 2.0);
+      final y = hzToY(pt.frequencyHz).clamp(4.0, size.height - 4.0);
 
       if (!started || (prevSec != null && pt.elapsedSec - prevSec > 0.15)) {
         path.moveTo(x, y);
@@ -358,36 +432,33 @@ class _PitchPainter extends CustomPainter {
 
     if (!started) return;
 
-    // Orange glow
     canvas.drawPath(path, Paint()
-      ..color = const Color(0xFFFFA040).withValues(alpha: 0.30)
+      ..color = const Color(0xFF00FF7F).withValues(alpha: 0.45)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
+      ..strokeWidth = 10
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
 
-    // Orange line
     canvas.drawPath(path, Paint()
-      ..color = const Color(0xFFFFA040)
+      ..color = const Color(0xFF00FF7F)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
+      ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round);
 
-    // Dot at current pitch
     final latest = pitchHistory.last;
     if (latest.frequencyHz > 0) {
       final lx = secToX(latest.elapsedSec);
-      final ly = hzToY(latest.frequencyHz).clamp(2.0, size.height - 2.0);
+      final ly = hzToY(latest.frequencyHz).clamp(4.0, size.height - 4.0);
       canvas.drawCircle(Offset(lx, ly), 14,
-          Paint()..color = const Color(0xFFFFA040).withValues(alpha: 0.22)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+          Paint()..color = const Color(0xFF00FF7F).withValues(alpha: 0.35)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
       canvas.drawCircle(Offset(lx, ly), 5, Paint()..color = Colors.white);
       canvas.drawCircle(Offset(lx, ly), 5,
-          Paint()..color = const Color(0xFFFFA040).withValues(alpha: 0.6)
+          Paint()..color = const Color(0xFF00FF7F)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.5);
+            ..strokeWidth = 2.0);
     }
   }
 
@@ -397,10 +468,13 @@ class _PitchPainter extends CustomPainter {
       style: TextStyle(
         color: isPast
             ? Colors.white.withValues(alpha: 0.25)
-            : Colors.white.withValues(alpha: isActive ? 1.0 : 0.88),
+            : Colors.white,
         fontSize: 11,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0.2,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.3,
+        shadows: isPast ? null : const [
+          Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 1)),
+        ],
       ),
     );
     final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
@@ -411,10 +485,10 @@ class _PitchPainter extends CustomPainter {
   void _drawPreviewHint(Canvas canvas, Size size) {
     final span = TextSpan(
       text: 'Tap "Start Guided Take" to sing',
-      style: TextStyle(color: Colors.white.withValues(alpha: 0.28), fontSize: 11, letterSpacing: 0.4),
+      style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5),
     );
     final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
-    tp.paint(canvas, Offset((size.width - tp.width) / 2, size.height - 18));
+    tp.paint(canvas, Offset((size.width - tp.width) / 2, size.height - 20));
   }
 
   void _drawEmptyHint(Canvas canvas, Size size) {

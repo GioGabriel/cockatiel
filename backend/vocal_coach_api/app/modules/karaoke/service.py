@@ -45,24 +45,47 @@ def build_karaoke_session_metadata(drill_id: str) -> dict[str, Any]:
   tempo = float(drill.get("tempo_bpm") or 120)
   beats_per_sec = tempo / 60.0
   sec_per_beat = 1.0 / beats_per_sec
+  total_duration_sec = float(drill.get("duration_sec") or 60.0)
   
   stages = []
   melody = drill.get("melody_reference") or []
-  for index, note in enumerate(melody):
-    start_sec = float(note.get("start_beat") or 0.0) * sec_per_beat
-    duration_sec = float(note.get("duration_beats") or 1.0) * sec_per_beat
-    end_sec = start_sec + duration_sec
-    target_label = str(note.get("note") or "C4")
-    stages.append({
-      "stage_id": f"stage_{index + 1}",
-      "title": target_label,
-      "target_label": target_label,
-      "solfege": target_label,
-      "instruction": f"Sing {target_label}",
-      "duration_sec": max(1, int(round(duration_sec))),
-      "start_sec": max(0, int(round(start_sec))),
-      "end_sec": max(1, int(round(end_sec))),
-    })
+  if not melody:
+    melody = [{"note": "C4", "start_beat": 0.0, "duration_beats": 4.0}]
+    
+  # Calculate length of one melody loop in beats (adding a 2-beat breathing rest between repetitions)
+  max_beat_in_melody = max((float(n.get("start_beat") or 0.0) + float(n.get("duration_beats") or 1.0)) for n in melody)
+  loop_stride_beats = max_beat_in_melody + 2.0
+  loop_stride_sec = loop_stride_beats * sec_per_beat
+
+  stage_idx = 1
+  current_loop_offset_sec = 0.0
+  while current_loop_offset_sec < total_duration_sec:
+    for note in melody:
+      start_sec = current_loop_offset_sec + float(note.get("start_beat") or 0.0) * sec_per_beat
+      duration_sec = float(note.get("duration_beats") or 1.0) * sec_per_beat
+      end_sec = start_sec + duration_sec
+      
+      if start_sec >= total_duration_sec:
+        break
+      if end_sec > total_duration_sec:
+        end_sec = total_duration_sec
+        duration_sec = end_sec - start_sec
+        if duration_sec <= 0.1:
+          break
+          
+      target_label = str(note.get("note") or "C4")
+      stages.append({
+        "stage_id": f"stage_{stage_idx}",
+        "title": target_label,
+        "target_label": target_label,
+        "solfege": target_label,
+        "instruction": f"Sing {target_label} • Match the pitch line!",
+        "duration_sec": round(duration_sec, 3),
+        "start_sec": round(start_sec, 3),
+        "end_sec": round(end_sec, 3),
+      })
+      stage_idx += 1
+    current_loop_offset_sec += loop_stride_sec
     
   runtime_plan = {
     "pattern_id": drill_id,
@@ -71,7 +94,7 @@ def build_karaoke_session_metadata(drill_id: str) -> dict[str, Any]:
     "difficulty": drill.get("difficulty") or "beginner",
     "key": "C",
     "octave": 4,
-    "total_duration_sec": int(drill.get("duration_sec") or 60),
+    "total_duration_sec": round(total_duration_sec, 3),
     "stages": stages,
   }
 

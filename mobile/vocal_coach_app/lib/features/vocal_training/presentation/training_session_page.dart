@@ -701,7 +701,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       final nextSecondsRemaining = _secondsRemaining - 1;
       final nextElapsedSec = (_attemptDurationSec - nextSecondsRemaining)
           .clamp(0, _attemptDurationSec);
-      final nextStage = _runtimeStageForElapsed(nextElapsedSec);
+      final nextStage = _runtimeStageForElapsed(nextElapsedSec.toDouble());
       final didAdvanceStage =
           nextStage != null && nextStage.stageId != _announcedStageId;
 
@@ -741,7 +741,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final theme = Theme.of(ctx);
-        final isKaraoke = widget.mode == 'karaoke';
         return Container(
           decoration: BoxDecoration(
             color: const Color(0xFF0D121F),
@@ -1011,7 +1010,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         .clamp(0, _attemptDurationSec);
   }
 
-  TrainingRuntimeStage? _runtimeStageForElapsed(int elapsedSec) {
+  TrainingRuntimeStage? _runtimeStageForElapsed(double elapsedSec) {
     final runtimePlan = _runtimePlan;
     if (runtimePlan == null || runtimePlan.stages.isEmpty) {
       return null;
@@ -1025,7 +1024,10 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   }
 
   TrainingRuntimeStage? get _activeRuntimeStage {
-    return _runtimeStageForElapsed(_attemptElapsedSec);
+    final elapsed = _isAttemptRunning && _attemptStopwatch.isRunning
+        ? _attemptStopwatch.elapsedMilliseconds / 1000.0
+        : _attemptElapsedSec.toDouble();
+    return _runtimeStageForElapsed(elapsed);
   }
 
   int get _activeStageIndex {
@@ -1507,15 +1509,53 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                       stages: _runtimePlan!.stages,
                       activeStageIndex:
                           _isAttemptRunning ? _activeStageIndex : 0,
-                      elapsedSec: _attemptElapsedSec,
+                      elapsedSec: _isAttemptRunning && _attemptStopwatch.isRunning
+                          ? _attemptStopwatch.elapsedMilliseconds / 1000.0
+                          : _attemptElapsedSec.toDouble(),
                     ),
                   ],
                   const SizedBox(height: 14),
-                  Text(
-                    _liveCoachStatus(),
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D0D15).withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.auto_awesome_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: Text(
+                              _liveCoachStatus(),
+                              key: ValueKey<String>(_liveCoachStatus()),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (_requiresMicrophone && !_isMicrophoneReady) ...[
@@ -2353,7 +2393,7 @@ class _StageStepper extends StatelessWidget {
 
   final List<TrainingRuntimeStage> stages;
   final int activeStageIndex;
-  final int elapsedSec;
+  final double elapsedSec;
 
   @override
   Widget build(BuildContext context) {
@@ -2408,28 +2448,31 @@ class _StageStepperChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final backgroundColor = isActive
-        ? theme.colorScheme.primaryContainer
-        : (isCompleted
-            ? theme.colorScheme.tertiaryContainer
-            : theme.colorScheme.surfaceContainerHighest);
+        ? theme.colorScheme.primary
+        : isCompleted
+            ? theme.colorScheme.surfaceContainerHighest
+            : theme.colorScheme.surfaceContainerLow;
     final foregroundColor = isActive
-        ? theme.colorScheme.onPrimaryContainer
-        : (isCompleted
-            ? theme.colorScheme.onTertiaryContainer
-            : theme.colorScheme.onSurfaceVariant);
+        ? theme.colorScheme.onPrimary
+        : isCompleted
+            ? theme.colorScheme.onSurfaceVariant
+            : theme.colorScheme.onSurface;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
-      width: 156,
+    final durStr = stage.durationSec == stage.durationSec.toInt()
+        ? '${stage.durationSec.toInt()}'
+        : stage.durationSec.toStringAsFixed(1);
+
+    return Container(
+      width: 140,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: 0.25)
-              : Colors.transparent,
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant,
+          width: isActive ? 1.5 : 1.0,
         ),
       ),
       child: Column(
@@ -2446,7 +2489,7 @@ class _StageStepperChip extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '${stage.targetLabel} • ${stage.durationSec}s',
+            '${stage.targetLabel} • ${durStr}s',
             style: theme.textTheme.bodySmall?.copyWith(color: foregroundColor),
           ),
         ],

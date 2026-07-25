@@ -88,8 +88,31 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           ),
           
-          // Dark Gradient Overlay with Blur
+          // Dark Gradient Overlay (matching Login screen aesthetic)
           Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.35, 0.60, 1.0],
+                  colors: [
+                    Colors.transparent,
+                    const Color(0xFF09090F).withValues(alpha: 0.35),
+                    const Color(0xFF09090F).withValues(alpha: 0.80),
+                    const Color(0xFF09090F).withValues(alpha: 0.92),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Blackish Blur for the bottom area
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height * 0.55,
             child: ClipRect(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -98,12 +121,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      stops: const [0.0, 0.40, 0.70, 1.0],
                       colors: [
                         Colors.transparent,
-                        const Color(0xFF09090F).withValues(alpha: 0.20),
-                        const Color(0xFF09090F).withValues(alpha: 0.60),
-                        const Color(0xFF09090F).withValues(alpha: 0.85),
+                        const Color(0xFF09090F).withValues(alpha: 0.7),
+                        const Color(0xFF09090F),
                       ],
                     ),
                   ),

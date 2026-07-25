@@ -51,7 +51,7 @@ class AppConfig {
 
     if (kIsWeb) {
       return AppConfig(
-        apiBaseUrl: 'http://127.0.0.1:8000',
+        apiBaseUrl: 'https://cockatiel-wdkv.onrender.com',
         useDevAuthToken: useDevAuthToken,
         useFirebaseAuthEmulator: useFirebaseAuthEmulator,
         firebaseAuthEmulatorHost: authEmulatorHost,
@@ -62,7 +62,7 @@ class AppConfig {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return AppConfig(
-          apiBaseUrl: 'http://127.0.0.1:8000',
+          apiBaseUrl: 'https://cockatiel-wdkv.onrender.com',
           useDevAuthToken: useDevAuthToken,
           useFirebaseAuthEmulator: useFirebaseAuthEmulator,
           firebaseAuthEmulatorHost: authEmulatorHost,
@@ -70,7 +70,7 @@ class AppConfig {
         );
       default:
         return AppConfig(
-          apiBaseUrl: 'http://127.0.0.1:8000',
+          apiBaseUrl: 'https://cockatiel-wdkv.onrender.com',
           useDevAuthToken: useDevAuthToken,
           useFirebaseAuthEmulator: useFirebaseAuthEmulator,
           firebaseAuthEmulatorHost: authEmulatorHost,

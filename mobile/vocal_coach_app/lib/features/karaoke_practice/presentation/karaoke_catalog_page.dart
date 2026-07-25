@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
-import '../../../shared/animations/entrance_animation.dart';
 import '../../../shared/animations/micro_interaction.dart';
 import '../../../shared/models/karaoke_models.dart';
 import '../../../shared/utils/vocal_utils.dart';
@@ -20,6 +19,7 @@ class KaraokeCatalogPage extends StatefulWidget {
   final ApiClient apiClient;
   final AppState appState;
 
+  @override
   State<KaraokeCatalogPage> createState() => _KaraokeCatalogPageState();
 }
 
@@ -29,6 +29,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
   bool _hasError = false;
   int _selectedCategoryIndex = 0;
 
+  @override
   void initState() {
     super.initState();
     _loadCatalog();
@@ -68,6 +69,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 

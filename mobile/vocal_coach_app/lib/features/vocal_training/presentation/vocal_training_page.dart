@@ -20,6 +20,7 @@ class VocalTrainingPage extends StatefulWidget {
   final ApiClient apiClient;
   final AppState appState;
 
+  @override
   State<VocalTrainingPage> createState() => _VocalTrainingPageState();
 }
 
@@ -39,6 +40,7 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
   Map<String, TrainingRecommendation> _recommendationByExercise = const {};
   List<TrainingRecommendation> _recommendations = const [];
 
+  @override
   void initState() {
     super.initState();
     _loadCoachIntroPreference();
@@ -265,6 +267,7 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     final totalSessions = _progressByExercise.values.fold<int>(
       0,
@@ -461,6 +464,7 @@ class _HeroPanel extends StatelessWidget {
   final double bestRecentScore;
   final VoidCallback? onOpenRecommendation;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -578,6 +582,7 @@ class _HeroStatChip extends StatelessWidget {
   final String label;
   final String value;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -618,6 +623,7 @@ class _InlineNotice extends StatelessWidget {
 
   final String message;
 
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -644,6 +650,7 @@ class _RecommendationCard extends StatelessWidget {
   final VocalExercise? exercise;
   final VoidCallback onTap;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
@@ -721,6 +728,7 @@ class _TrackCard extends StatelessWidget {
   final int recommendedCount;
   final VoidCallback onTap;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
@@ -796,6 +804,7 @@ class _TagChip extends StatelessWidget {
 
   final String label;
 
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -830,6 +839,7 @@ class _ExerciseCategoryPage extends StatelessWidget {
   final Map<String, TrainingExerciseProgress> progressByExercise;
   final Map<String, TrainingRecommendation> recommendationByExercise;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
@@ -936,6 +946,7 @@ class _ExerciseCard extends StatelessWidget {
   final TrainingRecommendation? recommendation;
   final VoidCallback onTap;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
@@ -1016,6 +1027,7 @@ class _ExerciseCard extends StatelessWidget {
 class _CoachIntroSheet extends StatelessWidget {
   const _CoachIntroSheet();
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SafeArea(
@@ -1087,6 +1099,7 @@ class _CoachIntroStep extends StatelessWidget {
   final String title;
   final String detail;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Row(

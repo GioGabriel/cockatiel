@@ -20,6 +20,7 @@ class KaraokeSongBriefingPage extends StatefulWidget {
   final ApiClient apiClient;
   final AppState appState;
 
+  @override
   State<KaraokeSongBriefingPage> createState() =>
       _KaraokeSongBriefingPageState();
 }
@@ -67,6 +68,7 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final drill = widget.drill;

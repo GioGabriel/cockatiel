@@ -17,7 +17,7 @@ void main() {
     });
 
     test('toJson serializes correctly', () {
-      final note = const MelodyNote(
+      const note = MelodyNote(
         note: 'C4',
         startBeat: 1.0,
         durationBeats: 2.5,
@@ -53,17 +53,17 @@ void main() {
     });
 
     test('toJson serializes correctly', () {
-      final drill = KaraokeDrill(
+      const drill = KaraokeDrill(
         drillId: 'drill_1',
         title: 'Vocal Warmup',
         styleCategory: 'Pop',
         difficulty: 'beginner',
         durationSec: 60,
         tempoBpm: 120,
-        vocalRange: const {'min': 'C3', 'max': 'C5'},
+        vocalRange: {'min': 'C3', 'max': 'C5'},
         objective: 'Warm up',
-        performanceTips: const ['Breathe', 'Relax'],
-        melodyReference: const [
+        performanceTips: ['Breathe', 'Relax'],
+        melodyReference: [
           MelodyNote(note: 'C4', startBeat: 1.0, durationBeats: 1.0),
         ],
       );

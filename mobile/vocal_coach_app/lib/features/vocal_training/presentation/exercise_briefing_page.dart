@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field, unused_element, unused_local_variable
+
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 
@@ -6,7 +8,6 @@ import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/training_models.dart';
-import '../../../shared/widgets/audio_waveform_visualizer.dart';
 import '../domain/vocal_coach_catalog.dart';
 import 'training_session_page.dart';
 
@@ -28,6 +29,7 @@ class ExerciseBriefingPage extends StatefulWidget {
   final TrainingExerciseProgress? progress;
   final TrainingRecommendation? recommendation;
 
+  @override
   State<ExerciseBriefingPage> createState() => _ExerciseBriefingPageState();
 }
 
@@ -80,8 +82,8 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
     _selectedDifficulty = widget.exercise.difficulty.toLowerCase();
     
     final prefs = widget.appState.currentUser?.vocalPreferences;
-    if (prefs != null && prefs.vocalRange != null) {
-      final rangeStr = prefs.vocalRange!.name.toLowerCase();
+    if (prefs != null) {
+      final rangeStr = prefs.vocalRange.name.toLowerCase();
       for (final key in _vocalRanges.keys) {
         if (rangeStr.contains(key.toLowerCase())) {
           _selectedRange = key;
@@ -307,6 +309,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     

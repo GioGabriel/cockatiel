@@ -131,9 +131,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: theme,
-          home: Scaffold(
+          home: const Scaffold(
             body: GlassCard.disabled(
-              child: const SizedBox(width: 100, height: 100),
+              child: SizedBox(width: 100, height: 100),
             ),
           ),
         ),

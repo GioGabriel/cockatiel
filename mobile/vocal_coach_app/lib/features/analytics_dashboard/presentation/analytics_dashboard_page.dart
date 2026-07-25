@@ -17,6 +17,7 @@ class AnalyticsDashboardPage extends StatefulWidget {
 
   final ApiClient apiClient;
 
+  @override
   State<AnalyticsDashboardPage> createState() => _AnalyticsDashboardPageState();
 }
 
@@ -32,6 +33,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   TrainingProgress? _trainingProgress;
   Timer? _liveRefreshTimer;
 
+  @override
   void initState() {
     super.initState();
     _loadAll();
@@ -41,6 +43,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     );
   }
 
+  @override
   void dispose() {
     _liveRefreshTimer?.cancel();
     super.dispose();
@@ -84,6 +87,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     } catch (_) {}
   }
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -458,6 +462,7 @@ class _KpiCard extends StatelessWidget {
   final Color iconColor;
   final String? subtitle;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassCard.dark(
@@ -485,9 +490,9 @@ class _KpiCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               subtitle!,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
-                color: const Color(0xFF4CAF50),
+                color: Color(0xFF4CAF50),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -504,6 +509,7 @@ class _ChangeIndicator extends StatelessWidget {
   final double current;
   final double previous;
 
+  @override
   Widget build(BuildContext context) {
     if (previous <= 0) return const SizedBox.shrink();
     final change = ((current - previous) / previous * 100);
@@ -550,6 +556,7 @@ class _MetricRow extends StatelessWidget {
   final double value;
   final Color color;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progress = (value / 100).clamp(0.0, 1.0);
@@ -595,6 +602,7 @@ class _SparklinePainter extends CustomPainter {
   final Color lineColor;
   final Color fillColor;
 
+  @override
   void paint(Canvas canvas, Size size) {
     if (values.length < 2) return;
 
@@ -644,6 +652,7 @@ class _SparklinePainter extends CustomPainter {
     );
   }
 
+  @override
   bool shouldRepaint(_SparklinePainter oldDelegate) =>
       oldDelegate.values != values;
 }

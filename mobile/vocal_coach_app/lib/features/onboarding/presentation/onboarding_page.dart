@@ -97,9 +97,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   stops: const [0.0, 0.35, 0.60, 1.0],
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF09090F).withOpacity(0.35),
-                    const Color(0xFF09090F).withOpacity(0.80),
-                    const Color(0xFF09090F).withOpacity(0.92),
+                    const Color(0xFF09090F).withValues(alpha: 0.35),
+                    const Color(0xFF09090F).withValues(alpha: 0.80),
+                    const Color(0xFF09090F).withValues(alpha: 0.92),
                   ],
                 ),
               ),
@@ -143,7 +143,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               text: TextSpan(
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   height: 1.5,
                                 ),
                                 children: _pages[index]['subtitle'].children,

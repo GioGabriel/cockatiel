@@ -81,7 +81,7 @@ void main() {
     });
 
     test('toJson serializes correctly', () {
-      final prefs = const VocalPreferences(
+      const prefs = VocalPreferences(
         vocalRange: VocalRange.tenor,
         preferredCategories: ['pop', 'jazz'],
         trainingGoal: TrainingGoal.pitchImprovement,
@@ -92,7 +92,7 @@ void main() {
 
   group('VocalPreferencesUpdate', () {
     test('toJson with all fields', () {
-      final update = const VocalPreferencesUpdate(
+      const update = VocalPreferencesUpdate(
         vocalRange: VocalRange.alto,
         preferredCategories: ['rock'],
         trainingGoal: TrainingGoal.rangeExtension,
@@ -105,7 +105,7 @@ void main() {
     });
 
     test('toJson with no fields', () {
-      final update = const VocalPreferencesUpdate();
+      const update = VocalPreferencesUpdate();
       expect(update.toJson(), {});
     });
   });
@@ -147,12 +147,12 @@ void main() {
     });
 
     test('toJson serializes correctly', () {
-      final profile = UserProfileFull(
+      const profile = UserProfileFull(
         uid: 'user123',
         email: 'user@example.com',
         name: 'Alice',
         accessTier: AccessTier.premium,
-        vocalPreferences: const VocalPreferences(
+        vocalPreferences: VocalPreferences(
           vocalRange: VocalRange.soprano,
           preferredCategories: ['classical'],
           trainingGoal: TrainingGoal.toneQuality,

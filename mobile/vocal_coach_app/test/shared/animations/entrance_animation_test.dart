@@ -111,8 +111,8 @@ void main() {
             body: StatefulBuilder(
               builder: (context, setState) {
                 rebuildTrigger = setState;
-                return StaggeredEntrance(
-                  children: const [
+                return const StaggeredEntrance(
+                  children: [
                     Text('Item 1'),
                     Text('Item 2'),
                     Text('Item 3'),

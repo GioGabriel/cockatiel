@@ -9,6 +9,7 @@ class FeedbackPage extends StatelessWidget {
 
   final FinalizeResponse result;
 
+  @override
   Widget build(BuildContext context) {
     final feedback = result.feedback;
 
@@ -77,6 +78,7 @@ class _FeedbackSection extends StatelessWidget {
   final String title;
   final List<String> items;
 
+  @override
   Widget build(BuildContext context) {
     return GlassCard.dark(
       child: Padding(

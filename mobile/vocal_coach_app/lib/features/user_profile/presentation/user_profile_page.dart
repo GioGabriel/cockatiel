@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -21,6 +20,7 @@ class UserProfilePage extends StatefulWidget {
   final AppState appState;
   final ApiClient apiClient;
 
+  @override
   State<UserProfilePage> createState() => _UserProfilePageState();
 }
 
@@ -31,6 +31,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? _error;
   UserProfileFull? _profile;
 
+  @override
   void initState() {
     super.initState();
     _loadProfile();
@@ -126,6 +127,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -188,7 +190,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SizedBox(height: 32),
 
         // ─── PROFILE INFORMATION ─────────────────────────────────
-        _SectionHeader(title: 'Profile Information'),
+        const _SectionHeader(title: 'Profile Information'),
         const SizedBox(height: 8),
         _SettingsItem(
           icon: Icons.person_outline_rounded,
@@ -228,7 +230,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SizedBox(height: 28),
 
         // ─── MANAGE ACCOUNT ──────────────────────────────────────
-        _SectionHeader(title: 'Manage Account'),
+        const _SectionHeader(title: 'Manage Account'),
         const SizedBox(height: 8),
         _SettingsItem(
           icon: Icons.music_note_outlined,
@@ -268,7 +270,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SizedBox(height: 28),
 
         // ─── DANGER ZONE ─────────────────────────────────────────
-        _SectionHeader(title: 'Session'),
+        const _SectionHeader(title: 'Session'),
         const SizedBox(height: 8),
         _SettingsItem(
           icon: Icons.logout_rounded,
@@ -326,7 +328,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           Text(
             profile.email,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14,
             ),
           ),
@@ -367,6 +369,7 @@ class _SectionHeader extends StatelessWidget {
 
   final String title;
 
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
@@ -402,6 +405,7 @@ class _SettingsItem extends StatelessWidget {
   final Color? iconColor;
   final Color? labelColor;
 
+  @override
   Widget build(BuildContext context) {
     final hasAction = onTap != null;
     final itemIconColor = iconColor ?? Colors.cyanAccent;
@@ -420,8 +424,8 @@ class _SettingsItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          highlightColor: Colors.white.withOpacity(0.05),
-          splashColor: itemIconColor.withOpacity(0.15),
+          highlightColor: Colors.white.withValues(alpha: 0.05),
+          splashColor: itemIconColor.withValues(alpha: 0.15),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
@@ -430,10 +434,10 @@ class _SettingsItem extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: itemIconColor.withOpacity(0.15),
+                      color: itemIconColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: itemIconColor.withOpacity(0.3),
+                        color: itemIconColor.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Icon(
@@ -461,7 +465,7 @@ class _SettingsItem extends StatelessWidget {
                             value!,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.white.withOpacity(0.6),
+                              color: Colors.white.withValues(alpha: 0.6),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -478,14 +482,13 @@ class _SettingsItem extends StatelessWidget {
                     Icon(
                       Icons.chevron_right_rounded,
                       size: 20,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
                 ],
               ),
             ),
           ),
         ),
-      ),
     );
   }
 }
@@ -495,6 +498,7 @@ class _TierBadge extends StatelessWidget {
 
   final AccessTier tier;
 
+  @override
   Widget build(BuildContext context) {
     final isPremium = tier == AccessTier.premium;
     final label = isPremium ? 'PREMIUM' : 'FREE';
@@ -503,12 +507,12 @@ class _TierBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: glowColor.withOpacity(0.15),
+        color: glowColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: glowColor.withOpacity(0.5), width: 1.5),
+        border: Border.all(color: glowColor.withValues(alpha: 0.5), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.3),
+            color: glowColor.withValues(alpha: 0.3),
             blurRadius: 8,
             spreadRadius: -2,
           )
@@ -530,6 +534,7 @@ class _TierBadge extends StatelessWidget {
 /// Enterprise-style sign out confirmation dialog.
 /// Centered icon, bold title, body text, full-width action buttons.
 class _SignOutDialog extends StatelessWidget {
+  @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -552,8 +557,8 @@ class _SignOutDialog extends StatelessWidget {
                   height: 64,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.redAccent.withOpacity(0.15),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                    color: Colors.redAccent.withValues(alpha: 0.15),
+                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
                   ),
                   child: const Icon(
                     Icons.power_settings_new_rounded,
@@ -576,7 +581,7 @@ class _SignOutDialog extends StatelessWidget {
                     'Are you sure you want to sign out? Your vocal data is safely stored in the cloud.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 14,
                       height: 1.5,
                     ),
@@ -607,10 +612,10 @@ class _SignOutDialog extends StatelessWidget {
                     child: TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.white.withOpacity(0.8),
+                        foregroundColor: Colors.white.withValues(alpha: 0.8),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                          side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                         ),
                       ),
                       child: const Text('CANCEL'),
@@ -621,7 +626,6 @@ class _SignOutDialog extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }

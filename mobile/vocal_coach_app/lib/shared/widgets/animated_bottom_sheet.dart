@@ -53,6 +53,7 @@ class _SpringAnimatedSheet extends StatelessWidget {
   final double dampingRatio;
   final Widget child;
 
+  @override
   Widget build(BuildContext context) {
     final springCurve = SpringCurve(damping: dampingRatio);
     final curvedAnimation = CurvedAnimation(

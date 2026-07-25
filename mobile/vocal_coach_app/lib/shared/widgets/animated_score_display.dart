@@ -27,6 +27,7 @@ class AnimatedScoreDisplay extends StatefulWidget {
   final Duration glowDuration;
   final TextStyle? style;
 
+  @override
   State<AnimatedScoreDisplay> createState() => _AnimatedScoreDisplayState();
 }
 
@@ -40,6 +41,7 @@ class _AnimatedScoreDisplayState extends State<AnimatedScoreDisplay>
   late Animation<double> _pulseAnimation;
   Animation<double>? _glowAnimation;
 
+  @override
   void initState() {
     super.initState();
     _initCountUp();
@@ -123,6 +125,7 @@ class _AnimatedScoreDisplayState extends State<AnimatedScoreDisplay>
     }
   }
 
+  @override
   void dispose() {
     _countUpController.removeStatusListener(_onCountUpStatus);
     _pulseController.removeStatusListener(_onPulseStatus);
@@ -132,6 +135,7 @@ class _AnimatedScoreDisplayState extends State<AnimatedScoreDisplay>
     super.dispose();
   }
 
+  @override
   Widget build(BuildContext context) {
     final textStyle = widget.style ??
         Theme.of(context).textTheme.headlineMedium?.copyWith(

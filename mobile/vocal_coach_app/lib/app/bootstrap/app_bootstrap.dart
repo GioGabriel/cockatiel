@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 class AppBootstrap extends StatelessWidget {
   const AppBootstrap({super.key});
 
+  @override
   Widget build(BuildContext context) {
     final router = AppRouter();
     return MaterialApp(

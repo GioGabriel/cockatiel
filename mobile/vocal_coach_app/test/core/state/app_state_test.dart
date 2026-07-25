@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vocal_coach_app/core/state/app_state.dart';
 import 'package:vocal_coach_app/shared/models/user_models.dart';
 
 // Since mocking FirebaseAuth requires heavy dependencies, we'll test the pure

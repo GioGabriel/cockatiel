@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'package:vocal_coach_app/shared/animations/spring_curves.dart';
@@ -18,6 +17,7 @@ class VocalPreferencesPage extends StatefulWidget {
   final ApiClient apiClient;
   final VocalPreferences? currentPreferences;
 
+  @override
   State<VocalPreferencesPage> createState() => _VocalPreferencesPageState();
 }
 
@@ -43,6 +43,7 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
     'breathing': 'Breathing',
   };
 
+  @override
   void initState() {
     super.initState();
     final prefs = widget.currentPreferences;
@@ -206,7 +207,7 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                       Text(
                         'Not sure? Let us detect it automatically.',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 13,
                         ),
                       ),
@@ -223,7 +224,7 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                           ),
                         ),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.cyanAccent.withOpacity(0.5)),
+                          side: BorderSide(color: Colors.cyanAccent.withValues(alpha: 0.5)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -236,14 +237,14 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                           canvasColor: const Color(0xFF1E1E2C),
                         ),
                         child: DropdownButtonFormField<VocalRange>(
-                          value: _selectedRange,
+                          initialValue: _selectedRange,
                           style: const TextStyle(color: Colors.white, fontSize: 16),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.05),
+                            fillColor: Colors.white.withValues(alpha: 0.05),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -286,7 +287,7 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                       Text(
                         'Select up to 3 categories',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 13,
                         ),
                       ),
@@ -316,14 +317,14 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                               ),
                               selected: selected,
                               selectedColor: Colors.purpleAccent,
-                              backgroundColor: Colors.white.withOpacity(0.1),
+                              backgroundColor: Colors.white.withValues(alpha: 0.1),
                               checkmarkColor: Colors.black,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 side: BorderSide(
                                   color: selected
                                       ? Colors.purpleAccent
-                                      : Colors.white.withOpacity(0.2),
+                                      : Colors.white.withValues(alpha: 0.2),
                                 ),
                               ),
                               onSelected: (_) => _toggleCategory(category),
@@ -360,14 +361,14 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                           canvasColor: const Color(0xFF1E1E2C),
                         ),
                         child: DropdownButtonFormField<TrainingGoal>(
-                          value: _selectedGoal,
+                          initialValue: _selectedGoal,
                           style: const TextStyle(color: Colors.white, fontSize: 16),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.05),
+                            fillColor: Colors.white.withValues(alpha: 0.05),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),

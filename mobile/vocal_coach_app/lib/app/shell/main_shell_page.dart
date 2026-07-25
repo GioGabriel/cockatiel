@@ -24,6 +24,7 @@ class MainShellPage extends StatefulWidget {
   final AppState appState;
   final ApiClient apiClient;
 
+  @override
   State<MainShellPage> createState() => _MainShellPageState();
 }
 
@@ -32,6 +33,7 @@ class _MainShellPageState extends State<MainShellPage> {
 
   late final List<Widget> _pages;
 
+  @override
   void initState() {
     super.initState();
     _pages = [
@@ -61,6 +63,7 @@ class _MainShellPageState extends State<MainShellPage> {
     });
   }
 
+  @override
   Widget build(BuildContext context) {
     return NotificationListener<Notification>(
       onNotification: (notification) {

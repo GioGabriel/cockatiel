@@ -30,6 +30,7 @@ class ShimmerSkeleton extends StatelessWidget {
   /// Duration of one full shimmer sweep cycle.
   final Duration period;
 
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final base = baseColor ?? theme.colorScheme.surface;

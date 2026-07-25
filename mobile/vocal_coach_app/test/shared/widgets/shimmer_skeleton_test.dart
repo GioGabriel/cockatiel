@@ -17,7 +17,7 @@ void main() {
     testWidgets('renders Shimmer widget in the tree', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          ShimmerSkeleton(
+          const ShimmerSkeleton(
             child: SizedBox(height: 100, width: double.infinity),
           ),
         ),
@@ -29,9 +29,9 @@ void main() {
     testWidgets('renders child widget inside shimmer', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          ShimmerSkeleton(
+          const ShimmerSkeleton(
             child: SizedBox(
-              key: const Key('skeleton-child'),
+              key: Key('skeleton-child'),
               height: 80,
               width: double.infinity,
             ),
@@ -45,7 +45,7 @@ void main() {
     testWidgets('shimmer animation is running after pump', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          ShimmerSkeleton(
+          const ShimmerSkeleton(
             child: SizedBox(height: 100, width: double.infinity),
           ),
         ),

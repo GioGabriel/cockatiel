@@ -7,12 +7,9 @@ abstract class AuthTokenProvider {
 class FirebaseAuthTokenProvider implements AuthTokenProvider {
   FirebaseAuthTokenProvider({
     FirebaseAuth? firebaseAuth,
-    required bool useDevAuthToken,
-  })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-        _useDevAuthToken = useDevAuthToken;
+  })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
 
   final FirebaseAuth _firebaseAuth;
-  final bool _useDevAuthToken;
 
   @override
   Future<String> getToken() async {

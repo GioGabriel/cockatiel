@@ -14,6 +14,7 @@ class KaraokePracticePage extends StatelessWidget {
   final ApiClient apiClient;
   final AppState appState;
 
+  @override
   Widget build(BuildContext context) {
     return KaraokeCatalogPage(
       apiClient: apiClient,

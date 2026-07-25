@@ -174,7 +174,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
             'Sign in to continue your vocal journey.',
             style: TextStyle(
               fontSize: 15,
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -263,7 +263,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
             'Start your vocal journey today.',
             style: TextStyle(
               fontSize: 15,
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -361,7 +361,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
             "We'll send a reset link to your inbox.",
             style: TextStyle(
               fontSize: 15,
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -521,7 +521,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         style: FilledButton.styleFrom(
           backgroundColor: const Color(0xFF00FF7F),
           foregroundColor: const Color(0xFF09090F),
-          disabledBackgroundColor: const Color(0xFF00FF7F).withOpacity(0.5),
+          disabledBackgroundColor: const Color(0xFF00FF7F).withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
@@ -576,13 +576,13 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: _showSuccess
-              ? const Color(0xFF00FF7F).withOpacity(0.1)
-              : const Color(0xFFFF4D6D).withOpacity(0.1),
+              ? const Color(0xFF00FF7F).withValues(alpha: 0.1)
+              : const Color(0xFFFF4D6D).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: _showSuccess
-                ? const Color(0xFF00FF7F).withOpacity(0.4)
-                : const Color(0xFFFF4D6D).withOpacity(0.4),
+                ? const Color(0xFF00FF7F).withValues(alpha: 0.4)
+                : const Color(0xFFFF4D6D).withValues(alpha: 0.4),
           ),
         ),
         child: Row(
@@ -650,9 +650,9 @@ class _FullScreenAuthLayout extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 stops: const [0.0, 0.30, 0.50, 1.0],
                 colors: [
-                  const Color(0xFF09090F).withOpacity(0.15),
-                  const Color(0xFF09090F).withOpacity(0.55),
-                  const Color(0xFF09090F).withOpacity(0.92),
+                  const Color(0xFF09090F).withValues(alpha: 0.15),
+                  const Color(0xFF09090F).withValues(alpha: 0.55),
+                  const Color(0xFF09090F).withValues(alpha: 0.92),
                   const Color(0xFF09090F),
                 ],
               ),

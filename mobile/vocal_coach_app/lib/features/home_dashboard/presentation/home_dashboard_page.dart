@@ -25,6 +25,7 @@ class HomeDashboardPage extends StatefulWidget {
   final AppState appState;
   final ApiClient apiClient;
 
+  @override
   State<HomeDashboardPage> createState() => _HomeDashboardPageState();
 }
 
@@ -35,6 +36,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
   bool _loadingRecommendations = true;
   Timer? _refreshTimer;
 
+  @override
   void initState() {
     super.initState();
     _loadData();
@@ -97,6 +99,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     final user = widget.appState.currentUser;
     final theme = Theme.of(context);
@@ -449,6 +452,7 @@ class _StatTile extends StatelessWidget {
   final IconData icon;
   final ThemeData theme;
 
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),

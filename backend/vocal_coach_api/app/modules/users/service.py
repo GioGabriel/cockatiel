@@ -9,7 +9,7 @@ VALID_VOCAL_RANGES = [
   "soprano", "mezzo-soprano", "alto", "tenor", "baritone", "bass",
 ]
 
-VALID_CATEGORIES = ["vocal_training", "do_re_mi", "breathing"]
+VALID_CATEGORIES = ["vocal_training", "do_re_mi", "breathing", "karaoke"]
 
 VALID_TRAINING_GOALS = [
   "pitch_improvement",

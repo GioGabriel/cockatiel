@@ -296,6 +296,17 @@ class ApiClient {
     );
   }
 
+  Future<TrainingProgress> fetchKaraokeProgress() async {
+    final response = await _httpClient.get(
+      Uri.parse('${_config.apiBaseUrl}/v1/karaoke/progress'),
+      headers: await _headers(),
+    );
+    _throwIfError(response);
+    return TrainingProgress.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
   Future<KaraokeDrill> fetchKaraokeDrill({required String drillId}) async {
     final response = await _httpClient.get(
       Uri.parse('${_config.apiBaseUrl}/v1/karaoke/catalog/$drillId'),

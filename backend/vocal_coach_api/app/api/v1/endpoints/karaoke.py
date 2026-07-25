@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.api.v1.dependencies import get_current_user, get_current_user_or_guest
-from app.api.v1.schemas import KaraokeCatalogOut, KaraokeCatalogPreviewOut, KaraokeDrillOut
+from app.api.v1.schemas import KaraokeCatalogOut, KaraokeCatalogPreviewOut, KaraokeDrillOut, TrainingProgressOut
 from app.core.exceptions import ApiError
 from app.modules.karaoke.service import get_karaoke_catalog, get_drill_by_id, get_catalog_preview
 
@@ -33,3 +33,9 @@ def fetch_karaoke_drill(drill_id: str, _: dict = Depends(get_current_user)) -> K
       status_code=404,
     )
   return KaraokeDrillOut.model_validate(drill)
+
+@router.get("/progress", response_model=TrainingProgressOut)
+def fetch_karaoke_progress(current_user: dict = Depends(get_current_user)) -> TrainingProgressOut:
+  """Get karaoke progress for current user."""
+  from app.modules.karaoke.service import get_karaoke_progress as get_progress
+  return TrainingProgressOut.model_validate(get_progress(current_user["uid"]))

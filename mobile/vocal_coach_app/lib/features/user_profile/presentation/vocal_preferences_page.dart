@@ -35,12 +35,14 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
     'vocal_training',
     'do_re_mi',
     'breathing',
+    'karaoke',
   ];
 
   static const _categoryLabels = {
     'vocal_training': 'Vocal Training',
     'do_re_mi': 'Do Re Mi',
     'breathing': 'Breathing',
+    'karaoke': 'Karaoke',
   };
 
   @override

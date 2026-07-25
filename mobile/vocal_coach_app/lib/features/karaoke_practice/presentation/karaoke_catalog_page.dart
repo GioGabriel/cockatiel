@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/animations/micro_interaction.dart';
 import '../../../shared/models/karaoke_models.dart';
+import '../../../shared/models/training_models.dart';
 import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/difficulty_badge.dart';
 import '../../../shared/widgets/shimmer_skeleton.dart';
@@ -25,6 +26,7 @@ class KaraokeCatalogPage extends StatefulWidget {
 
 class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
   KaraokeCatalog? _catalog;
+  Map<String, TrainingExerciseProgress> _progressByDrill = {};
   bool _isLoading = true;
   bool _hasError = false;
   int _selectedCategoryIndex = 0;
@@ -32,20 +34,32 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
   @override
   void initState() {
     super.initState();
-    _loadCatalog();
+    _loadData();
   }
 
-  Future<void> _loadCatalog() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _hasError = false;
     });
 
     try {
-      final catalog = await widget.apiClient.fetchKaraokeCatalog();
+      final results = await Future.wait([
+        widget.apiClient.fetchKaraokeCatalog(),
+        widget.apiClient.fetchKaraokeProgress(),
+      ]);
+      final catalog = results[0] as KaraokeCatalog;
+      final progress = results[1] as TrainingProgress;
+      
+      final Map<String, TrainingExerciseProgress> progressMap = {};
+      for (final item in progress.items) {
+        progressMap[item.exerciseId] = item;
+      }
+
       if (!mounted) return;
       setState(() {
         _catalog = catalog;
+        _progressByDrill = progressMap;
         _isLoading = false;
       });
     } catch (_) {
@@ -130,7 +144,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
             SizedBox(
               height: 54,
               child: FilledButton(
-                onPressed: _loadCatalog,
+                onPressed: _loadData,
                 child: const Text('Retry'),
               ),
             ),
@@ -183,12 +197,13 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.85,
+              childAspectRatio: 0.78, // Adjusted to fit progress stats
             ),
             itemCount: selectedCategory.drills.length,
             itemBuilder: (context, index) {
               final drill = selectedCategory.drills[index];
-              return _buildDrillCard(drill, theme);
+              final progress = _progressByDrill[drill.drillId];
+              return _buildDrillCard(drill, progress, theme);
             },
           ),
         ),
@@ -196,7 +211,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     );
   }
 
-  Widget _buildDrillCard(KaraokeDrill drill, ThemeData theme) {
+  Widget _buildDrillCard(KaraokeDrill drill, TrainingExerciseProgress? progress, ThemeData theme) {
     final durationLabel = formatDuration(drill.durationSec);
     final formattedTitle = formatSnakeCaseTitle(drill.title);
 
@@ -235,6 +250,27 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
                 ),
               ),
               const SizedBox(height: 8),
+              if (progress != null && progress.sessionsCompleted > 0) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Best: ${progress.bestScore.toInt()}%',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${progress.sessionsCompleted} Takes',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
               Row(
                 children: [
                   Icon(

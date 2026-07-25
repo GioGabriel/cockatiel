@@ -11,6 +11,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/analytics_models.dart';
 import '../../../shared/models/training_models.dart';
+import '../../../shared/animations/micro_interaction.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../analytics_dashboard/presentation/analytics_dashboard_page.dart';
 import '../../history/presentation/practice_history_page.dart';
@@ -186,6 +187,10 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
           children: [
             // Welcome greeting
             _buildWelcomeSection(user, theme),
+            const SizedBox(height: 16),
+            
+            // Recent Activity Shortcut
+            _buildRecentActivityShortcut(theme),
             const SizedBox(height: 24),
 
             // Progress summary
@@ -232,6 +237,67 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+
+  Widget _buildRecentActivityShortcut(ThemeData theme) {
+    return Pressable(
+      onTap: () {
+        Navigator.of(context).push(
+          slideForwardRoute(
+            builder: (_) => PracticeHistoryPage(
+              appState: widget.appState,
+              apiClient: widget.apiClient,
+            ),
+          ),
+        );
+      },
+      child: Card(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.history_rounded,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Recent Activity Logs',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Review past scores and AI feedback',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildProgressSection(ThemeData theme) {

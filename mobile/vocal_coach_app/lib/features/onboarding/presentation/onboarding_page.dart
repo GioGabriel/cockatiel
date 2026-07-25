@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -87,20 +88,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           ),
           
-          // Dark Gradient Overlay (matching Login screen aesthetic)
+          // Dark Gradient Overlay with Blur
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0.0, 0.35, 0.60, 1.0],
-                  colors: [
-                    Colors.transparent,
-                    const Color(0xFF09090F).withValues(alpha: 0.35),
-                    const Color(0xFF09090F).withValues(alpha: 0.80),
-                    const Color(0xFF09090F).withValues(alpha: 0.92),
-                  ],
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.0, 0.40, 0.70, 1.0],
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFF09090F).withValues(alpha: 0.20),
+                        const Color(0xFF09090F).withValues(alpha: 0.60),
+                        const Color(0xFF09090F).withValues(alpha: 0.85),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

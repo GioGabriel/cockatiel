@@ -109,3 +109,70 @@ def build_karaoke_session_metadata(drill_id: str) -> dict[str, Any]:
     },
     "runtime_plan": runtime_plan,
   }
+
+
+def get_karaoke_progress(user_id: str) -> dict[str, Any]:
+  from time import time
+  from app.repositories.provider import get_session_repository
+  repository = get_session_repository()
+  sessions = repository.list_by_user(user_id)
+
+  aggregate: dict[str, dict[str, Any]] = {}
+  for session in sessions:
+    if session.get("mode") != "karaoke":
+      continue
+    if session.get("status") != "completed":
+      continue
+
+    exercise_id = str(session.get("exercise_id") or session.get("exercise_type") or "").strip().lower()
+    if not exercise_id:
+      continue
+
+    score = float(session.get("overall_score") or 0)
+    completed_at = int(session.get("completed_at") or session.get("created_at") or 0)
+    item = aggregate.setdefault(
+      exercise_id,
+      {
+        "exercise_id": exercise_id,
+        "sessions_completed": 0,
+        "total_score": 0.0,
+        "best_score": 0.0,
+        "last_score": 0.0,
+        "last_completed_at": 0,
+      },
+    )
+    # Each attempt in a completed session is typically a "take" 
+    # But wait, sessions_completed maps to total completed sessions.
+    item["sessions_completed"] += 1
+    item["total_score"] += score
+    item["best_score"] = max(float(item["best_score"]), score)
+    if completed_at >= int(item["last_completed_at"]):
+      item["last_score"] = score
+      item["last_completed_at"] = completed_at
+
+  progress_items: list[dict[str, Any]] = []
+  for exercise_id, item in aggregate.items():
+    sessions_completed = int(item["sessions_completed"])
+    avg_score = round(float(item["total_score"]) / max(sessions_completed, 1), 2)
+    drill = get_drill_by_id(exercise_id)
+    progress_items.append(
+      {
+        "exercise_id": exercise_id,
+        "exercise_name": str((drill or {}).get("title") or exercise_id),
+        "category_id": str((drill or {}).get("style_category") or "karaoke"),
+        "sessions_completed": sessions_completed,
+        "avg_score": avg_score,
+        "best_score": round(float(item["best_score"]), 2),
+        "last_score": round(float(item["last_score"]), 2),
+        "last_completed_at": int(item["last_completed_at"]),
+      }
+    )
+
+  progress_items.sort(key=lambda item: item["last_completed_at"], reverse=True)
+
+  return {
+    "user_id": user_id,
+    "generated_at": int(time() * 1000),
+    "items": progress_items,
+  }
+

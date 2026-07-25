@@ -232,7 +232,7 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
         headline: 'No $tabName logs yet',
         body: 'Start your vocal exercises or karaoke songs to build your training logs and receive AI evaluation!',
         ctaLabel: 'Refresh',
-        onCtaPressed: _fetchHistory,
+        onCtaTap: _fetchHistory,
       );
     }
 

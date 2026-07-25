@@ -22,6 +22,8 @@ VALID_TRAINING_GOALS = [
 
 def upsert_user(identity: dict[str, Any]) -> dict[str, Any]:
   repository = get_user_repository()
+  if "access_tier" not in identity:
+    identity["access_tier"] = "registered"
   return repository.upsert(identity)
 
 
@@ -35,6 +37,8 @@ def get_user_profile(user_id: str) -> dict[str, Any]:
       message="User not found",
       status_code=404,
     )
+  if "access_tier" not in user:
+    user["access_tier"] = "registered"
   return user
 
 

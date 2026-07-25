@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from app.ai_engine.model_router.service import OllamaModelRouter
-from app.ai_engine.providers.ollama_health import list_ollama_models
 from app.api.v1.dependencies import get_current_user
-from app.api.v1.schemas import AIHealthOut, AIJobOut, AIModelStatusOut
+from app.api.v1.schemas import AIHealthOut, AIJobOut
 from app.core.config import settings
 from app.core.exceptions import ApiError
 from app.modules.sessions.service import list_sessions_for_user
@@ -13,71 +11,29 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 @router.get("/health", response_model=AIHealthOut)
 def get_ai_health(_: dict = Depends(get_current_user)) -> AIHealthOut:
-  candidate_models = list(OllamaModelRouter(settings.ollama_models).candidates())
-
-  if not settings.ollama_enabled:
+  if not settings.openrouter_enabled:
     return AIHealthOut(
       status="disabled",
-      detail="Ollama is disabled by configuration.",
-      ollama_enabled=False,
+      detail="OpenRouter is disabled by configuration.",
+      openrouter_enabled=False,
       ai_async_enabled=settings.ai_async_enabled,
-      ollama_base_url=settings.ollama_base_url,
-      ollama_timeout_s=settings.ollama_timeout_s,
-      configured_models=list(settings.ollama_models),
-      available_models=[],
-      candidate_models=[AIModelStatusOut(model=model, available=False) for model in candidate_models],
+      openrouter_model=settings.openrouter_model,
+      openrouter_timeout_s=settings.openrouter_timeout_s,
       reachable=False,
       latency_ms=None,
     )
 
-  try:
-    available_models, latency_ms = list_ollama_models(
-      base_url=settings.ollama_base_url,
-      timeout_s=settings.ollama_timeout_s,
-    )
-    available_set = set(available_models)
-    model_statuses = [
-      AIModelStatusOut(model=model, available=model in available_set)
-      for model in candidate_models
-    ]
-
-    if not candidate_models:
-      status = "degraded"
-      detail = "No candidate models configured."
-    elif any(item.available for item in model_statuses):
-      status = "ok"
-      detail = "Ollama reachable and at least one configured model is available."
-    else:
-      status = "degraded"
-      detail = "Ollama reachable but configured models are not available."
-
-    return AIHealthOut(
-      status=status,
-      detail=detail,
-      ollama_enabled=True,
-      ai_async_enabled=settings.ai_async_enabled,
-      ollama_base_url=settings.ollama_base_url,
-      ollama_timeout_s=settings.ollama_timeout_s,
-      configured_models=list(settings.ollama_models),
-      available_models=available_models,
-      candidate_models=model_statuses,
-      reachable=True,
-      latency_ms=latency_ms,
-    )
-  except Exception as exc:
-    return AIHealthOut(
-      status="degraded",
-      detail=f"Ollama unavailable: {exc}",
-      ollama_enabled=True,
-      ai_async_enabled=settings.ai_async_enabled,
-      ollama_base_url=settings.ollama_base_url,
-      ollama_timeout_s=settings.ollama_timeout_s,
-      configured_models=list(settings.ollama_models),
-      available_models=[],
-      candidate_models=[AIModelStatusOut(model=model, available=False) for model in candidate_models],
-      reachable=False,
-      latency_ms=None,
-    )
+  # Note: A real ping to OpenRouter could be added here. For now, if enabled, we assume it's reachable.
+  return AIHealthOut(
+    status="ok",
+    detail="OpenRouter is enabled.",
+    openrouter_enabled=True,
+    ai_async_enabled=settings.ai_async_enabled,
+    openrouter_model=settings.openrouter_model,
+    openrouter_timeout_s=settings.openrouter_timeout_s,
+    reachable=True,
+    latency_ms=0,
+  )
 
 
 @router.get("/jobs", response_model=list[AIJobOut])

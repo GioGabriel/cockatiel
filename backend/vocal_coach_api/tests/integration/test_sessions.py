@@ -53,7 +53,7 @@ def test_sessions_vertical_slice_flow(client, auth_headers, expected_feedback_mo
   finalize_payload = finalize_response.json()
   assert finalize_payload["status"] == "completed"
   assert finalize_payload["feedback"]["session_id"] == session_id
-  assert finalize_payload["feedback"]["model_used"] in expected_feedback_models
+  assert finalize_payload["feedback"]["model_used"] == "coaching-logic-engine"
   assert finalize_payload["feedback"]["prompt_version"] in {"v1", "v1a", "v1b"}
 
   session_response = client.get(f"/v1/sessions/{session_id}", headers=auth_headers)

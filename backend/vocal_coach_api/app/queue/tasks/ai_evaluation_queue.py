@@ -14,9 +14,9 @@ def _now_ms() -> int:
   return int(time() * 1000)
 
 
-def enqueue(session_id: str, user_id: str, priority: int = 2) -> dict[str, Any]:
+def enqueue(session_id: str, user_id: str, priority: int = 2, job_id: str | None = None) -> dict[str, Any]:
   job = {
-    "job_id": str(uuid4()),
+    "job_id": job_id or str(uuid4()),
     "type": "ai_evaluation",
     "session_id": session_id,
     "user_id": user_id,

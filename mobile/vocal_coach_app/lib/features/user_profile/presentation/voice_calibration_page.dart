@@ -16,7 +16,6 @@ import '../../../shared/widgets/audio_waveform_visualizer.dart';
 class VoiceCalibrationPage extends StatefulWidget {
   const VoiceCalibrationPage({super.key});
 
-  @override
   State<VoiceCalibrationPage> createState() => _VoiceCalibrationPageState();
 }
 
@@ -43,7 +42,6 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
   static const int _calibrationDurationSec = 8;
   static const double _loudnessFloor = -48.0;
 
-  @override
   void dispose() {
     _subscription?.cancel();
     _calibrationTimer?.cancel();
@@ -159,7 +157,6 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
     Navigator.of(context).pop(null);
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -500,7 +497,6 @@ class _ResultRow extends StatelessWidget {
   final IconData icon;
   final ThemeData theme;
 
-  @override
   Widget build(BuildContext context) {
     return Row(
       children: [

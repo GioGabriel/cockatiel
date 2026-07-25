@@ -68,7 +68,6 @@ class AudioWaveformVisualizer extends StatefulWidget {
   /// Smoothing factor for amplitude transitions (0.0=instant, 1.0=frozen).
   final double smoothingFactor;
 
-  @override
   State<AudioWaveformVisualizer> createState() =>
       _AudioWaveformVisualizerState();
 }
@@ -81,7 +80,6 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
   final math.Random _random = math.Random();
   double _smoothedAmplitude = 0.0;
 
-  @override
   void initState() {
     super.initState();
     _barHeights = List.filled(widget.barCount, widget.minBarHeight);
@@ -93,7 +91,6 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
     _controller.repeat();
   }
 
-  @override
   void didUpdateWidget(AudioWaveformVisualizer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.barCount != oldWidget.barCount) {
@@ -102,7 +99,6 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
     }
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -140,7 +136,6 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
     setState(() {});
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final activeColor = widget.activeColor ?? theme.colorScheme.primary;
@@ -209,7 +204,6 @@ class _WaveformPainter extends CustomPainter {
   final double glowIntensity;
   final WaveformStyle style;
 
-  @override
   void paint(Canvas canvas, Size size) {
     final centerY = size.height / 2;
 
@@ -287,7 +281,6 @@ class _WaveformPainter extends CustomPainter {
     }
   }
 
-  @override
   bool shouldRepaint(_WaveformPainter oldDelegate) => true;
 }
 
@@ -309,7 +302,6 @@ class CompactWaveformIndicator extends StatelessWidget {
   final double height;
   final Color? color;
 
-  @override
   Widget build(BuildContext context) {
     return AudioWaveformVisualizer(
       amplitude: amplitude,

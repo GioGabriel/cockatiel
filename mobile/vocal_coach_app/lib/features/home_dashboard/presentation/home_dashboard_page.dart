@@ -22,7 +22,6 @@ class HomeDashboardPage extends StatefulWidget {
   final AppState appState;
   final ApiClient apiClient;
 
-  @override
   State<HomeDashboardPage> createState() => _HomeDashboardPageState();
 }
 
@@ -32,7 +31,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
   bool _loadingDashboard = true;
   bool _loadingRecommendations = true;
 
-  @override
   void initState() {
     super.initState();
     _loadData();
@@ -71,7 +69,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     final user = widget.appState.currentUser;
     final theme = Theme.of(context);
@@ -117,8 +114,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                         ),
                         child: Text(
                           '$pending',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: theme.colorScheme.onPrimary,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                           ),
@@ -148,10 +145,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
 
             // Progress summary
             _buildProgressSection(theme),
-            const SizedBox(height: 24),
-
-            // Quick actions
-            _buildQuickActions(theme),
             const SizedBox(height: 24),
 
             // Recommendations
@@ -215,14 +208,14 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 size: 40,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Text(
                 'Start your first session',
                 style: theme.textTheme.titleMedium,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
-                'Go to Training or Karaoke to begin practicing.',
+                'Your vocal journey starts here. Complete a session to unlock your analytics.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -296,59 +289,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     );
   }
 
-  Widget _buildQuickActions(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick Start', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.mic_rounded,
-                label: 'Vocal\nTraining',
-                color: theme.colorScheme.primary,
-                onTap: () {
-                  // Switch to Training tab (index 1) via ancestor shell
-                  _switchToTab(1);
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.music_note_rounded,
-                label: 'Karaoke\nPractice',
-                color: theme.colorScheme.secondary,
-                onTap: () {
-                  // Switch to Karaoke tab (index 2) via ancestor shell
-                  _switchToTab(2);
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.trending_up_rounded,
-                label: 'Progress\nAnalytics',
-                color: const Color(0xFF6C63FF),
-                onTap: () {
-                  Navigator.of(context).push(
-                    slideForwardRoute(
-                      builder: (_) => AnalyticsDashboardPage(
-                        apiClient: widget.apiClient,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
   void _switchToTab(int index) {
     // Find the nearest NavigationBar ancestor and switch tabs.
@@ -378,53 +318,57 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Recommended for You', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         ...displayItems.map(
           (rec) => Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _switchToTab(1), // Switch to Training tab
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.lightbulb_outline_rounded,
+                        color: theme.colorScheme.onSecondaryContainer,
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.lightbulb_outline_rounded,
-                      color: theme.colorScheme.onSecondaryContainer,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          rec.exerciseName,
-                          style: theme.textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          rec.reason,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            rec.exerciseName,
+                            style: theme.textTheme.titleSmall,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            rec.reason,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ],
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -447,7 +391,6 @@ class _StatTile extends StatelessWidget {
   final IconData icon;
   final ThemeData theme;
 
-  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
@@ -480,49 +423,4 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _QuickActionCard extends StatelessWidget {
-  const _QuickActionCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
 
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: color.withValues(alpha: 0.15),
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

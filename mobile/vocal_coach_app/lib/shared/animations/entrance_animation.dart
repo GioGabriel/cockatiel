@@ -40,7 +40,6 @@ class StaggeredEntrance extends StatefulWidget {
   /// Curve applied to each child's animation interval.
   final Curve curve;
 
-  @override
   State<StaggeredEntrance> createState() => _StaggeredEntranceState();
 }
 
@@ -49,7 +48,6 @@ class _StaggeredEntranceState extends State<StaggeredEntrance>
   late final AnimationController _controller;
   bool _hasAnimated = false;
 
-  @override
   void initState() {
     super.initState();
 
@@ -77,13 +75,11 @@ class _StaggeredEntranceState extends State<StaggeredEntrance>
     return Duration(milliseconds: totalMs);
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     // After first animation completes, show children directly.
     if (_hasAnimated) {
@@ -152,7 +148,6 @@ class _SlideTranslation extends AnimatedWidget {
 
   Animation<Offset> get _offset => listenable as Animation<Offset>;
 
-  @override
   Widget build(BuildContext context) {
     return Transform.translate(
       offset: _offset.value,

@@ -27,7 +27,7 @@ class AppState extends ChangeNotifier {
   bool _isAuthenticating = false;
   bool _isSendingPasswordReset = false;
   bool _isRefreshingAIJobs = false;
-  UserProfile? _currentUser;
+  UserProfileFull? _currentUser;
   AccessTier _accessTier = AccessTier.registered; // ignore: prefer_final_fields
   String? _authError;
   String? _authNotice;
@@ -39,7 +39,7 @@ class AppState extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
   bool get isGuest => !isAuthenticated;
   bool get isRefreshingAIJobs => _isRefreshingAIJobs;
-  UserProfile? get currentUser => _currentUser;
+  UserProfileFull? get currentUser => _currentUser;
   AccessTier get accessTier => isAuthenticated ? _accessTier : AccessTier.guest;
   String? get authError => _authError;
   String? get authNotice => _authNotice;
@@ -225,17 +225,25 @@ class AppState extends ChangeNotifier {
     }
 
     try {
-      final profile = await apiClient.fetchCurrentUser();
+      // First, hit /auth/me to guarantee the user is upserted in the backend database
+      final basicProfile = await apiClient.fetchCurrentUser();
+      
+      // Then fetch the full profile which contains vocal_preferences
+      final profile = await apiClient.fetchFullProfile();
+      
       final effectiveName = (user.displayName ?? '').trim().isNotEmpty
           ? user.displayName!.trim()
           : profile.name;
       final effectiveEmail = (user.email ?? '').trim().isNotEmpty
           ? user.email!.trim()
           : profile.email;
-      _currentUser = UserProfile(
+      _currentUser = UserProfileFull(
         uid: profile.uid,
         email: effectiveEmail,
         name: effectiveName,
+        accessTier: profile.accessTier,
+        vocalPreferences: profile.vocalPreferences,
+        premiumExpiresAt: profile.premiumExpiresAt,
       );
       _authError = null;
       _startAIJobsPolling();
@@ -285,7 +293,6 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  @override
   void dispose() {
     _authSubscription?.cancel();
     _stopAIJobsPolling();

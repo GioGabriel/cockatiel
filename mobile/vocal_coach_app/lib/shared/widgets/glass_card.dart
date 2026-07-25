@@ -45,7 +45,6 @@ class GlassCard extends StatelessWidget {
   final double borderOpacity;
   final bool _isDisabled;
 
-  @override
   Widget build(BuildContext context) {
     if (_isDisabled) {
       return _buildDisabledCard(context);

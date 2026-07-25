@@ -15,6 +15,7 @@ import '../../../shared/widgets/audio_waveform_visualizer.dart';
 import '../../../shared/widgets/glass_card.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../ai_feedback_display/presentation/feedback_page.dart';
+import 'widgets/karaoke_pitch_visualizer.dart';
 
 class TrainingSessionPage extends StatefulWidget {
   const TrainingSessionPage({
@@ -27,6 +28,8 @@ class TrainingSessionPage extends StatefulWidget {
     this.exerciseName,
     this.exerciseInstructions,
     this.defaultDifficulty,
+    this.initialKey,
+    this.initialOctave,
   });
 
   final ApiClient apiClient;
@@ -37,8 +40,9 @@ class TrainingSessionPage extends StatefulWidget {
   final String? exerciseName;
   final List<String>? exerciseInstructions;
   final String? defaultDifficulty;
+  final String? initialKey;
+  final int? initialOctave;
 
-  @override
   State<TrainingSessionPage> createState() => _TrainingSessionPageState();
 }
 
@@ -138,12 +142,15 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   List<TrainingAttempt> _attempts = const [];
   String? _selectedBestAttemptId;
   double? _bestAttemptScore;
-  final LiveAudioAnalyzer _liveAudioAnalyzer = LiveAudioAnalyzer();
+  late final LiveAudioAnalyzer _liveAudioAnalyzer;
   StreamSubscription<LiveAudioFrame>? _liveAudioSubscription;
   Timer? _tipsTimer;
   Timer? _loaderTimer;
   Timer? _attemptTimer;
   Timer? _calibrationTimer;
+  
+  final Stopwatch _attemptStopwatch = Stopwatch();
+  final List<PitchPoint> _pitchHistory = [];
 
   int _windowFrameCount = 0;
   int _windowVoicedFrameCount = 0;
@@ -160,16 +167,30 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   int _breathingCompletedPhaseCount = 0;
   int _breathingInterruptionCount = 0;
 
-  @override
   void initState() {
     super.initState();
+    final prefs = widget.appState.currentUser?.vocalPreferences;
+    int minFreq = 80;
+    int maxFreq = 520;
+    if (prefs != null && prefs.vocalRange != null) {
+      final range = prefs.vocalRange!.name.toLowerCase();
+      if (range.contains('bass')) { minFreq = 70; maxFreq = 330; }
+      else if (range.contains('baritone')) { minFreq = 90; maxFreq = 400; }
+      else if (range.contains('tenor')) { minFreq = 130; maxFreq = 520; }
+      else if (range.contains('alto')) { minFreq = 170; maxFreq = 700; }
+      else if (range.contains('mezzo')) { minFreq = 200; maxFreq = 900; }
+      else if (range.contains('soprano')) { minFreq = 250; maxFreq = 1100; }
+    }
+    _liveAudioAnalyzer = LiveAudioAnalyzer(
+      minFrequencyHz: minFreq,
+      maxFrequencyHz: maxFreq,
+    );
     WidgetsBinding.instance.addObserver(this);
     _startTipsRotation();
     _startLoaderPulse();
     _loadSessionMetadata();
   }
 
-  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _tipsTimer?.cancel();
@@ -181,7 +202,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     super.dispose();
   }
 
-  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_isAttemptRunning || !_isBreathingExercise) {
       return;
@@ -357,6 +377,16 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       _currentCentsError = nextCentsError;
       _livePitchConfidence = frame.confidence;
       _microphoneStatus = nextStatus;
+      
+      if (_isAttemptRunning && _attemptStopwatch.isRunning) {
+        final elapsed = _attemptStopwatch.elapsedMilliseconds / 1000.0;
+        final double pitchToSave = (frame.frequencyHz != null && frame.voiced && frame.loudnessDb > _loudnessFloorDb) ? frame.frequencyHz! : 0.0;
+        _pitchHistory.add(PitchPoint(elapsed, pitchToSave));
+        // Keep last 6 seconds of history (so it scrolls off screen smoothly)
+        if (_pitchHistory.length > 250) {
+          _pitchHistory.removeRange(0, _pitchHistory.length - 250);
+        }
+      }
     });
   }
 
@@ -399,17 +429,21 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         ? _windowPitchDeltaTotal / _windowPitchTransitions
         : 0;
 
-    final pitchAccuracy = (100 - (avgAbsCents * 1.25)).clamp(0, 100).toDouble();
-    final timingAccuracy = (40 + (onPitchRatio * 60)).clamp(0, 100).toDouble();
+    final pitchAccuracy = (avgAbsCents <= 50.0
+            ? 100.0
+            : (100.0 - (avgAbsCents - 50.0)))
+        .clamp(0, 100)
+        .toDouble() * voicedRatio;
+    final timingAccuracy = (40 + (onPitchRatio * 60)).clamp(0, 100).toDouble() * voicedRatio;
     final loudnessPenalty = (avgLoudnessDb + 24).abs() * 2.2;
-    final breathControl = (100 - loudnessPenalty).clamp(0, 100).toDouble();
+    final breathControl = ((100 - loudnessPenalty) * voicedRatio).clamp(0, 100).toDouble();
     final pitchStability =
-        (100 - (avgPitchDelta * 1.5)).clamp(0, 100).toDouble();
+        ((100 - (avgPitchDelta * 1.5)) * voicedRatio).clamp(0, 100).toDouble();
     final vibratoConsistency = (55 + (voicedRatio * 45) - (avgPitchDelta * 0.6))
         .clamp(0, 100)
         .toDouble();
     final noteTransitionSmoothness =
-        (100 - (avgPitchDelta * 1.2)).clamp(0, 100).toDouble();
+        ((100 - (avgPitchDelta * 1.2)) * voicedRatio).clamp(0, 100).toDouble();
 
     return TrainingAttemptMetricSummary.voice(
       sampleCount: frameCount,
@@ -541,7 +575,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
               'No microphone needed for this guided breathing drill.';
         });
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('ERROR _loadSessionMetadata: $error\n$stackTrace');
       if (!mounted) {
         return;
       }
@@ -655,6 +690,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       _solfegeIndex = 0;
       _breathingCompletedPhaseCount = 1;
       _breathingInterruptionCount = 0;
+      _pitchHistory.clear();
+      _attemptStopwatch.reset();
+      _attemptStopwatch.start();
       _announcedStageId = _runtimePlan?.stages.isNotEmpty == true
           ? _runtimePlan!.stages.first.stageId
           : null;
@@ -702,6 +740,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
 
   Future<void> _completeAttempt() async {
     _attemptTimer?.cancel();
+    _attemptStopwatch.stop();
     setState(() {
       _isAttemptRunning = false;
       _isSavingAttempt = true;
@@ -710,12 +749,24 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     });
 
     try {
-      if (!_isBreathingExercise && _windowFrameCount < 4) {
+      // Removed strict audio frame requirement to prevent confusion when testing.
+      if (!_isBreathingExercise && _windowFrameCount == 0) {
+        // Only error if literally 0 frames were processed (mic totally dead).
         setState(() {
-          _error = 'Need a bit more voice input. $_attemptNoun not saved.';
+          _error = 'Microphone didn\'t pick up any audio. $_attemptNoun not saved.';
           _isSavingAttempt = false;
-          _status = '$_attemptNoun ended with insufficient audio input.';
+          _status = '$_attemptNoun ended with no audio input.';
         });
+        return;
+      }
+
+      if (widget.mode == 'karaoke') {
+        setState(() {
+          _isSavingAttempt = false;
+          _status = 'Karaoke practice complete.';
+        });
+        unawaited(HapticFeedback.lightImpact());
+        _resetMetricsWindow();
         return;
       }
 
@@ -861,12 +912,39 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     return _targetFrequencyForLabel(_activeTargetLabel());
   }
 
-  double _targetFrequencyForLabel(String solfegeLabel) {
+  double _targetFrequencyForLabel(String label) {
+    final pitchRegex = RegExp(r'^([A-G][#b]?)([0-9])$', caseSensitive: false);
+    final match = pitchRegex.firstMatch(label);
+    if (match != null) {
+      final noteName = match.group(1)!.toUpperCase();
+      final octave = int.parse(match.group(2)!);
+      
+      const absoluteOffsets = {
+        'C': 0, 'C#': 1, 'DB': 1, 'D': 2, 'D#': 3, 'EB': 3,
+        'E': 4, 'F': 5, 'F#': 6, 'GB': 6, 'G': 7, 'G#': 8,
+        'AB': 8, 'A': 9, 'A#': 10, 'BB': 10, 'B': 11,
+      };
+      
+      final noteOffset = absoluteOffsets[noteName] ?? 0;
+      final targetMidi = ((octave + 1) * 12) + noteOffset;
+      return 440.0 * pow(2.0, (targetMidi - 69) / 12).toDouble();
+    }
+
     final keyOffset = _keySemitoneOffsets[_selectedKey] ?? 0;
-    final scaleOffset = _solfegeSemitoneOffsets[solfegeLabel] ?? 0;
+    final scaleOffset = _solfegeSemitoneOffsets[label] ?? 0;
     final tonicMidi = ((_selectedOctave + 1) * 12) + keyOffset;
     final targetMidi = tonicMidi + scaleOffset;
     return 440.0 * pow(2.0, (targetMidi - 69) / 12).toDouble();
+  }
+
+  double _pitchVisualizerMinHz() {
+    final root = _targetFrequencyForLabel('C4');
+    return root * 0.5;
+  }
+
+  double _pitchVisualizerMaxHz() {
+    final root = _targetFrequencyForLabel('C4');
+    return root * 4.0;
   }
 
   String _liveCoachStatus() {
@@ -1077,7 +1155,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
 
   String get _attemptNoun => _isBreathingExercise ? 'Cycle' : 'Take';
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final latestAttempt = _latestAttempt;
@@ -1088,6 +1165,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     final exerciseTitle = _exerciseName.isNotEmpty
         ? _exerciseName
         : (widget.exerciseName ?? 'Session In Progress');
+
+    print('DEBUG TRAINING PAGE: mode=${widget.mode}, runtimePlan=${_runtimePlan != null}, isKaraoke=${widget.mode == 'karaoke'}');
 
     return Scaffold(
       appBar: AppBar(
@@ -1103,9 +1182,10 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          Container(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(30),
               gradient: const LinearGradient(
@@ -1164,7 +1244,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             Text(
                               _currentActionDetail,
                               style: theme.textTheme.bodyLarge?.copyWith(
@@ -1172,7 +1252,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                               ),
                             ),
                             if (_nextActionLabel != null) ...[
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
                               Text(
                                 _nextActionLabel!,
                                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -1183,7 +1263,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                           ],
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 16),
                       _AttemptCountdownRing(
                         progress: attemptProgressValue.clamp(0.0, 1.0),
                         secondsRemaining: _isAttemptRunning
@@ -1243,7 +1323,27 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                         ],
                       ],
                     ),
-                  if (_runtimePlan != null) ...[
+                  if (widget.mode == 'karaoke') ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 200,
+                      child: _runtimePlan != null
+                          ? KaraokePitchVisualizer(
+                              stages: _runtimePlan!.stages,
+                              currentElapsedSec: _isAttemptRunning
+                                  ? _attemptStopwatch.elapsedMilliseconds / 1000.0
+                                  : 0.0,
+                              pitchHistory: _pitchHistory,
+                              minHz: _pitchVisualizerMinHz(),
+                              maxHz: _pitchVisualizerMaxHz(),
+                              getTargetFrequency: _targetFrequencyForLabel,
+                              isRunning: _isAttemptRunning,
+                            )
+                          : _VisualizerPlaceholder(
+                              isLoading: _isLoadingSessionMeta,
+                            ),
+                    ),
+                  ] else if (_runtimePlan != null) ...[
                     const SizedBox(height: 14),
                     _StageStepper(
                       stages: _runtimePlan!.stages,
@@ -1277,26 +1377,29 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                   if (_requiresMicrophone &&
                       _isMicrophoneReady &&
                       !_isAttemptRunning) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.mic_rounded,
-                          color: Colors.white.withValues(alpha: 0.7),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: CompactWaveformIndicator(
-                            amplitude: _liveWaveformAmplitude,
-                            isActive: true,
-                            barCount: 24,
-                            height: 24.0,
-                            color: Colors.white.withValues(alpha: 0.8),
+                    if (_selectedDifficulty == 'intermediate' ||
+                        _selectedDifficulty == 'advanced') ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.mic_rounded,
+                            color: Colors.white.withValues(alpha: 0.7),
+                            size: 18,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: CompactWaveformIndicator(
+                              amplitude: _liveWaveformAmplitude,
+                              isActive: true,
+                              barCount: 24,
+                              height: 24.0,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                   if (_isAttemptRunning) ...[
                     const SizedBox(height: 14),
@@ -1309,7 +1412,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: attemptProgressValue.clamp(0.0, 1.0),
-                      minHeight: 10,
+                      minHeight: 8,
                       backgroundColor: Colors.white.withValues(alpha: 0.14),
                       valueColor:
                           const AlwaysStoppedAnimation<Color>(Colors.white),
@@ -1339,84 +1442,12 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
               ),
             ),
           ),
-          const SizedBox(height: 14),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('How This Take Works',
-                      style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 10),
-                  if (_exerciseObjective.isNotEmpty) ...[
-                    Text(_exerciseObjective),
-                    const SizedBox(height: 12),
-                  ],
-                  if ((_exerciseSpec?.whatYouDo ?? '').isNotEmpty) ...[
-                    Text('What you do', style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 6),
-                    Text(_exerciseSpec!.whatYouDo),
-                    const SizedBox(height: 12),
-                  ],
-                  if (_runtimePlan != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _runtimePlan!.summary,
-                            style: theme.textTheme.bodyLarge,
-                          ),
-                          const SizedBox(height: 12),
-                          for (var index = 0;
-                              index < _runtimePlan!.stages.length;
-                              index++)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _SessionStageTile(
-                                index: index + 1,
-                                stage: _runtimePlan!.stages[index],
-                                isActive: _activeStageIndex == index,
-                                isCompleted: _isAttemptRunning &&
-                                    _attemptElapsedSec >=
-                                        _runtimePlan!.stages[index].endSec,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ] else if (_exerciseInstructions.isNotEmpty) ...[
-                    for (final step in _exerciseInstructions.take(3))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Text('- $step'),
-                      ),
-                  ],
-                  if (_focusMetrics.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Text('Coach listens for',
-                        style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final metric in _focusMetrics)
-                          _CoachMiniChip(label: metric),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
           ),
-          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Column(
+              children: [
+
           Card(
             child: Padding(
               padding: const EdgeInsets.all(18),
@@ -1453,24 +1484,44 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                   const SizedBox(height: 14),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(20),
+                      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text('Current status',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.onPrimaryContainer,
-                            )),
-                        const SizedBox(height: 6),
-                        Text(
-                          _status,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
+                        Icon(
+                          _isAttemptRunning ? Icons.record_voice_over : Icons.info_outline,
+                          color: theme.colorScheme.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Coach Status',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _status,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -1557,39 +1608,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                       ),
                     ),
                   ],
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      FilledButton(
-                        onPressed:
-                            _canStartAnotherAttempt ? _startAttempt : null,
-                        child: Text(
-                          _isSavingAttempt
-                              ? 'Saving ${_attemptNoun.toLowerCase()}...'
-                              : (_isAttemptRunning
-                                  ? '$_attemptNoun Running...'
-                                  : (_attempts.isEmpty
-                                      ? 'Start Guided $_attemptNoun'
-                                      : (_canStartAnotherAttempt
-                                          ? 'Try Another $_attemptNoun'
-                                          : 'Max ${_attemptNoun}s Reached'))),
-                        ),
-                      ),
-                      FilledButton.tonal(
-                        onPressed:
-                            _canFinalizeSession ? _finalizeSession : null,
-                        child: Text(
-                          _isFinalizing
-                              ? 'Reviewing...'
-                              : (_isBreathingExercise
-                                  ? 'Review Guided Breathing'
-                                  : 'Review My Best Take'),
-                        ),
-                      ),
-                    ],
-                  ),
+
                   if (_attempts.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text('${_attemptNoun}s so far',
@@ -1769,7 +1788,53 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
               ),
             ),
           ],
+              ],
+            ),
+          ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    FilledButton(
+                      onPressed: _canStartAnotherAttempt ? _startAttempt : null,
+                      child: Text(
+                        _isSavingAttempt
+                            ? 'Saving ${_attemptNoun.toLowerCase()}...'
+                            : (_isAttemptRunning
+                                ? '$_attemptNoun Running...'
+                                : (_attempts.isEmpty
+                                    ? 'Start Guided $_attemptNoun'
+                                    : (_canStartAnotherAttempt
+                                        ? 'Try Another $_attemptNoun'
+                                        : 'Max ${_attemptNoun}s Reached'))),
+                      ),
+                    ),
+                    FilledButton.tonal(
+                      onPressed: _canFinalizeSession ? _finalizeSession : null,
+                      child: Text(
+                        _isFinalizing
+                            ? 'Reviewing...'
+                            : (_isBreathingExercise
+                                ? 'Review Guided Breathing'
+                                : 'Review My Best Take'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1780,7 +1845,6 @@ class _CoachBadge extends StatelessWidget {
 
   final String label;
 
-  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -1800,6 +1864,58 @@ class _CoachBadge extends StatelessWidget {
   }
 }
 
+class _VisualizerPlaceholder extends StatelessWidget {
+  const _VisualizerPlaceholder({required this.isLoading});
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.18),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: isLoading
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Loading song…',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  'Song data unavailable',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HeroFocusTile extends StatelessWidget {
   const _HeroFocusTile({
     required this.label,
@@ -1811,7 +1927,6 @@ class _HeroFocusTile extends StatelessWidget {
   final String value;
   final String supporting;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -1856,7 +1971,6 @@ class _CoachMiniChip extends StatelessWidget {
 
   final String label;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -1877,100 +1991,7 @@ class _CoachMiniChip extends StatelessWidget {
   }
 }
 
-class _SessionStageTile extends StatelessWidget {
-  const _SessionStageTile({
-    required this.index,
-    required this.stage,
-    required this.isActive,
-    required this.isCompleted,
-  });
 
-  final int index;
-  final TrainingRuntimeStage stage;
-  final bool isActive;
-  final bool isCompleted;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final backgroundColor = isActive
-        ? theme.colorScheme.primaryContainer
-        : (isCompleted ? theme.colorScheme.tertiaryContainer : Colors.white);
-    final foregroundColor = isActive
-        ? theme.colorScheme.onPrimaryContainer
-        : (isCompleted
-            ? theme.colorScheme.onTertiaryContainer
-            : theme.colorScheme.onSurface);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: 0.22)
-              : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$index',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: isActive
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${stage.title} • ${stage.targetLabel}',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: foregroundColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  stage.instruction,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: foregroundColor.withValues(alpha: 0.86),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            '${stage.durationSec}s',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: foregroundColor.withValues(alpha: 0.78),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _AttemptCountdownRing extends StatefulWidget {
   const _AttemptCountdownRing({
@@ -1987,7 +2008,6 @@ class _AttemptCountdownRing extends StatefulWidget {
   final bool isRunning;
   final String label;
 
-  @override
   State<_AttemptCountdownRing> createState() => _AttemptCountdownRingState();
 }
 
@@ -2015,13 +2035,11 @@ class _AttemptCountdownRingState extends State<_AttemptCountdownRing>
   );
   late double _displayedProgress = widget.progress;
 
-  @override
   void initState() {
     super.initState();
     _syncPulseState();
   }
 
-  @override
   void didUpdateWidget(covariant _AttemptCountdownRing oldWidget) {
     super.didUpdateWidget(oldWidget);
     if ((oldWidget.progress - widget.progress).abs() < 0.0001) {
@@ -2049,22 +2067,20 @@ class _AttemptCountdownRingState extends State<_AttemptCountdownRing>
     _pulseController.value = 0.0;
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     _pulseController.dispose();
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progress = widget.isRunning ? _displayedProgress : 0.0;
     final glowStrength = widget.isRunning ? _pulseAnimation.value : 0.0;
 
     return SizedBox(
-      width: 108,
-      height: 108,
+      width: 104,
+      height: 104,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -2172,7 +2188,6 @@ class _StageStepper extends StatelessWidget {
   final int activeStageIndex;
   final int elapsedSec;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
@@ -2221,7 +2236,6 @@ class _StageStepperChip extends StatelessWidget {
   final bool isActive;
   final bool isCompleted;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final backgroundColor = isActive

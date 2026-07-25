@@ -321,6 +321,7 @@ class ApiClient {
 
   static void _throwIfError(http.Response response) {
     if (response.statusCode < 200 || response.statusCode > 299) {
+      print('API Error ${response.statusCode}: ${response.body}');
       throw ApiException(statusCode: response.statusCode, body: response.body);
     }
   }

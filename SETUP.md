@@ -58,7 +58,6 @@ curl http://localhost:8000/health
 | Setting | Default | Notes |
 |---------|---------|-------|
 | `AUTH_BYPASS` | `true` | Accepts dev tokens without Firebase verification |
-| `OLLAMA_ENABLED` | `false` | Set to `true` if running local Ollama |
 | `OPENROUTER_ENABLED` | `false` | Set to `true` to use OpenRouter cloud AI |
 
 ---

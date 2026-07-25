@@ -144,6 +144,7 @@ class CoachingFeedback(BaseModel):
   strengths: list[str]
   improvements: list[str]
   next_exercises: list[str]
+  summary: str | None = None
   model_used: str
   prompt_version: str
   latency_ms: int = Field(ge=0)
@@ -379,21 +380,13 @@ class AudioSnippetCleanupOut(BaseModel):
   cutoff_ms: int = Field(ge=0)
 
 
-class AIModelStatusOut(BaseModel):
-  model: str
-  available: bool
-
-
 class AIHealthOut(BaseModel):
   status: Literal["ok", "degraded", "disabled"]
   detail: str
-  ollama_enabled: bool
+  openrouter_enabled: bool
   ai_async_enabled: bool
-  ollama_base_url: str
-  ollama_timeout_s: int = Field(ge=1)
-  configured_models: list[str]
-  available_models: list[str]
-  candidate_models: list[AIModelStatusOut]
+  openrouter_model: str
+  openrouter_timeout_s: int = Field(ge=1)
   reachable: bool
   latency_ms: int | None = Field(default=None, ge=0)
 

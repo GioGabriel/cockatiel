@@ -34,3 +34,55 @@ def get_catalog_preview() -> dict[str, Any]:
     "total_drills": total_drills,
     "categories": categories_preview,
   }
+
+
+def build_karaoke_session_metadata(drill_id: str) -> dict[str, Any]:
+  """Build runtime plan and metadata for a karaoke session."""
+  drill = get_drill_by_id(drill_id)
+  if not drill:
+    return {}
+    
+  tempo = float(drill.get("tempo_bpm") or 120)
+  beats_per_sec = tempo / 60.0
+  sec_per_beat = 1.0 / beats_per_sec
+  
+  stages = []
+  melody = drill.get("melody_reference") or []
+  for index, note in enumerate(melody):
+    start_sec = float(note.get("start_beat") or 0.0) * sec_per_beat
+    duration_sec = float(note.get("duration_beats") or 1.0) * sec_per_beat
+    end_sec = start_sec + duration_sec
+    target_label = str(note.get("note") or "C4")
+    stages.append({
+      "stage_id": f"stage_{index + 1}",
+      "title": target_label,
+      "target_label": target_label,
+      "solfege": target_label,
+      "instruction": f"Sing {target_label}",
+      "duration_sec": max(1, int(round(duration_sec))),
+      "start_sec": max(0, int(round(start_sec))),
+      "end_sec": max(1, int(round(end_sec))),
+    })
+    
+  runtime_plan = {
+    "pattern_id": drill_id,
+    "pattern_type": "karaoke",
+    "summary": drill.get("objective") or "",
+    "difficulty": drill.get("difficulty") or "beginner",
+    "key": "C",
+    "octave": 4,
+    "total_duration_sec": int(drill.get("duration_sec") or 60),
+    "stages": stages,
+  }
+
+  return {
+    "category_id": drill.get("style_category") or "karaoke",
+    "exercise_id": drill_id,
+    "exercise_spec": drill,
+    "training_config": {
+      "difficulty": drill.get("difficulty") or "beginner",
+      "duration_sec": drill.get("duration_sec") or 60,
+      "max_attempts": 3,
+    },
+    "runtime_plan": runtime_plan,
+  }

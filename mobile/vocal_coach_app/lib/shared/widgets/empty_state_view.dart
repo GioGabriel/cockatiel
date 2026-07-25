@@ -40,7 +40,6 @@ class EmptyStateView extends StatelessWidget {
   /// Interval at which the CTA button pulses.
   final Duration ctaPulseInterval;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -132,7 +131,6 @@ class _PulsingButton extends StatefulWidget {
   final VoidCallback onTap;
   final Duration pulseInterval;
 
-  @override
   State<_PulsingButton> createState() => _PulsingButtonState();
 }
 
@@ -141,7 +139,6 @@ class _PulsingButtonState extends State<_PulsingButton>
   late final AnimationController _controller;
   late final Animation<double> _scaleAnimation;
 
-  @override
   void initState() {
     super.initState();
     _controller = AnimationController(
@@ -172,13 +169,11 @@ class _PulsingButtonState extends State<_PulsingButton>
     _controller.repeat();
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _scaleAnimation,

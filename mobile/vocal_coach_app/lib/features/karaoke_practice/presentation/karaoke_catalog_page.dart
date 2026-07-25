@@ -5,6 +5,8 @@ import '../../../core/state/app_state.dart';
 import '../../../shared/animations/entrance_animation.dart';
 import '../../../shared/animations/micro_interaction.dart';
 import '../../../shared/models/karaoke_models.dart';
+import '../../../shared/utils/vocal_utils.dart';
+import '../../../shared/widgets/difficulty_badge.dart';
 import '../../../shared/widgets/shimmer_skeleton.dart';
 import 'karaoke_song_briefing_page.dart';
 
@@ -18,7 +20,6 @@ class KaraokeCatalogPage extends StatefulWidget {
   final ApiClient apiClient;
   final AppState appState;
 
-  @override
   State<KaraokeCatalogPage> createState() => _KaraokeCatalogPageState();
 }
 
@@ -26,8 +27,8 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
   KaraokeCatalog? _catalog;
   bool _isLoading = true;
   bool _hasError = false;
+  int _selectedCategoryIndex = 0;
 
-  @override
   void initState() {
     super.initState();
     _loadCatalog();
@@ -67,7 +68,6 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     );
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -140,121 +140,117 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
 
   Widget _buildCatalogList(ThemeData theme) {
     final categories = _catalog?.categories ?? [];
+    if (categories.isEmpty) return const SizedBox.shrink();
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        return _buildCategorySection(category, theme);
-      },
-    );
-  }
+    final selectedCategory = categories[_selectedCategoryIndex];
 
-  Widget _buildCategorySection(KaraokeCategory category, ThemeData theme) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 12),
-          child: Text(
-            category.styleLabel,
-            style: theme.textTheme.titleMedium,
+        // Filter Chips
+        SizedBox(
+          height: 60,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              final isSelected = index == _selectedCategoryIndex;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(formatSnakeCaseTitle(category.styleLabel)),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() => _selectedCategoryIndex = index);
+                    }
+                  },
+                ),
+              );
+            },
           ),
         ),
-        StaggeredEntrance(
-          staggerDelay: const Duration(milliseconds: 50),
-          children: category.drills
-              .map((drill) => _buildDrillCard(drill, theme))
-              .toList(),
+        
+        // Grid View
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.85,
+            ),
+            itemCount: selectedCategory.drills.length,
+            itemBuilder: (context, index) {
+              final drill = selectedCategory.drills[index];
+              return _buildDrillCard(drill, theme);
+            },
+          ),
         ),
       ],
     );
   }
 
   Widget _buildDrillCard(KaraokeDrill drill, ThemeData theme) {
-    final minutes = drill.durationSec ~/ 60;
-    final seconds = drill.durationSec % 60;
-    final durationLabel = seconds > 0
-        ? '${minutes}m ${seconds}s'
-        : '${minutes}m';
+    final durationLabel = formatDuration(drill.durationSec);
+    final formattedTitle = formatSnakeCaseTitle(drill.title);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Pressable(
-        onTap: () => _onDrillTap(drill),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Hero(
-                        tag: 'karaoke_song_title_${drill.drillId}',
-                        child: Material(
-                          color: Colors.transparent,
-                          child: Text(
-                            drill.title,
-                            style: theme.textTheme.titleSmall,
-                          ),
-                        ),
-                      ),
+    return Pressable(
+      onTap: () => _onDrillTap(drill),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  DifficultyBadge(difficulty: drill.difficulty),
+                  Icon(
+                    Icons.play_circle_fill_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 24,
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Hero(
+                tag: 'karaoke_song_title_${drill.drillId}',
+                child: Material(
+                  color: Colors.transparent,
+                  child: Text(
+                    formattedTitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    _buildDifficultyBadge(drill.difficulty, theme),
-                  ],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.timer_outlined,
-                      size: 16,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    durationLabel,
+                    style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      durationLabel,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(
-                      Icons.music_note_outlined,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      drill.styleCategory,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDifficultyBadge(String difficulty, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        difficulty,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSecondaryContainer,
         ),
       ),
     );

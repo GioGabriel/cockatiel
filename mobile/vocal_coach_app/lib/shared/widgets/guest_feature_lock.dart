@@ -12,7 +12,6 @@ class GuestFeatureLock extends StatelessWidget {
   final Widget child;
   final VoidCallback onTap;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GestureDetector(

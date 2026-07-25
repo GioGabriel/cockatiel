@@ -24,7 +24,6 @@ class OnboardingPage extends StatefulWidget {
     return prefs.getBool(onboardingCompleteKey) ?? false;
   }
 
-  @override
   State<OnboardingPage> createState() => _OnboardingPageState();
 }
 
@@ -73,13 +72,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
-  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -172,7 +169,6 @@ class _OnboardingSlide extends StatelessWidget {
 
   final _OnboardingData data;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 

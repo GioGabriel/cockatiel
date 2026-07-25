@@ -15,6 +15,7 @@ app/ai_engine/prompt_management/templates/v1a.py
 app/ai_engine/prompt_management/templates/v1b.py
 app/ai_engine/providers/ollama_client.py
 app/ai_engine/providers/ollama_health.py
+app/ai_engine/providers/openrouter_client.py
 app/ai_engine/schemas/__init__.py
 app/ai_engine/schemas/feedback_payload.py
 app/api/__init__.py
@@ -29,7 +30,9 @@ app/api/v1/endpoints/audio_snippets.py
 app/api/v1/endpoints/auth.py
 app/api/v1/endpoints/exercises.py
 app/api/v1/endpoints/feedback.py
+app/api/v1/endpoints/karaoke.py
 app/api/v1/endpoints/metrics.py
+app/api/v1/endpoints/profile.py
 app/api/v1/endpoints/sessions.py
 app/api/v1/endpoints/training.py
 app/api/v1/endpoints/users.py
@@ -45,6 +48,7 @@ app/modules/audio_snippets/__init__.py
 app/modules/audio_snippets/service.py
 app/modules/karaoke/__init__.py
 app/modules/karaoke/catalog.py
+app/modules/karaoke/service.py
 app/modules/sessions/__init__.py
 app/modules/sessions/service.py
 app/modules/training/__init__.py

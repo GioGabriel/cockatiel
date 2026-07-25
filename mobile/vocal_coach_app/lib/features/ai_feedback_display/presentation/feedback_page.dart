@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../shared/models/session_models.dart';
 import '../../../shared/widgets/animated_score_display.dart';
+import '../../../shared/widgets/glass_card.dart';
 
 class FeedbackPage extends StatelessWidget {
   const FeedbackPage({super.key, required this.result});
 
   final FinalizeResponse result;
 
-  @override
   Widget build(BuildContext context) {
     final feedback = result.feedback;
 
@@ -24,7 +24,7 @@ class FeedbackPage extends StatelessWidget {
               )
             : ListView(
                 children: [
-                  Card(
+                  GlassCard.dark(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -49,13 +49,13 @@ class FeedbackPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   _FeedbackSection(
                       title: 'Strengths', items: feedback.strengths),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   _FeedbackSection(
                       title: 'Improvements', items: feedback.improvements),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   _FeedbackSection(
                       title: 'Next Exercises', items: feedback.nextExercises),
                   const SizedBox(height: 16),
@@ -77,9 +77,8 @@ class _FeedbackSection extends StatelessWidget {
   final String title;
   final List<String> items;
 
-  @override
   Widget build(BuildContext context) {
-    return Card(
+    return GlassCard.dark(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

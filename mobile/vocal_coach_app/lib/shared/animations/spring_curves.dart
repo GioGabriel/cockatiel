@@ -18,7 +18,6 @@ class SpringCurve extends Curve {
   /// Controls the frequency of oscillation. Higher = faster spring.
   final double stiffness;
 
-  @override
   double transformInternal(double t) {
     if (t == 0.0) return 0.0;
     if (t == 1.0) return 1.0;

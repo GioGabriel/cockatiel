@@ -12,12 +12,6 @@ def _as_csv(name: str, default: str = "") -> list[str]:
   return [part.strip() for part in raw.split(",") if part.strip()]
 
 
-def _default_ollama_models() -> tuple[str, ...]:
-  explicit = _as_csv("OLLAMA_MODELS")
-  if explicit:
-    return tuple(explicit)
-  single = os.getenv("OLLAMA_MODEL", "llama3.1:8b").strip()
-  return (single,) if single else ("llama3.1:8b",)
 
 
 @dataclass(frozen=True)
@@ -25,7 +19,7 @@ class Settings:
   app_name: str = os.getenv("APP_NAME", "Vocal Coach API")
   app_env: str = os.getenv("APP_ENV", "dev")
   api_prefix: str = os.getenv("API_PREFIX", "/v1")
-  auth_bypass: bool = _as_bool("AUTH_BYPASS", True)
+  auth_bypass: bool = _as_bool("AUTH_BYPASS", False)
 
   ai_async_enabled: bool = _as_bool("AI_ASYNC_ENABLED", False)
   ai_worker_enabled: bool = _as_bool("AI_WORKER_ENABLED", True)
@@ -44,16 +38,10 @@ class Settings:
   firestore_enabled: bool = _as_bool("FIRESTORE_ENABLED", False)
   firestore_project_id: str | None = os.getenv("FIRESTORE_PROJECT_ID")
 
-  ollama_enabled: bool = _as_bool("OLLAMA_ENABLED", False)
-  ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-  ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
-  ollama_models: tuple[str, ...] = field(default_factory=_default_ollama_models)
-  ollama_timeout_s: int = int(os.getenv("OLLAMA_TIMEOUT_S", "180"))
-  ollama_temperature: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.2"))
   prompt_version: str = os.getenv("PROMPT_VERSION", "v1")
 
   openrouter_enabled: bool = _as_bool("OPENROUTER_ENABLED", False)
-  openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
+  openrouter_api_keys: list[str] = field(default_factory=lambda: _as_csv("OPENROUTER_API_KEYS", ""))
   openrouter_model: str = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
   openrouter_timeout_s: int = int(os.getenv("OPENROUTER_TIMEOUT_S", "60"))
   openrouter_temperature: float = float(os.getenv("OPENROUTER_TEMPERATURE", "0.2"))

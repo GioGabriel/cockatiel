@@ -6,14 +6,14 @@ import '../theme/app_theme.dart';
 class AppBootstrap extends StatelessWidget {
   const AppBootstrap({super.key});
 
-  @override
   Widget build(BuildContext context) {
     final router = AppRouter();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Vocal Coach',
-      theme: AppTheme.light(),
-      themeMode: ThemeMode.light,
+      theme: AppTheme.dark(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.dark,
       onGenerateRoute: router.onGenerateRoute,
     );
   }

@@ -21,7 +21,6 @@ class AuthGatePage extends StatefulWidget {
   final AppState appState;
   final ApiClient apiClient;
 
-  @override
   State<AuthGatePage> createState() => _AuthGatePageState();
 }
 
@@ -31,7 +30,6 @@ class _AuthGatePageState extends State<AuthGatePage> {
   bool _showOnboarding = false;
   bool _onboardingChecked = false;
 
-  @override
   void initState() {
     super.initState();
     _bootstrapFuture = _bootstrap();
@@ -58,7 +56,6 @@ class _AuthGatePageState extends State<AuthGatePage> {
     });
   }
 
-  @override
   void dispose() {
     _notificationTapSub?.cancel();
     super.dispose();
@@ -75,7 +72,7 @@ class _AuthGatePageState extends State<AuthGatePage> {
       if (feedback == null && session.status == 'completed') {
         feedback = await widget.apiClient.fetchFeedback(sessionId: sessionId);
       }
-      if (!mounted || feedback == null) {
+      if (!mounted) {
         return;
       }
       Navigator.of(context).push(
@@ -94,7 +91,6 @@ class _AuthGatePageState extends State<AuthGatePage> {
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     return FutureBuilder<void>(
       future: _bootstrapFuture,
@@ -130,7 +126,6 @@ class _AuthGatePageState extends State<AuthGatePage> {
 class _BootstrappingPage extends StatefulWidget {
   const _BootstrappingPage();
 
-  @override
   State<_BootstrappingPage> createState() => _BootstrappingPageState();
 }
 
@@ -140,7 +135,6 @@ class _BootstrappingPageState extends State<_BootstrappingPage>
   late final Animation<double> _fadeIn;
   late final Animation<double> _scale;
 
-  @override
   void initState() {
     super.initState();
     _controller = AnimationController(
@@ -157,13 +151,11 @@ class _BootstrappingPageState extends State<_BootstrappingPage>
     _controller.forward();
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 

@@ -4,6 +4,8 @@ import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/karaoke_models.dart';
+import '../../../shared/utils/vocal_utils.dart';
+import '../../../shared/widgets/difficulty_badge.dart';
 import '../../vocal_training/presentation/training_session_page.dart';
 
 class KaraokeSongBriefingPage extends StatefulWidget {
@@ -18,7 +20,6 @@ class KaraokeSongBriefingPage extends StatefulWidget {
   final ApiClient apiClient;
   final AppState appState;
 
-  @override
   State<KaraokeSongBriefingPage> createState() =>
       _KaraokeSongBriefingPageState();
 }
@@ -66,199 +67,129 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final drill = widget.drill;
-    final minutes = drill.durationSec ~/ 60;
-    final seconds = drill.durationSec % 60;
-    final durationLabel =
-        seconds > 0 ? '${minutes}m ${seconds}s' : '${minutes}m';
+    final durationLabel = formatDuration(drill.durationSec);
     final vocalLow = drill.vocalRange['low'] ?? '';
     final vocalHigh = drill.vocalRange['high'] ?? '';
 
+    final formattedTitle = formatSnakeCaseTitle(drill.title);
+    final formattedStyle = formatSnakeCaseTitle(drill.styleCategory);
+
     return Scaffold(
-      appBar: AppBar(title: Text(drill.title)),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        children: [
-          // Header card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Hero(
+      appBar: AppBar(title: Text(formattedStyle)),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header card
+              Expanded(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.music_note_rounded,
+                            size: 40,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        DifficultyBadge(difficulty: drill.difficulty),
+                        const SizedBox(height: 16),
+                        Hero(
                           tag: 'karaoke_song_title_${drill.drillId}',
                           child: Material(
                             color: Colors.transparent,
                             child: Text(
-                              drill.title,
-                              style: theme.textTheme.headlineSmall,
+                              formattedTitle,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
-                      ),
-                      _buildDifficultyBadge(drill.difficulty, theme),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(
-                    Icons.category_outlined,
-                    'Style',
-                    drill.styleCategory,
-                    theme,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInfoRow(
-                    Icons.timer_outlined,
-                    'Duration',
-                    durationLabel,
-                    theme,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInfoRow(
-                    Icons.speed_outlined,
-                    'Tempo',
-                    '${drill.tempoBpm} BPM',
-                    theme,
-                  ),
-                  if (vocalLow.isNotEmpty && vocalHigh.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _buildInfoRow(
-                      Icons.music_note_outlined,
-                      'Vocal Range',
-                      '$vocalLow – $vocalHigh',
-                      theme,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Objective
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Objective', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(drill.objective, style: theme.textTheme.bodyMedium),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Performance tips
-          if (drill.performanceTips.isNotEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Performance Tips',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    ...drill.performanceTips.map(
-                      (tip) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.lightbulb_outline,
-                              size: 18,
-                              color: theme.colorScheme.secondary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                tip,
-                                style: theme.textTheme.bodyMedium,
-                              ),
-                            ),
+                            _buildIconStat(Icons.timer_outlined, durationLabel, theme),
+                            const SizedBox(width: 24),
+                            _buildIconStat(Icons.speed_outlined, '${drill.tempoBpm} BPM', theme),
                           ],
                         ),
-                      ),
+                        if (vocalLow.isNotEmpty && vocalHigh.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          _buildIconStat(Icons.mic_external_on_outlined, '$vocalLow – $vocalHigh', theme),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          // Error message
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                _error!,
-                style: TextStyle(color: theme.colorScheme.error),
-                textAlign: TextAlign.center,
-              ),
-            ),
+              // Error message
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(color: theme.colorScheme.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
 
-          // Start Session button
-          SizedBox(
-            height: 54,
-            child: FilledButton(
-              onPressed: _isStarting ? null : _startSession,
-              child: Text(
-                _isStarting ? 'Starting...' : 'Start Session',
+              // Start Session button
+              FilledButton.icon(
+                onPressed: _isStarting ? null : _startSession,
+                icon: _isStarting 
+                    ? const SizedBox(
+                        width: 20, height: 20, 
+                        child: CircularProgressIndicator(strokeWidth: 2)
+                      )
+                    : const Icon(Icons.play_arrow_rounded),
+                label: Text(
+                  _isStarting ? 'Loading...' : 'Start Karaoke',
+                  style: const TextStyle(fontSize: 16),
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildInfoRow(
-    IconData icon,
-    String label,
-    String value,
-    ThemeData theme,
-  ) {
+  Widget _buildIconStat(IconData icon, String label, ThemeData theme) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Text(
-          '$label: ',
+          label,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        Text(value, style: theme.textTheme.bodyMedium),
       ],
-    );
-  }
-
-  Widget _buildDifficultyBadge(String difficulty, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        difficulty,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSecondaryContainer,
-        ),
-      ),
     );
   }
 }

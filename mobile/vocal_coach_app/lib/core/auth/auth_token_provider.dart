@@ -20,10 +20,7 @@ class FirebaseAuthTokenProvider implements AuthTokenProvider {
     if (user == null) {
       throw StateError('No authenticated Firebase user.');
     }
-    if (_useDevAuthToken) {
-      return 'dev_${user.uid}';
-    }
-
+    // Removed dev token bypass to force real JWTs
     final token = await user.getIdToken();
     if (token == null || token.isEmpty) {
       throw StateError('Unable to resolve Firebase ID token.');

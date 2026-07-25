@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:vocal_coach_app/shared/animations/page_transitions.dart';
 
@@ -18,7 +20,6 @@ class UserProfilePage extends StatefulWidget {
   final AppState appState;
   final ApiClient apiClient;
 
-  @override
   State<UserProfilePage> createState() => _UserProfilePageState();
 }
 
@@ -29,7 +30,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? _error;
   UserProfileFull? _profile;
 
-  @override
   void initState() {
     super.initState();
     _loadProfile();
@@ -114,21 +114,31 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFB),
+      backgroundColor: const Color(0xFF0A0A0F),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFB),
-        title: const Text('Account Settings'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Account Settings',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _buildError(theme)
-              : _buildContent(theme),
+      body: Container(
+        color: const Color(0xFF0A0A0F),
+        child: SafeArea(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: Colors.cyanAccent))
+              : _error != null
+                  ? _buildError(theme)
+                  : _buildContent(theme),
+        ),
+      ),
     );
   }
 
@@ -172,11 +182,23 @@ class _UserProfilePageState extends State<UserProfilePage> {
           icon: Icons.person_outline_rounded,
           label: 'Full Name',
           value: profile.name,
+          onTap: () {
+            Clipboard.setData(ClipboardData(text: profile.name));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Name copied to clipboard')),
+            );
+          },
         ),
         _SettingsItem(
           icon: Icons.mail_outline_rounded,
           label: 'Email',
           value: profile.email,
+          onTap: () {
+            Clipboard.setData(ClipboardData(text: profile.email));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Email copied to clipboard')),
+            );
+          },
         ),
         _SettingsItem(
           icon: Icons.badge_outlined,
@@ -184,6 +206,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
           value: profile.uid.length > 12
               ? '${profile.uid.substring(0, 12)}...'
               : profile.uid,
+          onTap: () {
+            Clipboard.setData(ClipboardData(text: profile.uid));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('User ID copied to clipboard')),
+            );
+          },
         ),
         const SizedBox(height: 28),
 
@@ -241,34 +269,58 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Column(
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              gradient: const LinearGradient(
+                colors: [Colors.cyanAccent, Colors.purpleAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.cyanAccent.withOpacity(0.5),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                )
+              ],
             ),
-            child: Center(
-              child: Text(
-                _getInitials(profile.name),
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w700,
+            child: Padding(
+              padding: const EdgeInsets.all(3.0),
+              child: Container(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF1E1E2C),
+                ),
+                child: Center(
+                  child: Text(
+                    _getInitials(profile.name),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             profile.name,
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             profile.email,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 14,
             ),
           ),
         ],
@@ -308,15 +360,16 @@ class _SectionHeader extends StatelessWidget {
 
   final String title;
 
-  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 4),
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.cyanAccent,
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -342,75 +395,89 @@ class _SettingsItem extends StatelessWidget {
   final Color? iconColor;
   final Color? labelColor;
 
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final hasAction = onTap != null;
+    final itemIconColor = iconColor ?? Colors.cyanAccent;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 2),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: (iconColor ?? theme.colorScheme.primary)
-                      .withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: iconColor ?? theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: labelColor,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: InkWell(
+            onTap: onTap,
+            highlightColor: Colors.white.withOpacity(0.1),
+            splashColor: itemIconColor.withOpacity(0.2),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: itemIconColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: itemIconColor.withOpacity(0.3),
                       ),
                     ),
-                    if (value != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        value!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                    child: Icon(
+                      icon,
+                      size: 22,
+                      color: itemIconColor,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: labelColor ?? Colors.white,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                        if (value != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            value!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withOpacity(0.6),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: 8),
+                    trailing!,
                   ],
-                ),
+                  if (hasAction && trailing == null)
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                ],
               ),
-              if (trailing != null) ...[
-                const SizedBox(width: 8),
-                trailing!,
-              ],
-              if (hasAction && trailing == null)
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-            ],
+            ),
           ),
         ),
       ),
@@ -423,27 +490,32 @@ class _TierBadge extends StatelessWidget {
 
   final AccessTier tier;
 
-  @override
   Widget build(BuildContext context) {
     final isPremium = tier == AccessTier.premium;
-    final label = isPremium ? 'Premium' : 'Free';
-    final bgColor =
-        isPremium ? const Color(0xFFFDF3E0) : const Color(0xFFE8F5E9);
-    final textColor =
-        isPremium ? const Color(0xFFB8860B) : const Color(0xFF2E7D32);
+    final label = isPremium ? 'PREMIUM' : 'FREE';
+    final glowColor = isPremium ? Colors.purpleAccent : Colors.greenAccent;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
+        color: glowColor.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: glowColor.withOpacity(0.5), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: glowColor.withOpacity(0.3),
+            blurRadius: 8,
+            spreadRadius: -2,
+          )
+        ],
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: glowColor,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -453,67 +525,112 @@ class _TierBadge extends StatelessWidget {
 /// Enterprise-style sign out confirmation dialog.
 /// Centered icon, bold title, body text, full-width action buttons.
 class _SignOutDialog extends StatelessWidget {
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.colorScheme.error.withValues(alpha: 0.1),
-              ),
-              child: Icon(
-                Icons.logout_rounded,
-                color: theme.colorScheme.error,
-                size: 28,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Sign Out',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Are you sure you want to sign out? You can sign back in anytime with your credentials.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.error,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Sign Out'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A2E).withOpacity(0.9),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.redAccent.withOpacity(0.2),
+              blurRadius: 16,
+              spreadRadius: 4,
+            )
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.redAccent.withOpacity(0.15),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.redAccent.withOpacity(0.4),
+                          blurRadius: 12,
+                          spreadRadius: -2,
+                        )
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.power_settings_new_rounded,
+                      color: Colors.redAccent,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'SYSTEM OFFLINE?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Are you sure you want to sign out? Your vocal data is safely stored in the cloud.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'SIGN OUT',
+                        style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white.withOpacity(0.8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                        ),
+                      ),
+                      child: const Text('CANCEL'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:vocal_coach_app/shared/animations/metric_animator.dart';
 import 'package:vocal_coach_app/shared/widgets/empty_state_view.dart';
+import 'package:vocal_coach_app/shared/widgets/glass_card.dart';
 import 'package:vocal_coach_app/shared/widgets/shimmer_skeleton.dart';
 
 import '../../../core/network/api_client.dart';
@@ -16,7 +17,6 @@ class AnalyticsDashboardPage extends StatefulWidget {
 
   final ApiClient apiClient;
 
-  @override
   State<AnalyticsDashboardPage> createState() => _AnalyticsDashboardPageState();
 }
 
@@ -32,7 +32,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   TrainingProgress? _trainingProgress;
   Timer? _liveRefreshTimer;
 
-  @override
   void initState() {
     super.initState();
     _loadAll();
@@ -42,7 +41,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     );
   }
 
-  @override
   void dispose() {
     _liveRefreshTimer?.cancel();
     super.dispose();
@@ -86,14 +84,11 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     } catch (_) {}
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFB),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFB),
         title: const Text('Analytics'),
       ),
       body: _isLoading && _dashboard == null
@@ -237,7 +232,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : Colors.transparent,
+                  color: isSelected ? theme.colorScheme.surface : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: isSelected
                       ? [
@@ -273,16 +268,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     final points = _trends!.points;
     final scores = points.map((p) => p.avgScore).toList();
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(
+    return GlassCard.dark(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -328,20 +317,14 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildMetricsBreakdown(ThemeData theme, AnalyticsRange range) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(
+    return GlassCard.dark(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Performance Metrics', style: theme.textTheme.titleMedium),
@@ -378,7 +361,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
           ],
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildTrainingProgress(ThemeData theme) {
@@ -389,18 +372,12 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       children: [
         Text('Exercise Progress', style: theme.textTheme.titleMedium),
         const SizedBox(height: 12),
-        ...items.map((item) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color:
-                      theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Row(
+        ...items.map((item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: GlassCard.dark(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
                 children: [
                   Expanded(
                     child: Column(
@@ -451,7 +428,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                   ),
                 ],
               ),
-            )),
+            )))),
       ],
     );
   }
@@ -481,19 +458,12 @@ class _KpiCard extends StatelessWidget {
   final Color iconColor;
   final String? subtitle;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(
+    return GlassCard.dark(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: iconColor, size: 22),
@@ -524,7 +494,7 @@ class _KpiCard extends StatelessWidget {
           ],
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -534,7 +504,6 @@ class _ChangeIndicator extends StatelessWidget {
   final double current;
   final double previous;
 
-  @override
   Widget build(BuildContext context) {
     if (previous <= 0) return const SizedBox.shrink();
     final change = ((current - previous) / previous * 100);
@@ -581,7 +550,6 @@ class _MetricRow extends StatelessWidget {
   final double value;
   final Color color;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progress = (value / 100).clamp(0.0, 1.0);
@@ -627,7 +595,6 @@ class _SparklinePainter extends CustomPainter {
   final Color lineColor;
   final Color fillColor;
 
-  @override
   void paint(Canvas canvas, Size size) {
     if (values.length < 2) return;
 
@@ -677,7 +644,6 @@ class _SparklinePainter extends CustomPainter {
     );
   }
 
-  @override
   bool shouldRepaint(_SparklinePainter oldDelegate) =>
       oldDelegate.values != values;
 }

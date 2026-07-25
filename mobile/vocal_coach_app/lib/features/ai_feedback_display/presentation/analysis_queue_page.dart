@@ -15,7 +15,6 @@ class AnalysisQueuePage extends StatelessWidget {
   final AppState appState;
   final ApiClient apiClient;
 
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -97,7 +96,6 @@ class _QueueJobCard extends StatelessWidget {
     );
   }
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = switch (job.state) {
@@ -144,7 +142,7 @@ class _QueueJobCard extends StatelessWidget {
                 'Last error: ${job.lastError}',
                 style: TextStyle(color: theme.colorScheme.error),
               ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             if (job.state == 'completed')
               FilledButton.tonal(
                 onPressed: () => _openFeedback(context),

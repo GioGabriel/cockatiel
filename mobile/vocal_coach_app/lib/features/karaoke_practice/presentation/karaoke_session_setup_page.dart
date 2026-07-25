@@ -19,7 +19,6 @@ class KaraokeSessionSetupPage extends StatefulWidget {
   final String title;
   final List<String> exerciseOptions;
 
-  @override
   State<KaraokeSessionSetupPage> createState() =>
       _KaraokeSessionSetupPageState();
 }
@@ -69,7 +68,6 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
@@ -93,7 +91,7 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      initialValue: _selectedExercise,
+                      value: _selectedExercise,
                       decoration: const InputDecoration(
                         labelText: 'Karaoke drill',
                       ),

@@ -7,6 +7,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -24,13 +25,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
   ai_worker: AIEvaluationWorker | None = None
   snippet_cleanup_worker: AudioSnippetCleanupWorker | None = None
   logger.info(
-    "runtime_config env=%s auth_bypass=%s firestore_enabled=%s ollama_enabled=%s ollama_models=%s ollama_timeout_s=%s openrouter_enabled=%s openrouter_model=%s prompt_version=%s ai_async_enabled=%s ai_worker_enabled=%s audio_snippet_storage_backend=%s audio_snippet_retention_days=%s audio_snippet_cleanup_worker_enabled=%s audio_snippet_cleanup_interval_sec=%s",
+    "runtime_config env=%s auth_bypass=%s firestore_enabled=%s openrouter_enabled=%s openrouter_model=%s prompt_version=%s ai_async_enabled=%s ai_worker_enabled=%s audio_snippet_storage_backend=%s audio_snippet_retention_days=%s audio_snippet_cleanup_worker_enabled=%s audio_snippet_cleanup_interval_sec=%s",
     settings.app_env,
     settings.auth_bypass,
     settings.firestore_enabled,
-    settings.ollama_enabled,
-    ",".join(settings.ollama_models),
-    settings.ollama_timeout_s,
     settings.openrouter_enabled,
     settings.openrouter_model,
     settings.prompt_version,
@@ -58,6 +56,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(api_router, prefix=settings.api_prefix)
 
 

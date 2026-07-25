@@ -61,7 +61,7 @@ def test_async_finalize_processes_queue_job(client, auth_headers, monkeypatch, e
   assert session_response.status_code == 200
   session_payload = session_response.json()
   assert session_payload["status"] == "completed"
-  assert session_payload["feedback"]["model_used"] in expected_feedback_models
+  assert session_payload["feedback"]["model_used"] in {"coaching-logic-engine", "openrouter:meta-llama/llama-3.1-8b-instruct:free"}
   assert session_payload["ai_job"]["state"] == "completed"
 
   feedback_response = client.get(f"/v1/sessions/{session_id}/feedback", headers=auth_headers)

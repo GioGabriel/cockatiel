@@ -19,7 +19,7 @@ class AppConfig {
     const overrideUrl =
         String.fromEnvironment('API_BASE_URL', defaultValue: '');
     const useDevAuthTokenRaw =
-        String.fromEnvironment('USE_DEV_AUTH_TOKEN', defaultValue: 'true');
+        String.fromEnvironment('USE_DEV_AUTH_TOKEN', defaultValue: 'false');
     const useFirebaseAuthEmulatorRaw = String.fromEnvironment(
       'USE_FIREBASE_AUTH_EMULATOR',
       defaultValue: 'false',
@@ -33,7 +33,7 @@ class AppConfig {
       defaultValue: '9099',
     );
 
-    final useDevAuthToken = _asBool(useDevAuthTokenRaw, fallback: true);
+    final useDevAuthToken = _asBool(useDevAuthTokenRaw, fallback: false);
     final useFirebaseAuthEmulator =
         _asBool(useFirebaseAuthEmulatorRaw, fallback: false);
     final authEmulatorHost = _resolveAuthEmulatorHost(authEmulatorHostOverride);
@@ -62,7 +62,7 @@ class AppConfig {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return AppConfig(
-          apiBaseUrl: 'http://10.0.2.2:8000',
+          apiBaseUrl: 'http://127.0.0.1:8000',
           useDevAuthToken: useDevAuthToken,
           useFirebaseAuthEmulator: useFirebaseAuthEmulator,
           firebaseAuthEmulatorHost: authEmulatorHost,

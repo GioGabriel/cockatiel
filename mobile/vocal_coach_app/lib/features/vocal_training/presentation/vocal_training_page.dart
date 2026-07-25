@@ -20,7 +20,6 @@ class VocalTrainingPage extends StatefulWidget {
   final ApiClient apiClient;
   final AppState appState;
 
-  @override
   State<VocalTrainingPage> createState() => _VocalTrainingPageState();
 }
 
@@ -40,7 +39,6 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
   Map<String, TrainingRecommendation> _recommendationByExercise = const {};
   List<TrainingRecommendation> _recommendations = const [];
 
-  @override
   void initState() {
     super.initState();
     _loadCoachIntroPreference();
@@ -267,7 +265,6 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
     );
   }
 
-  @override
   Widget build(BuildContext context) {
     final totalSessions = _progressByExercise.values.fold<int>(
       0,
@@ -311,17 +308,19 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
                   _InlineNotice(message: _catalogError!),
                 ],
                 if (_recommendations.isNotEmpty) ...[
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   Text(
                     'Recommended Next',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   StaggeredEntrance(
                     staggerDelay: const Duration(milliseconds: 50),
                     children: [
                       for (final item in _recommendations.take(3))
-                        Pressable(
+                        _RecommendationCard(
+                          recommendation: item,
+                          exercise: _findExercise(item.exerciseId),
                           onTap: () {
                             final category =
                                 _findCategoryByExerciseId(item.exerciseId);
@@ -343,46 +342,32 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
                               ),
                             );
                           },
-                          child: _RecommendationCard(
-                            recommendation: item,
-                            exercise: _findExercise(item.exerciseId),
-                            onTap: () {
-                              final category =
-                                  _findCategoryByExerciseId(item.exerciseId);
-                              final exercise = _findExercise(item.exerciseId);
-                              if (category == null || exercise == null) {
-                                return;
-                              }
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ExerciseBriefingPage(
-                                    categoryTitle: category.title,
-                                    exercise: exercise,
-                                    recommendation: item,
-                                    progress:
-                                        _progressByExercise[exercise.id],
-                                    apiClient: widget.apiClient,
-                                    appState: widget.appState,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
                         ),
                     ],
                   ),
                 ],
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 Text(
                   'Training Tracks',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 StaggeredEntrance(
                   staggerDelay: const Duration(milliseconds: 50),
                   children: [
                     for (final category in _categories)
-                      Pressable(
+                      _TrackCard(
+                        category: category,
+                        completedExercises: category.exercises
+                            .where((exercise) =>
+                                _progressByExercise
+                                    .containsKey(exercise.id))
+                            .length,
+                        recommendedCount: category.exercises
+                            .where((exercise) =>
+                                _recommendationByExercise
+                                    .containsKey(exercise.id))
+                            .length,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -397,33 +382,6 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
                             ),
                           );
                         },
-                        child: _TrackCard(
-                          category: category,
-                          completedExercises: category.exercises
-                              .where((exercise) =>
-                                  _progressByExercise
-                                      .containsKey(exercise.id))
-                              .length,
-                          recommendedCount: category.exercises
-                              .where((exercise) =>
-                                  _recommendationByExercise
-                                      .containsKey(exercise.id))
-                              .length,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => _ExerciseCategoryPage(
-                                  category: category,
-                                  apiClient: widget.apiClient,
-                                  appState: widget.appState,
-                                  progressByExercise: _progressByExercise,
-                                  recommendationByExercise:
-                                      _recommendationByExercise,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
                       ),
                   ],
                 ),
@@ -503,22 +461,27 @@ class _HeroPanel extends StatelessWidget {
   final double bestRecentScore;
   final VoidCallback? onOpenRecommendation;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0E7C86), Color(0xFF184B73)],
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary.withValues(alpha: 0.15),
+            theme.colorScheme.secondary.withValues(alpha: 0.15),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: const [
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x220E7C86),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             blurRadius: 24,
-            offset: Offset(0, 14),
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -530,13 +493,14 @@ class _HeroPanel extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.16),
+                color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: const Text(
+              child: Text(
                 'Premium guided studio',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -545,21 +509,20 @@ class _HeroPanel extends StatelessWidget {
             Text(
               title,
               style: theme.textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               description,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Wrap(
-              spacing: 10,
-              runSpacing: 10,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 _HeroStatChip(label: 'Sessions', value: '$totalSessions'),
                 _HeroStatChip(label: 'Tracked', value: '$trackedExercises'),
@@ -572,14 +535,13 @@ class _HeroPanel extends StatelessWidget {
               ],
             ),
             if (recommendation != null) ...[
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
+                  color: theme.colorScheme.surface.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(18),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.14)),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,14 +549,13 @@ class _HeroPanel extends StatelessWidget {
                     Text(
                       'Today\'s Focus',
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       recommendation!.exerciseName,
                       style: theme.textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -602,15 +563,15 @@ class _HeroPanel extends StatelessWidget {
                     Text(
                       recommendation!.reason,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.88),
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 12),
                     FilledButton.tonal(
                       onPressed: onOpenRecommendation,
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF184B73),
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
                       ),
                       child: const Text('Open Recommended Drill'),
                     ),
@@ -631,12 +592,13 @@ class _HeroStatChip extends StatelessWidget {
   final String label;
   final String value;
 
-  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: theme.colorScheme.surface.withValues(alpha: 0.5),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -645,16 +607,16 @@ class _HeroStatChip extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
               fontSize: 12,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -670,7 +632,6 @@ class _InlineNotice extends StatelessWidget {
 
   final String message;
 
-  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -697,7 +658,6 @@ class _RecommendationCard extends StatelessWidget {
   final VocalExercise? exercise;
   final VoidCallback onTap;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
@@ -714,11 +674,12 @@ class _RecommendationCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF2D7A1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded,
-                    color: Color(0xFF7B4F00)),
+                child: Icon(Icons.auto_awesome_rounded,
+                    color: theme.colorScheme.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -774,7 +735,6 @@ class _TrackCard extends StatelessWidget {
   final int recommendedCount;
   final VoidCallback onTap;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
@@ -850,7 +810,6 @@ class _TagChip extends StatelessWidget {
 
   final String label;
 
-  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -885,7 +844,6 @@ class _ExerciseCategoryPage extends StatelessWidget {
   final Map<String, TrainingExerciseProgress> progressByExercise;
   final Map<String, TrainingRecommendation> recommendationByExercise;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
@@ -896,25 +854,35 @@ class _ExerciseCategoryPage extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primaryContainer,
-                  Colors.white,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: theme.colorScheme.surface.withValues(alpha: 0.5),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
             ),
             child: Padding(
               padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(category.title, style: theme.textTheme.headlineSmall),
+                  Text(
+                    category.title,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(category.subtitle),
+                  Text(
+                    category.subtitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(category.description),
+                  Text(
+                    category.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -982,7 +950,6 @@ class _ExerciseCard extends StatelessWidget {
   final TrainingRecommendation? recommendation;
   final VoidCallback onTap;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
@@ -1017,14 +984,14 @@ class _ExerciseCard extends StatelessWidget {
               Text(exercise.name, style: theme.textTheme.titleLarge),
               const SizedBox(height: 6),
               Text(exercise.objective),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
                 'What you do',
                 style: theme.textTheme.titleSmall,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(exercise.whatYouDo),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(exercise.description),
               const SizedBox(height: 12),
               Wrap(
@@ -1042,12 +1009,12 @@ class _ExerciseCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
               if (progress != null) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   'Completed ${progress!.sessionsCompleted} session(s) • Last ${progress!.lastScore.toStringAsFixed(1)} • Avg ${progress!.avgScore.toStringAsFixed(1)}',
                 ),
               ],
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               FilledButton(
                 onPressed: onTap,
                 child: const Text('Open Briefing'),
@@ -1063,7 +1030,6 @@ class _ExerciseCard extends StatelessWidget {
 class _CoachIntroSheet extends StatelessWidget {
   const _CoachIntroSheet();
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SafeArea(
@@ -1088,28 +1054,28 @@ class _CoachIntroSheet extends StatelessWidget {
               title: 'Choose a track',
               detail: 'Voice drills use a microphone. Breathing drills do not.',
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             const _CoachIntroStep(
               number: '2',
               title: 'Open the briefing',
               detail:
                   'Check the guided pattern first so you know the exact flow.',
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             const _CoachIntroStep(
               number: '3',
               title: 'Follow the live coach',
               detail:
                   'The session keeps the current note or phase visible while you train.',
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             const _CoachIntroStep(
               number: '4',
               title: 'Review the best result',
               detail:
                   'Save up to 3 takes or cycles and finish with the strongest one.',
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -1135,7 +1101,6 @@ class _CoachIntroStep extends StatelessWidget {
   final String title;
   final String detail;
 
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Row(

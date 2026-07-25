@@ -20,7 +20,6 @@ class Pressable extends StatefulWidget {
   final Duration pressDuration;
   final Duration releaseDuration;
 
-  @override
   State<Pressable> createState() => _PressableState();
 }
 
@@ -29,7 +28,6 @@ class _PressableState extends State<Pressable>
   late final AnimationController _controller;
   late final Animation<double> _animation;
 
-  @override
   void initState() {
     super.initState();
     _controller = AnimationController(
@@ -45,7 +43,6 @@ class _PressableState extends State<Pressable>
     );
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -64,7 +61,6 @@ class _PressableState extends State<Pressable>
     _controller.reverse();
   }
 
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -113,7 +109,6 @@ class PressableCard extends StatefulWidget {
   final double pressedElevation;
   final double borderRadius;
 
-  @override
   State<PressableCard> createState() => _PressableCardState();
 }
 
@@ -122,7 +117,6 @@ class _PressableCardState extends State<PressableCard>
   late final AnimationController _controller;
   late final Animation<double> _animation;
 
-  @override
   void initState() {
     super.initState();
     _controller = AnimationController(
@@ -138,7 +132,6 @@ class _PressableCardState extends State<PressableCard>
     );
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -157,7 +150,6 @@ class _PressableCardState extends State<PressableCard>
     _controller.reverse();
   }
 
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: _onTapDown,

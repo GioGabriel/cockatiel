@@ -1,43 +1,29 @@
 import json
 
 SYSTEM_PROMPT = (
-  "You are a professional vocal coach. "
-  "Return only JSON with keys strengths, improvements, next_exercises. "
-  "Each key must map to a non-empty array of short coaching strings."
+  "You are a professional, encouraging vocal coach. "
+  "Based on the user's score and the technical feedback points provided, write a short, friendly 1-2 sentence summary of their performance. "
+  "Return ONLY a JSON object with a single key 'summary'."
 )
 
-USER_TEMPLATE_DEFAULT = (
-  "Analyze this vocal training result and provide focused coaching feedback.\n"
-  "session_id={session_id}\n"
-  "exercise_type={exercise_type}\n"
-  "overall_score={overall_score}\n"
-  "metrics={metric_summary_json}\n"
-  "session_context={session_context_json}"
-)
-
-USER_TEMPLATE_KARAOKE = (
-  "Analyze this karaoke performance and prioritize timing, phrasing, and pitch guidance.\n"
-  "session_id={session_id}\n"
-  "exercise_type={exercise_type}\n"
-  "overall_score={overall_score}\n"
-  "metrics={metric_summary_json}\n"
-  "session_context={session_context_json}"
+USER_TEMPLATE = (
+  "Score: {overall_score}/100\n"
+  "Exercise: {exercise_type}\n"
+  "Strengths: {strengths_json}\n"
+  "Improvements needed: {improvements_json}\n"
 )
 
 
 def render_user_prompt(
   *,
-  session_id: str,
-  exercise_type: str,
   overall_score: float,
-  metric_summary: dict[str, float | int],
-  session_context: dict | None = None,
+  exercise_type: str,
+  strengths: list[str],
+  improvements: list[str],
 ) -> str:
-  template = USER_TEMPLATE_KARAOKE if "karaoke" in exercise_type.lower() else USER_TEMPLATE_DEFAULT
-  return template.format(
-    session_id=session_id,
-    exercise_type=exercise_type,
+  return USER_TEMPLATE.format(
     overall_score=round(overall_score, 2),
-    metric_summary_json=json.dumps(metric_summary, sort_keys=True),
-    session_context_json=json.dumps(session_context or {}, sort_keys=True),
+    exercise_type=exercise_type,
+    strengths_json=json.dumps(strengths),
+    improvements_json=json.dumps(improvements),
   )

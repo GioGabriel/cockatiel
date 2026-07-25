@@ -136,7 +136,7 @@ class TrainingSessionConfig {
     required this.difficulty,
     required this.key,
     required this.octave,
-    required this.targetPattern,
+    this.targetPattern,
     required this.durationSec,
     required this.maxAttempts,
   });
@@ -144,18 +144,18 @@ class TrainingSessionConfig {
   final String difficulty;
   final String key;
   final int octave;
-  final String targetPattern;
+  final String? targetPattern;
   final int durationSec;
   final int maxAttempts;
 
   factory TrainingSessionConfig.fromJson(Map<String, dynamic> json) {
     return TrainingSessionConfig(
-      difficulty: json['difficulty'] as String,
-      key: json['key'] as String,
-      octave: (json['octave'] as num).toInt(),
-      targetPattern: json['target_pattern'] as String,
-      durationSec: (json['duration_sec'] as num).toInt(),
-      maxAttempts: (json['max_attempts'] as num).toInt(),
+      difficulty: (json['difficulty'] as String?) ?? 'beginner',
+      key: (json['key'] as String?) ?? 'C',
+      octave: (json['octave'] as num?)?.toInt() ?? 4,
+      targetPattern: json['target_pattern'] as String?,
+      durationSec: (json['duration_sec'] as num?)?.toInt() ?? 30,
+      maxAttempts: (json['max_attempts'] as num?)?.toInt() ?? 3,
     );
   }
 }

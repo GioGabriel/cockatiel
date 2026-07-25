@@ -21,7 +21,6 @@ class CountUpText extends StatefulWidget {
   final String suffix;
   final int decimalPlaces;
 
-  @override
   State<CountUpText> createState() => _CountUpTextState();
 }
 
@@ -30,7 +29,6 @@ class _CountUpTextState extends State<CountUpText>
   late final AnimationController _controller;
   late Animation<double> _animation;
 
-  @override
   void initState() {
     super.initState();
     _controller = AnimationController(
@@ -43,7 +41,6 @@ class _CountUpTextState extends State<CountUpText>
     _controller.forward();
   }
 
-  @override
   void didUpdateWidget(CountUpText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value) {
@@ -59,13 +56,11 @@ class _CountUpTextState extends State<CountUpText>
     }
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _animation,
@@ -103,7 +98,6 @@ class AnimatedProgressRing extends StatefulWidget {
   final Color? color;
   final Color? backgroundColor;
 
-  @override
   State<AnimatedProgressRing> createState() => _AnimatedProgressRingState();
 }
 
@@ -112,7 +106,6 @@ class _AnimatedProgressRingState extends State<AnimatedProgressRing>
   late final AnimationController _controller;
   late Animation<double> _animation;
 
-  @override
   void initState() {
     super.initState();
     _controller = AnimationController(
@@ -125,7 +118,6 @@ class _AnimatedProgressRingState extends State<AnimatedProgressRing>
     _controller.forward();
   }
 
-  @override
   void didUpdateWidget(AnimatedProgressRing oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.progress != widget.progress) {
@@ -141,13 +133,11 @@ class _AnimatedProgressRingState extends State<AnimatedProgressRing>
     }
   }
 
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     final ringColor = widget.color ?? Theme.of(context).colorScheme.primary;
     final bgColor = widget.backgroundColor ??
@@ -183,7 +173,6 @@ class _ProgressRingPainter extends CustomPainter {
   final Color color;
   final Color backgroundColor;
 
-  @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
@@ -207,7 +196,6 @@ class _ProgressRingPainter extends CustomPainter {
     canvas.drawArc(rect, -pi / 2, sweepAngle, false, fgPaint);
   }
 
-  @override
   bool shouldRepaint(_ProgressRingPainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.color != color ||

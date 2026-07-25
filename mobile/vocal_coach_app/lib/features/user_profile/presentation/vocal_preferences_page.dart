@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'package:vocal_coach_app/shared/animations/spring_curves.dart';
@@ -17,7 +18,6 @@ class VocalPreferencesPage extends StatefulWidget {
   final ApiClient apiClient;
   final VocalPreferences? currentPreferences;
 
-  @override
   State<VocalPreferencesPage> createState() => _VocalPreferencesPageState();
 }
 
@@ -43,7 +43,6 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
     'breathing': 'Breathing',
   };
 
-  @override
   void initState() {
     super.initState();
     final prefs = widget.currentPreferences;
@@ -172,192 +171,306 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Vocal Preferences')),
-      body: Form(
-        key: _formKey,
+      backgroundColor: const Color(0xFF0A0A0F),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Vocal Preferences',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: Container(
+        color: const Color(0xFF0A0A0F),
+        child: SafeArea(
+          child: Form(
+            key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Vocal Range',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Not sure? Let us detect it automatically.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildGlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Vocal Range',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _openVoiceCalibration,
-                      icon: const Icon(Icons.mic_rounded),
-                      label: const Text('Detect My Voice Type'),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<VocalRange>(
-                      initialValue: _selectedRange,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                      ),
-                      items: VocalRange.values.map((range) {
-                        return DropdownMenuItem(
-                          value: range,
-                          child: Text(_vocalRangeLabel(range)),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedRange = value;
-                          });
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Preferred Categories',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Select up to 3 categories',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _availableCategories.map((category) {
-                        final selected =
-                            _selectedCategories.contains(category);
-                        final scaleVal = selected ? 1.0 : 0.95;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          curve: kDefaultSpringCurve,
-                          transform: Matrix4.diagonal3Values(
-                            scaleVal,
-                            scaleVal,
-                            1.0,
-                          ),
-                          child: FilterChip(
-                            label: Text(
-                              _categoryLabels[category] ?? category,
-                            ),
-                            selected: selected,
-                            onSelected: (_) => _toggleCategory(category),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    if (_errorMessage != null &&
-                        _selectedCategories.isEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Text(
-                        _errorMessage!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
+                        'Not sure? Let us detect it automatically.',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _openVoiceCalibration,
+                        icon: const Icon(Icons.mic_rounded, color: Colors.cyanAccent),
+                        label: const Text(
+                          'DETECT MY VOICE TYPE',
+                          style: TextStyle(
+                            color: Colors.cyanAccent,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.cyanAccent.withOpacity(0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Theme(
+                        data: Theme.of(context).copyWith(
+                          canvasColor: const Color(0xFF1E1E2C),
+                        ),
+                        child: DropdownButtonFormField<VocalRange>(
+                          value: _selectedRange,
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.05),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.cyanAccent),
+                            ),
+                          ),
+                          dropdownColor: const Color(0xFF1A1A2E),
+                          iconEnabledColor: Colors.cyanAccent,
+                          items: VocalRange.values.map((range) {
+                            return DropdownMenuItem(
+                              value: range,
+                              child: Text(_vocalRangeLabel(range)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedRange = value;
+                              });
+                            }
+                          },
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Training Goal',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<TrainingGoal>(
-                      initialValue: _selectedGoal,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                _buildGlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Preferred Categories',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
                       ),
-                      items: TrainingGoal.values.map((goal) {
-                        return DropdownMenuItem(
-                          value: goal,
-                          child: Text(_trainingGoalLabel(goal)),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedGoal = value;
-                          });
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (_errorMessage != null &&
-                _selectedCategories.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                _errorMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 54,
-              child: FilledButton(
-                onPressed: _isSaving ? null : _onSubmit,
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Select up to 3 categories',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 13,
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: _availableCategories.map((category) {
+                          final selected =
+                              _selectedCategories.contains(category);
+                          final scaleVal = selected ? 1.0 : 0.95;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            curve: kDefaultSpringCurve,
+                            transform: Matrix4.diagonal3Values(
+                              scaleVal,
+                              scaleVal,
+                              1.0,
+                            ),
+                            child: FilterChip(
+                              label: Text(
+                                _categoryLabels[category] ?? category,
+                                style: TextStyle(
+                                  color: selected ? Colors.black : Colors.white,
+                                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                              selected: selected,
+                              selectedColor: Colors.purpleAccent,
+                              backgroundColor: Colors.white.withOpacity(0.1),
+                              checkmarkColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: selected
+                                      ? Colors.purpleAccent
+                                      : Colors.white.withOpacity(0.2),
+                                ),
+                              ),
+                              onSelected: (_) => _toggleCategory(category),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      if (_errorMessage != null &&
+                          _selectedCategories.isEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildGlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Training Goal',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      Theme(
+                        data: Theme.of(context).copyWith(
+                          canvasColor: const Color(0xFF1E1E2C),
+                        ),
+                        child: DropdownButtonFormField<TrainingGoal>(
+                          value: _selectedGoal,
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.05),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.purpleAccent),
+                            ),
+                          ),
+                          dropdownColor: const Color(0xFF1A1A2E),
+                          iconEnabledColor: Colors.purpleAccent,
+                          items: TrainingGoal.values.map((goal) {
+                            return DropdownMenuItem(
+                              value: goal,
+                              child: Text(_trainingGoalLabel(goal)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedGoal = value;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_errorMessage != null &&
+                    _selectedCategories.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                const SizedBox(height: 32),
+                Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Colors.cyanAccent, Colors.purpleAccent],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purpleAccent.withOpacity(0.4),
+                        blurRadius: 12,
+                        spreadRadius: 2,
                       )
-                    : const Text('Save Preferences'),
-              ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _onSubmit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'SAVE PREFERENCES',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassCard({required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: child,
+          ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import '../../../app/shell/main_shell_page.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/animations/page_transitions.dart';
+import '../../../shared/widgets/glass_card.dart';
 
 enum _AuthView { signIn, signUp, forgotPassword }
 
@@ -134,53 +135,26 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
       backgroundColor: const Color(0xFF09090F),
       body: Stack(
         children: [
-          // Dark gradient background
+          Positioned(
+            top: 0, left: 0, right: 0,
+            height: MediaQuery.of(context).size.height * 0.45,
+            child: Image.asset(
+              'assets/images/auth_3d_elements.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF09090F),
-                    Color(0xFF0D0D1A),
-                    Color(0xFF0A0A14),
+                    const Color(0xFF09090F).withOpacity(0.3),
+                    const Color(0xFF09090F).withOpacity(0.8),
+                    const Color(0xFF09090F),
                   ],
-                ),
-              ),
-            ),
-          ),
-          // Decorative glow orbs
-          Positioned(
-            top: -80,
-            right: -60,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    theme.colorScheme.primary.withValues(alpha: 0.18),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -100,
-            left: -80,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    theme.colorScheme.tertiary.withValues(alpha: 0.12),
-                    Colors.transparent,
-                  ],
+                  stops: const [0.0, 0.35, 0.5],
                 ),
               ),
             ),
@@ -212,8 +186,10 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
   Widget _buildSignInPage(ThemeData theme) {
     return SingleChildScrollView(
       key: const ValueKey('signIn'),
-      padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-      child: Form(
+      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).size.height * 0.25, 24, 24),
+      child: GlassCard(
+        padding: const EdgeInsets.all(24),
+        child: Form(
         key: _signInFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -313,8 +289,8 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
                   child: Text(
                     'Sign Up',
                     style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF00FF7F),
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -323,6 +299,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -331,8 +308,10 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
   Widget _buildSignUpPage(ThemeData theme) {
     return SingleChildScrollView(
       key: const ValueKey('signUp'),
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-      child: Form(
+      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).size.height * 0.15, 24, 24),
+      child: GlassCard(
+        padding: const EdgeInsets.all(24),
+        child: Form(
         key: _signUpFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -455,8 +434,8 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
                   child: Text(
                     'Sign In',
                     style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF00FF7F),
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -465,6 +444,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
           ],
         ),
       ),
+    ),
     );
   }
 

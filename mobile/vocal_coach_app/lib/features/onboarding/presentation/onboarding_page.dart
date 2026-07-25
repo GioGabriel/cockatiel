@@ -1,211 +1,190 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Onboarding flow shown on first launch.
-///
-/// Introduces the app's core value propositions (aligned with thesis modules):
-/// 1. AI-Powered Vocal Coaching (Voice Room + Coaching Module)
-/// 2. Practice & Perform (Karaoke Module)
-/// 3. Track Your Growth (Progress Tracking + Dashboard Module)
-///
-/// Stores a flag in SharedPreferences so it only shows once.
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key, required this.onComplete});
 
-  /// Called when the user finishes or skips onboarding.
   final VoidCallback onComplete;
-
-  /// SharedPreferences key for onboarding completion.
   static const onboardingCompleteKey = 'onboarding_complete';
 
-  /// Check if onboarding has been completed.
   static Future<bool> hasCompletedOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(onboardingCompleteKey) ?? false;
   }
 
+  @override
   State<OnboardingPage> createState() => _OnboardingPageState();
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-
-  static const _pages = [
-    _OnboardingData(
-      icon: Icons.mic_rounded,
-      title: 'AI-Powered Vocal Coaching',
-      description:
-          'Get real-time feedback on your pitch, tone, rhythm, and breath. '
-          'Our AI coach listens while you sing and gives personalized guidance.',
-    ),
-    _OnboardingData(
-      icon: Icons.music_note_rounded,
-      title: 'Practice & Perform',
-      description:
-          'From structured vocal exercises to karaoke-style song drills, '
-          'build confidence with guided practice sessions tailored to your level.',
-    ),
-    _OnboardingData(
-      icon: Icons.trending_up_rounded,
-      title: 'Track Your Growth',
-      description:
-          'See your progress over time with detailed analytics. '
-          'Streaks, scores, and AI insights help you stay motivated and improving.',
-    ),
-  ];
-
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(OnboardingPage.onboardingCompleteKey, true);
     widget.onComplete();
   }
 
-  void _nextPage() {
-    if (_currentPage < _pages.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-      );
-    } else {
-      _completeOnboarding();
-    }
-  }
-
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Skip button
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12, right: 16),
-                child: TextButton(
-                  onPressed: _completeOnboarding,
-                  child: Text(
-                    'Skip',
-                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+      backgroundColor: const Color(0xFF09090F),
+      body: Stack(
+        children: [
+          // Background Collage
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: Image.asset(
+              'assets/images/onboarding_collage.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
+          
+          // Dark Gradient Overlay to blend the image into the bottom text area
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    const Color(0xFF09090F).withOpacity(0.2),
+                    const Color(0xFF09090F).withOpacity(0.8),
+                    const Color(0xFF09090F),
+                    const Color(0xFF09090F),
+                  ],
+                  stops: const [0.0, 0.4, 0.6, 0.75, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Content Layer
+          SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Spacer(),
+                
+                // Welcome Text
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.2,
+                      ),
+                      children: [
+                        TextSpan(text: 'Welcome to '),
+                        TextSpan(
+                          text: 'Cockatiel,\n',
+                          style: TextStyle(color: Color(0xFF00FF7F)), // Vibrant Green from reference
+                        ),
+                        TextSpan(text: 'your Gateway to\n'),
+                        TextSpan(text: 'Vocal Mastery!'),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-            // Page content
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _pages.length,
-                onPageChanged: (index) {
-                  setState(() => _currentPage = index);
-                },
-                itemBuilder: (context, index) {
-                  return _OnboardingSlide(data: _pages[index]);
-                },
-              ),
-            ),
-            // Dot indicators
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pages.length, (index) {
-                  final isActive = index == _currentPage;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: isActive ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(4),
+                
+                const SizedBox(height: 16),
+                
+                // Subtitle
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.7),
+                        height: 1.5,
+                      ),
+                      children: const [
+                        TextSpan(text: 'Unlock exclusive vocal exercises and '),
+                        TextSpan(
+                          text: 'gain confidence\nwith every practice.',
+                          style: TextStyle(color: Color(0xFF00FF7F), fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(text: ' Let\'s turn your\nsinging into mastery!'),
+                      ],
                     ),
-                  );
-                }),
-              ),
-            ),
-            // Action button
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-              child: FilledButton(
-                onPressed: _nextPage,
-                child: Text(
-                  _currentPage == _pages.length - 1
-                      ? 'Get Started'
-                      : 'Next',
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 32),
+
+                // Dot Indicators (just for aesthetic mimicry of the reference image)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(width: 24, height: 6, decoration: BoxDecoration(color: const Color(0xFF00FF7F), borderRadius: BorderRadius.circular(3))),
+                    const SizedBox(width: 6),
+                    Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.white30, shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                    Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.white30, shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                    Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.white30, shape: BoxShape.circle)),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+
+                // Vibrant Action Button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _completeOnboarding,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00FF7F), // Vibrant Green
+                        foregroundColor: const Color(0xFF09090F),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "Let's Get Started!",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+
+                // Login Text (If they already have an account)
+                TextButton(
+                  onPressed: _completeOnboarding,
+                  child: RichText(
+                    text: const TextSpan(
+                      style: TextStyle(fontSize: 14, color: Colors.white60),
+                      children: [
+                        TextSpan(text: 'Already have an account? '),
+                        TextSpan(
+                          text: 'Log In',
+                          style: TextStyle(color: Color(0xFF00FF7F), fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OnboardingData {
-  const _OnboardingData({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-}
-
-class _OnboardingSlide extends StatelessWidget {
-  const _OnboardingSlide({required this.data});
-
-  final _OnboardingData data;
-
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: theme.colorScheme.primary.withValues(alpha: 0.08),
-            ),
-            child: Icon(
-              data.icon,
-              size: 56,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 40),
-          Text(
-            data.title,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            data.description,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

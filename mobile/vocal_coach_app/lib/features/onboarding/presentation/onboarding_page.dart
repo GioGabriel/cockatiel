@@ -17,6 +17,55 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  final List<Map<String, dynamic>> _pages = [
+    {
+      'title': const TextSpan(
+        children: [
+          TextSpan(text: 'Welcome to '),
+          TextSpan(text: 'Cockatiel,\n', style: TextStyle(color: Color(0xFF00FF7F))),
+          TextSpan(text: 'your Gateway to\n'),
+          TextSpan(text: 'Vocal Mastery!'),
+        ],
+      ),
+      'subtitle': const TextSpan(
+        children: [
+          TextSpan(text: 'Unlock exclusive vocal exercises and '),
+          TextSpan(text: 'gain confidence\nwith every practice.', style: TextStyle(color: Color(0xFF00FF7F), fontWeight: FontWeight.bold)),
+          TextSpan(text: ' Let\'s turn your\nsinging into mastery!'),
+        ],
+      ),
+    },
+    {
+      'title': const TextSpan(
+        children: [
+          TextSpan(text: 'Real-time\n'),
+          TextSpan(text: 'Feedback', style: TextStyle(color: Color(0xFF00FF7F))),
+        ],
+      ),
+      'subtitle': const TextSpan(
+        children: [
+          TextSpan(text: 'See your pitch accuracy live as you sing.\nOur advanced engine helps you hit the right notes every time.'),
+        ],
+      ),
+    },
+    {
+      'title': const TextSpan(
+        children: [
+          TextSpan(text: 'Tailored\n'),
+          TextSpan(text: 'Vocal Workouts', style: TextStyle(color: Color(0xFF00FF7F))),
+        ],
+      ),
+      'subtitle': const TextSpan(
+        children: [
+          TextSpan(text: 'Practice with exercises designed specifically for your vocal range and goals. Start singing better today.'),
+        ],
+      ),
+    },
+  ];
+
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(OnboardingPage.onboardingCompleteKey, true);
@@ -34,14 +83,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
             top: 0,
             left: 0,
             right: 0,
-            height: MediaQuery.of(context).size.height * 0.7,
+            height: MediaQuery.of(context).size.height * 0.65,
             child: Image.asset(
               'assets/images/onboarding_collage.jpg',
               fit: BoxFit.cover,
             ),
           ),
           
-          // Dark Gradient Overlay to blend the image into the bottom text area
+          // Dark Gradient Overlay
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -55,7 +104,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     const Color(0xFF09090F),
                     const Color(0xFF09090F),
                   ],
-                  stops: const [0.0, 0.4, 0.6, 0.75, 1.0],
+                  stops: const [0.0, 0.4, 0.55, 0.7, 1.0],
                 ),
               ),
             ),
@@ -64,76 +113,72 @@ class _OnboardingPageState extends State<OnboardingPage> {
           // Content Layer
           SafeArea(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Spacer(),
-                
-                // Welcome Text
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: const TextSpan(
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1.2,
-                      ),
-                      children: [
-                        TextSpan(text: 'Welcome to '),
-                        TextSpan(
-                          text: 'Cockatiel,\n',
-                          style: TextStyle(color: Color(0xFF00FF7F)), // Vibrant Green from reference
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentPage = index;
+                      });
+                    },
+                    itemCount: _pages.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  height: 1.2,
+                                ),
+                                children: _pages[index]['title'].children,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white.withOpacity(0.7),
+                                  height: 1.5,
+                                ),
+                                children: _pages[index]['subtitle'].children,
+                              ),
+                            ),
+                            const SizedBox(height: 48),
+                          ],
                         ),
-                        TextSpan(text: 'your Gateway to\n'),
-                        TextSpan(text: 'Vocal Mastery!'),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Subtitle
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.7),
-                        height: 1.5,
-                      ),
-                      children: const [
-                        TextSpan(text: 'Unlock exclusive vocal exercises and '),
-                        TextSpan(
-                          text: 'gain confidence\nwith every practice.',
-                          style: TextStyle(color: Color(0xFF00FF7F), fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(text: ' Let\'s turn your\nsinging into mastery!'),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
 
-                const SizedBox(height: 32),
-
-                // Dot Indicators (just for aesthetic mimicry of the reference image)
+                // Dot Indicators
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(width: 24, height: 6, decoration: BoxDecoration(color: const Color(0xFF00FF7F), borderRadius: BorderRadius.circular(3))),
-                    const SizedBox(width: 6),
-                    Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.white30, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                    Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.white30, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                    Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.white30, shape: BoxShape.circle)),
-                  ],
+                  children: List.generate(
+                    _pages.length,
+                    (index) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: _currentPage == index ? 24 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _currentPage == index ? const Color(0xFF00FF7F) : Colors.white30,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
                 ),
-
+                
                 const SizedBox(height: 32),
 
                 // Vibrant Action Button
@@ -143,18 +188,27 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _completeOnboarding,
+                      onPressed: () {
+                        if (_currentPage == _pages.length - 1) {
+                          _completeOnboarding();
+                        } else {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00FF7F), // Vibrant Green
+                        backgroundColor: const Color(0xFF00FF7F),
                         foregroundColor: const Color(0xFF09090F),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        "Let's Get Started!",
-                        style: TextStyle(
+                      child: Text(
+                        _currentPage == _pages.length - 1 ? "Let's Get Started!" : "Next",
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -165,7 +219,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 
                 const SizedBox(height: 16),
 
-                // Login Text (If they already have an account)
+                // Login Text
                 TextButton(
                   onPressed: _completeOnboarding,
                   child: RichText(

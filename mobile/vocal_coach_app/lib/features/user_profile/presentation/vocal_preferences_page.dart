@@ -407,17 +407,8 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                 Container(
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Colors.cyanAccent, Colors.purpleAccent],
-                    ),
+                    color: const Color(0xFF1DB954),
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.purpleAccent.withOpacity(0.4),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                      )
-                    ],
                   ),
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _onSubmit,
@@ -459,18 +450,15 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
   Widget _buildGlassCard({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: const Color(0xFF181818),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        border: Border.all(color: const Color(0xFF282828), width: 1),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: child,
-          ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: child,
         ),
       ),
     );

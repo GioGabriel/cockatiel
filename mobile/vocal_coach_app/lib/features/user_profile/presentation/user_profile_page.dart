@@ -289,27 +289,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
           Container(
             width: 80,
             height: 80,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Colors.cyanAccent, Colors.purpleAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.cyanAccent.withOpacity(0.5),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                )
-              ],
+              color: Color(0xFF1DB954),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(3.0),
+              padding: const EdgeInsets.all(2.0),
               child: Container(
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFF1E1E2C),
+                  color: Color(0xFF181818),
                 ),
                 child: Center(
                   child: Text(
@@ -420,25 +409,23 @@ class _SettingsItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: const Color(0xFF181818),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: const Color(0xFF282828),
           width: 1,
         ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: InkWell(
-            onTap: onTap,
-            highlightColor: Colors.white.withOpacity(0.1),
-            splashColor: itemIconColor.withOpacity(0.2),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Row(
-                children: [
+        child: InkWell(
+          onTap: onTap,
+          highlightColor: Colors.white.withOpacity(0.05),
+          splashColor: itemIconColor.withOpacity(0.15),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
                   Container(
                     width: 40,
                     height: 40,
@@ -549,47 +536,31 @@ class _SignOutDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 40),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E).withOpacity(0.9),
+          color: const Color(0xFF181818),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.redAccent.withOpacity(0.2),
-              blurRadius: 16,
-              spreadRadius: 4,
-            )
-          ],
+          border: Border.all(color: const Color(0xFF282828)),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.redAccent.withOpacity(0.15),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.redAccent.withOpacity(0.4),
-                          blurRadius: 12,
-                          spreadRadius: -2,
-                        )
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.power_settings_new_rounded,
-                      color: Colors.redAccent,
-                      size: 32,
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.redAccent.withOpacity(0.15),
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
                   ),
+                  child: const Icon(
+                    Icons.power_settings_new_rounded,
+                    color: Colors.redAccent,
+                    size: 32,
+                  ),
+                ),
                   const SizedBox(height: 20),
                   const Text(
                     'SYSTEM OFFLINE?',

@@ -10,31 +10,32 @@ void main() {
   }
 
   group('GlassCard default', () {
-    testWidgets('has BackdropFilter in widget tree', (tester) async {
+    testWidgets('does NOT have BackdropFilter in widget tree (matte design)', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          GlassCard(
-            child: const SizedBox(width: 100, height: 100),
+          const GlassCard(
+            child: SizedBox(width: 100, height: 100),
           ),
         ),
       );
 
-      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(find.byType(BackdropFilter), findsNothing);
     });
 
     testWidgets('border radius matches config', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          GlassCard(
+          const GlassCard(
             borderRadius: 16.0,
-            child: const SizedBox(width: 100, height: 100),
+            child: SizedBox(width: 100, height: 100),
           ),
         ),
       );
 
-      final clipRRect = tester.widget<ClipRRect>(find.byType(ClipRRect));
+      final container = tester.widget<Container>(find.byType(Container).last);
+      final decoration = container.decoration! as BoxDecoration;
       expect(
-        clipRRect.borderRadius,
+        decoration.borderRadius,
         BorderRadius.circular(16.0),
       );
     });
@@ -42,76 +43,60 @@ void main() {
     testWidgets('default border radius is 24', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          GlassCard(
-            child: const SizedBox(width: 100, height: 100),
+          const GlassCard(
+            child: SizedBox(width: 100, height: 100),
           ),
         ),
       );
 
-      final clipRRect = tester.widget<ClipRRect>(find.byType(ClipRRect));
+      final container = tester.widget<Container>(find.byType(Container).last);
+      final decoration = container.decoration! as BoxDecoration;
       expect(
-        clipRRect.borderRadius,
+        decoration.borderRadius,
         BorderRadius.circular(24.0),
       );
     });
 
-    testWidgets('default fill color is white at 70% opacity', (tester) async {
+    testWidgets('default fill color falls back to theme surface (0xFFF5F5F5 in light mode)', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          GlassCard(
-            child: const SizedBox(width: 100, height: 100),
+          const GlassCard(
+            child: SizedBox(width: 100, height: 100),
           ),
         ),
       );
 
       final container = tester.widget<Container>(find.byType(Container).last);
       final decoration = container.decoration! as BoxDecoration;
-      expect(decoration.color, Colors.white.withValues(alpha: 0.7));
+      expect(decoration.color, const Color(0xFFF5F5F5));
     });
   });
 
   group('GlassCard.dark', () {
-    testWidgets('uses dark fill color (black at 40% opacity)', (tester) async {
+    testWidgets('uses dark fill color Color(0xFF181818)', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          GlassCard.dark(
-            child: const SizedBox(width: 100, height: 100),
+          const GlassCard.dark(
+            child: SizedBox(width: 100, height: 100),
           ),
         ),
       );
 
       final container = tester.widget<Container>(find.byType(Container).last);
       final decoration = container.decoration! as BoxDecoration;
-      expect(decoration.color, const Color(0x66000000));
+      expect(decoration.color, const Color(0xFF181818));
     });
 
-    testWidgets('uses blur sigma of 16', (tester) async {
+    testWidgets('does NOT have BackdropFilter in widget tree', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          GlassCard.dark(
-            child: const SizedBox(width: 100, height: 100),
+          const GlassCard.dark(
+            child: SizedBox(width: 100, height: 100),
           ),
         ),
       );
 
-      // BackdropFilter is present — the dark variant uses blurSigma: 16
-      // which is configured via ImageFilter.blur(sigmaX: 16, sigmaY: 16)
-      final backdropFilter = tester.widget<BackdropFilter>(
-        find.byType(BackdropFilter),
-      );
-      expect(backdropFilter.filter, isNotNull);
-    });
-
-    testWidgets('has BackdropFilter in widget tree', (tester) async {
-      await tester.pumpWidget(
-        buildApp(
-          GlassCard.dark(
-            child: const SizedBox(width: 100, height: 100),
-          ),
-        ),
-      );
-
-      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(find.byType(BackdropFilter), findsNothing);
     });
   });
 
@@ -119,8 +104,8 @@ void main() {
     testWidgets('does NOT have BackdropFilter in widget tree', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          GlassCard.disabled(
-            child: const SizedBox(width: 100, height: 100),
+          const GlassCard.disabled(
+            child: SizedBox(width: 100, height: 100),
           ),
         ),
       );
@@ -131,8 +116,8 @@ void main() {
     testWidgets('does NOT have ClipRRect in widget tree', (tester) async {
       await tester.pumpWidget(
         buildApp(
-          GlassCard.disabled(
-            child: const SizedBox(width: 100, height: 100),
+          const GlassCard.disabled(
+            child: SizedBox(width: 100, height: 100),
           ),
         ),
       );

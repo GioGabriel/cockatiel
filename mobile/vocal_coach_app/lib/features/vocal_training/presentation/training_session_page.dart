@@ -742,22 +742,15 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       builder: (ctx) {
         final theme = Theme.of(ctx);
         return Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0D121F),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: const BoxDecoration(
+            color: Color(0xFF181818),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(
               top: BorderSide(
-                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                width: 1.5,
+                color: Color(0xFF282828),
+                width: 1,
               ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                blurRadius: 30,
-                offset: const Offset(0, -10),
-              ),
-            ],
           ),
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
           child: SafeArea(
@@ -1346,19 +1339,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF113A63), Color(0xFF0E7C86)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x22113A63),
-                  blurRadius: 30,
-                  offset: Offset(0, 18),
-                ),
-              ],
+              color: const Color(0xFF181818),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFF282828)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -1519,19 +1502,12 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D0D15).withValues(alpha: 0.85),
+                      color: const Color(0xFF181818),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                        color: const Color(0xFF282828),
                         width: 1,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Row(
                       children: [

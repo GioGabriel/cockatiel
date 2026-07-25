@@ -71,42 +71,35 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: widget.isRunning ? const Color(0xFF00FF7F) : const Color(0xFF00E5FF),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (widget.isRunning ? const Color(0xFF00FF7F) : const Color(0xFF00E5FF)).withValues(alpha: 0.8),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ],
+                  color: widget.isRunning ? const Color(0xFF1DB954) : primaryColor,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                widget.isRunning ? 'REAL-TIME VOCAL TRAJECTORY' : 'SONG PITCH MAP',
+                widget.isRunning ? 'REAL-TIME PITCH TRACKER' : 'SONG PITCH MAP',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
                 ),
               ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.15),
+                  color: const Color(0xFF242424),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: primaryColor.withValues(alpha: 0.35),
+                    color: const Color(0xFF333333),
                     width: 1,
                   ),
                 ),
                 child: Text(
                   '${widget.stages.length} TARGET NOTES',
-                  style: TextStyle(
-                    color: primaryColor,
+                  style: const TextStyle(
+                    color: Colors.white70,
                     fontSize: 10,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -117,31 +110,15 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF0C0C16), Color(0xFF07070C)],
-              ),
-              borderRadius: BorderRadius.circular(20),
+              color: const Color(0xFF121212),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: primaryColor.withValues(alpha: 0.35),
-                width: 1.5,
+                color: const Color(0xFF282828),
+                width: 1,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryColor.withValues(alpha: 0.12),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(15),
               child: AnimatedBuilder(
                 animation: _ticker,
                 builder: (context, _) => CustomPaint(
@@ -166,10 +143,9 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
   }
 }
 
-/// Maps a normalized pitch position (0=low, 1=high) to a neon color.
-Color _pitchColor(double norm) {
-  final hue = (norm * 260).clamp(0.0, 260.0);
-  return HSVColor.fromAHSV(1.0, hue, 0.85, 0.95).toColor();
+/// Clean studio note color mapping.
+Color _pitchColor(double norm, Color fallback) {
+  return Color.lerp(const Color(0xFF1DB954), const Color(0xFF40C0FF), norm.clamp(0.0, 1.0)) ?? fallback;
 }
 
 class _PitchPainter extends CustomPainter {
@@ -247,7 +223,7 @@ class _PitchPainter extends CustomPainter {
       final hz = getTargetFrequency(stage.targetLabel);
       final cy = hzToY(hz).clamp(0.0, size.height);
       final norm = hzToNorm(hz);
-      final noteColor = _pitchColor(norm);
+      final noteColor = _pitchColor(norm, primaryColor);
 
       final isPast = isRunning && currentElapsedSec >= stage.endSec;
       final isActive = isRunning &&
@@ -259,37 +235,22 @@ class _PitchPainter extends CustomPainter {
       if (rectR <= rectL) continue;
 
       final rect = Rect.fromLTRB(rectL, cy - _blockHeight / 2, rectR, cy + _blockHeight / 2);
-      final rRect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
-
-      if (isActive) {
-        canvas.drawRRect(
-          rRect,
-          Paint()
-            ..color = const Color(0xFF00FF7F).withValues(alpha: 0.55)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
-        );
-        canvas.drawRRect(
-          rRect,
-          Paint()
-            ..color = noteColor.withValues(alpha: 0.7)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 8),
-        );
-      }
+      final rRect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
 
       final Color fill = isActive
           ? noteColor
           : isPast
-              ? noteColor.withValues(alpha: 0.15)
+              ? noteColor.withValues(alpha: 0.18)
               : noteColor.withValues(alpha: 0.65);
 
       canvas.drawRRect(rRect, Paint()..color = fill);
 
       if (!isPast) {
         canvas.drawLine(
-          Offset(rect.left + 8, rect.top + 2),
-          Offset(rect.right - 8, rect.top + 2),
+          Offset(rect.left + 6, rect.top + 2),
+          Offset(rect.right - 6, rect.top + 2),
           Paint()
-            ..color = Colors.white.withValues(alpha: isActive ? 0.8 : 0.25)
+            ..color = Colors.white.withValues(alpha: isActive ? 0.9 : 0.3)
             ..strokeWidth = 2.0
             ..strokeCap = StrokeCap.round,
         );
@@ -315,14 +276,14 @@ class _PitchPainter extends CustomPainter {
     final scaleRect = Rect.fromLTWH(0, 0, _scaleWidth, size.height);
     canvas.drawRect(
       scaleRect,
-      Paint()..color = const Color(0xFF07070C).withValues(alpha: 0.9),
+      Paint()..color = const Color(0xFF181818),
     );
 
     canvas.drawLine(
       const Offset(_scaleWidth - 1, 0),
       Offset(_scaleWidth - 1, size.height),
       Paint()
-        ..color = primaryColor.withValues(alpha: 0.25)
+        ..color = const Color(0xFF282828)
         ..strokeWidth = 1.0,
     );
 
@@ -341,14 +302,14 @@ class _PitchPainter extends CustomPainter {
         Offset(_scaleWidth - 5, y),
         Offset(_scaleWidth, y),
         Paint()
-          ..color = primaryColor.withValues(alpha: 0.6)
+          ..color = const Color(0xFF333333)
           ..strokeWidth = 1.5,
       );
 
       final span = TextSpan(
         text: noteName,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.75),
+        style: const TextStyle(
+          color: Colors.white70,
           fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
@@ -360,10 +321,10 @@ class _PitchPainter extends CustomPainter {
 
   void _drawGrid(Canvas canvas, Size size, double loMidi, double hiMidi, double midiRange, double offsetX) {
     final faint = Paint()
-      ..color = primaryColor.withValues(alpha: 0.04)
+      ..color = const Color(0xFF1F1F1F)
       ..strokeWidth = 0.5;
     final mid = Paint()
-      ..color = primaryColor.withValues(alpha: 0.12)
+      ..color = const Color(0xFF2B2B2B)
       ..strokeWidth = 1.0;
 
     for (int m = loMidi.ceil(); m <= hiMidi.floor(); m++) {
@@ -379,35 +340,15 @@ class _PitchPainter extends CustomPainter {
   }
 
   void _drawPlayhead(Canvas canvas, Size size, double x) {
-    canvas.drawRect(
-      Rect.fromLTWH(x - 6, 0, 12, size.height),
-      Paint()
-        ..color = const Color(0xFF00E5FF).withValues(alpha: 0.15)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
-    );
     canvas.drawLine(
       Offset(x, 0),
       Offset(x, size.height),
       Paint()
-        ..color = const Color(0xFF00E5FF).withValues(alpha: 0.9)
+        ..color = Colors.white.withValues(alpha: 0.85)
         ..strokeWidth = 2.0,
     );
-    canvas.drawCircle(
-      Offset(x, 4),
-      3,
-      Paint()
-        ..color = const Color(0xFF00E5FF)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-    );
-    canvas.drawCircle(Offset(x, 4), 2, Paint()..color = Colors.white);
-    canvas.drawCircle(
-      Offset(x, size.height - 4),
-      3,
-      Paint()
-        ..color = const Color(0xFF00E5FF)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-    );
-    canvas.drawCircle(Offset(x, size.height - 4), 2, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(x, 4), 3, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(x, size.height - 4), 3, Paint()..color = Colors.white);
   }
 
   void _drawPitchLine(Canvas canvas, Size size, double Function(double) hzToY, double Function(double) secToX) {
@@ -433,15 +374,7 @@ class _PitchPainter extends CustomPainter {
     if (!started) return;
 
     canvas.drawPath(path, Paint()
-      ..color = const Color(0xFF00FF7F).withValues(alpha: 0.45)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
-
-    canvas.drawPath(path, Paint()
-      ..color = const Color(0xFF00FF7F)
+      ..color = const Color(0xFF1DB954)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round
@@ -451,14 +384,8 @@ class _PitchPainter extends CustomPainter {
     if (latest.frequencyHz > 0) {
       final lx = secToX(latest.elapsedSec);
       final ly = hzToY(latest.frequencyHz).clamp(4.0, size.height - 4.0);
-      canvas.drawCircle(Offset(lx, ly), 14,
-          Paint()..color = const Color(0xFF00FF7F).withValues(alpha: 0.35)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
-      canvas.drawCircle(Offset(lx, ly), 5, Paint()..color = Colors.white);
-      canvas.drawCircle(Offset(lx, ly), 5,
-          Paint()..color = const Color(0xFF00FF7F)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.0);
+      canvas.drawCircle(Offset(lx, ly), 7, Paint()..color = const Color(0xFF1DB954));
+      canvas.drawCircle(Offset(lx, ly), 3, Paint()..color = Colors.white);
     }
   }
 
@@ -466,15 +393,10 @@ class _PitchPainter extends CustomPainter {
     final span = TextSpan(
       text: text,
       style: TextStyle(
-        color: isPast
-            ? Colors.white.withValues(alpha: 0.25)
-            : Colors.white,
+        color: isPast ? Colors.white24 : Colors.white,
         fontSize: 11,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         letterSpacing: 0.3,
-        shadows: isPast ? null : const [
-          Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 1)),
-        ],
       ),
     );
     final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
@@ -485,7 +407,7 @@ class _PitchPainter extends CustomPainter {
   void _drawPreviewHint(Canvas canvas, Size size) {
     final span = TextSpan(
       text: 'Tap "Start Guided Take" to sing',
-      style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5),
     );
     final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
     tp.paint(canvas, Offset((size.width - tp.width) / 2, size.height - 20));

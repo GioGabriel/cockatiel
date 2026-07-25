@@ -1,34 +1,30 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
-/// Frosted-glass card with backdrop blur and translucent fill.
+/// Premium solid matte surface card (Spotify/studio style).
 ///
-/// Uses [ClipRRect] + [BackdropFilter] with [ImageFilter.blur] to achieve
-/// a glassmorphism effect. Performance constraint: max 3 [GlassCard]
-/// instances per visible screen to maintain 60fps on mid-range Android.
+/// Renders a clean, high-contrast dark surface card with subtle borders
+/// without using glassmorphism blur or heavy gradients.
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
     required this.child,
-    this.blurSigma = 12.0,
+    this.blurSigma = 0.0,
     this.fillColor,
     this.borderRadius = 24.0,
-    this.borderOpacity = 0.3,
+    this.borderOpacity = 0.08,
   }) : _isDisabled = false;
 
-  /// Dark variant for session overlays with stronger blur and dark fill.
+  /// Dark variant for session overlays with solid Spotify matte surface.
   const GlassCard.dark({
     super.key,
     required this.child,
     this.borderRadius = 24.0,
-    this.borderOpacity = 0.3,
-  })  : blurSigma = 16.0,
-        fillColor = const Color(0x66000000),
+    this.borderOpacity = 0.12,
+  })  : blurSigma = 0.0,
+        fillColor = const Color(0xFF181818),
         _isDisabled = false;
 
   /// Disabled variant that renders a flat opaque card (performance fallback).
-  /// Bypasses [BackdropFilter] entirely and uses the theme's surface color.
   const GlassCard.disabled({
     super.key,
     required this.child,
@@ -45,33 +41,34 @@ class GlassCard extends StatelessWidget {
   final double borderOpacity;
   final bool _isDisabled;
 
+  @override
   Widget build(BuildContext context) {
     if (_isDisabled) {
       return _buildDisabledCard(context);
     }
-    return _buildGlassCard();
+    return _buildMatteCard(context);
   }
 
-  Widget _buildGlassCard() {
+  Widget _buildMatteCard(BuildContext context) {
+    final theme = Theme.of(context);
     final resolvedFillColor =
-        fillColor ?? Colors.white.withValues(alpha: 0.7);
+        fillColor ?? (theme.brightness == Brightness.dark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5));
     final radius = BorderRadius.circular(borderRadius);
 
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: Container(
-          decoration: BoxDecoration(
-            color: resolvedFillColor,
-            borderRadius: radius,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: borderOpacity),
-              width: 1,
-            ),
-          ),
-          child: child,
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: resolvedFillColor,
+        borderRadius: radius,
+        border: borderOpacity > 0
+            ? Border.all(
+                color: Colors.white.withValues(alpha: borderOpacity),
+                width: 1,
+              )
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: child,
       ),
     );
   }

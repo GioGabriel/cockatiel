@@ -219,17 +219,6 @@ class _WaveformPainter extends CustomPainter {
         ..color = barColor
         ..style = PaintingStyle.fill;
 
-      // Glow effect for active bars.
-      if (glowEnabled && intensity > 0.3) {
-        final glowPaint = Paint()
-          ..color = activeColor.withValues(
-            alpha: intensity * glowIntensity * 0.4,
-          )
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
-
-        _drawBar(canvas, x, centerY, height, glowPaint);
-      }
-
       _drawBar(canvas, x, centerY, height, paint);
     }
   }

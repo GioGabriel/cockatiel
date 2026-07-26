@@ -95,7 +95,21 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       if (widget.drill.pitchMapUrl.isNotEmpty) {
         final pitchResponse = await http.get(Uri.parse(widget.drill.pitchMapUrl));
         if (pitchResponse.statusCode == 200) {
-          final jsonMap = json.decode(pitchResponse.body) as Map<String, dynamic>;
+          final decoded = json.decode(pitchResponse.body);
+          Map<String, dynamic> jsonMap = {};
+          if (decoded is List) {
+             for (var item in decoded) {
+                if (item is Map<String, dynamic>) {
+                   jsonMap.addAll(item);
+                } else if (item is Map) {
+                   jsonMap.addAll(Map<String, dynamic>.from(item));
+                }
+             }
+          } else if (decoded is Map<String, dynamic>) {
+             jsonMap = decoded;
+          } else if (decoded is Map) {
+             jsonMap = Map<String, dynamic>.from(decoded);
+          }
           _stages = _parsePitchMap(jsonMap);
         }
       }

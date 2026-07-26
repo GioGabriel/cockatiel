@@ -12,6 +12,25 @@ _KARAOKE_CATALOG: dict[str, Any] = {
       "description": "Slow-tempo pop songs emphasizing breath control and sustained phrasing.",
       "drills": [
         {
+          "drill_id": "justgivemeareason",
+          "title": "Just Give Me a Reason",
+          "style_category": "Pop Ballad",
+          "difficulty": "intermediate",
+          "duration_sec": 242,
+          "tempo_bpm": 95,
+          "vocal_range": {"low": "G3", "high": "C5"},
+          "objective": "Sing along to P!nk's hit Just Give Me a Reason.",
+          "performance_tips": [
+            "Maintain pitch accuracy and expressive dynamics",
+          ],
+          "melody_reference": [
+            {"note": "G4", "start_beat": 0.0, "duration_beats": 4.0}
+          ],
+          "artist_name": "P!nk",
+          "instrumental_url": "https://res.cloudinary.com/dzddt8r3p/video/upload/v1785075568/t5jmnxprkxqkztfu83jo.mp3",
+          "pitch_map_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1785075454/wiuyt1f5tvtzvtstvokm.json",
+        },
+        {
           "drill_id": "pop_breath_control_1",
           "title": "Sustained Phrases Pop Drill",
           "style_category": "Pop Ballad",
@@ -31,6 +50,9 @@ _KARAOKE_CATALOG: dict[str, Any] = {
             {"note": "F4", "start_beat": 6.0, "duration_beats": 2.0},
             {"note": "D4", "start_beat": 8.0, "duration_beats": 4.0},
           ],
+          "artist_name": "Generic Pop Artist",
+          "instrumental_url": "",
+          "pitch_map_url": "",
         },
         {
           "drill_id": "pop_dynamic_control_1",

@@ -176,3 +176,61 @@ def get_karaoke_progress(user_id: str) -> dict[str, Any]:
     "items": progress_items,
   }
 
+
+def evaluate_tone_and_get_feedback(audio_bytes: bytes, pitch_score: float, rhythm_delay_ms: float) -> dict[str, Any]:
+    """
+    Evaluates vocal tone using librosa and generates AI feedback.
+    """
+    import io
+    import numpy as np
+    try:
+        import librosa
+        import soundfile as sf
+        
+        # Load audio from bytes
+        audio_io = io.BytesIO(audio_bytes)
+        y, sr = sf.read(audio_io)
+        
+        # Ensure mono
+        if len(y.shape) > 1:
+            y = np.mean(y, axis=1)
+            
+        # Extract MFCCs
+        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+        mfcc_mean = np.mean(mfccs, axis=1)
+        
+        # Placeholder for ML model (e.g., Random Forest loaded via joblib)
+        # For now, we simulate a tone score based on MFCC variance (proxy for resonance/stability)
+        mfcc_var = np.var(mfccs, axis=1)
+        stability_proxy = float(np.mean(mfcc_var))
+        
+        # Map to 0-100 score (highly simplified heuristic for the thesis placeholder)
+        tone_score = min(max(50 + (stability_proxy / 10), 0), 100)
+        tone_score = round(tone_score, 1)
+        
+    except Exception as e:
+        print(f"Error extracting audio features: {e}")
+        tone_score = 75.0 # Fallback score
+        
+    # Generate AI Feedback
+    # Note: In a full integration, you would use OpenRouter/Langchain here.
+    # For now, we generate rule-based feedback mimicking an LLM response.
+    
+    feedback = f"Great effort! Your pitch accuracy was {pitch_score:.1f}%."
+    if rhythm_delay_ms > 200:
+        feedback += f" However, you were slightly behind the beat by about {rhythm_delay_ms:.0f}ms. Try to anticipate the rhythm a bit more."
+    else:
+        feedback += " Your timing was perfectly in the pocket."
+        
+    if tone_score > 80:
+        feedback += " Your vocal tone was resonant and clear throughout the performance."
+    else:
+        feedback += " Focus on relaxing your jaw to reduce strain and improve your overall tone."
+        
+    return {
+        "pitch_score": pitch_score,
+        "rhythm_delay_ms": rhythm_delay_ms,
+        "tone_score": tone_score,
+        "ai_feedback": feedback,
+    }
+

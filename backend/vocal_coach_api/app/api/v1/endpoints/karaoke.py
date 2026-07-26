@@ -39,3 +39,34 @@ def fetch_karaoke_progress(current_user: dict = Depends(get_current_user)) -> Tr
   """Get karaoke progress for current user."""
   from app.modules.karaoke.service import get_karaoke_progress as get_progress
   return TrainingProgressOut.model_validate(get_progress(current_user["uid"]))
+
+from fastapi import UploadFile, File, Form
+from pydantic import BaseModel
+
+class KaraokeEvaluationOut(BaseModel):
+    pitch_score: float
+    rhythm_delay_ms: float
+    tone_score: float
+    ai_feedback: str
+
+@router.post("/evaluate-tone", response_model=KaraokeEvaluationOut)
+async def evaluate_karaoke_tone(
+    audio: UploadFile = File(...),
+    pitch_score: float = Form(...),
+    rhythm_delay_ms: float = Form(...),
+    current_user: dict = Depends(get_current_user)
+) -> KaraokeEvaluationOut:
+    """Evaluate tone using librosa and generate AI feedback."""
+    from app.modules.karaoke.service import evaluate_tone_and_get_feedback
+    
+    # Read the uploaded file into bytes
+    audio_bytes = await audio.read()
+    
+    # Evaluate tone and generate feedback
+    result = evaluate_tone_and_get_feedback(
+        audio_bytes, 
+        pitch_score, 
+        rhythm_delay_ms
+    )
+    
+    return KaraokeEvaluationOut(**result)

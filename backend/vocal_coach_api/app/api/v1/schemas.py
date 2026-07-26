@@ -434,6 +434,9 @@ class KaraokeDrillOut(BaseModel):
   objective: str
   performance_tips: list[str] = Field(min_length=1)
   melody_reference: list[MelodyNote] = Field(min_length=1)
+  instrumental_url: str = ""
+  pitch_map_url: str = ""
+  artist_name: str = ""
 
 
 class KaraokeCategoryOut(BaseModel):

@@ -6,7 +6,7 @@ import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/karaoke_models.dart';
 import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/difficulty_badge.dart';
-import '../../vocal_training/presentation/training_session_page.dart';
+import 'karaoke_singing_page.dart';
 
 class KaraokeSongBriefingPage extends StatefulWidget {
   const KaraokeSongBriefingPage({
@@ -45,11 +45,10 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
 
       Navigator.of(context).push(
         slideUpRoute(
-          builder: (_) => TrainingSessionPage(
+          builder: (_) => KaraokeSingingPage(
             apiClient: widget.apiClient,
             appState: widget.appState,
-            mode: 'karaoke',
-            exerciseType: widget.drill.drillId,
+            drill: widget.drill,
             sessionId: created.sessionId,
           ),
         ),

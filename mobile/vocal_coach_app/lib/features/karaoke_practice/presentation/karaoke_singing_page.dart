@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -7,7 +8,10 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../../core/audio/live_audio_analyzer.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/state/app_state.dart';
 import '../../../shared/models/karaoke_models.dart';
+import '../../../shared/models/session_models.dart';
+import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../vocal_training/presentation/widgets/karaoke_pitch_visualizer.dart';
 import 'widgets/lyric_scroller.dart';
 
@@ -15,11 +19,13 @@ class KaraokeSingingPage extends StatefulWidget {
   const KaraokeSingingPage({
     super.key,
     required this.apiClient,
+    required this.appState,
     required this.drill,
     required this.sessionId,
   });
 
   final ApiClient apiClient;
+  final AppState appState;
   final KaraokeDrill drill;
   final String sessionId;
 
@@ -37,10 +43,21 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   String? _error;
 
   List<LyricLine> _lyrics = [];
+  List<TrainingRuntimeStage> _stages = [];
   
   final List<PitchPoint> _pitchHistory = [];
   
   Duration _currentPosition = Duration.zero;
+
+  // Metrics Window
+  int _windowFrameCount = 0;
+  int _windowVoicedFrameCount = 0;
+  int _windowOnPitchFrameCount = 0;
+  int _windowPitchTransitions = 0;
+  double _windowAbsCentsTotal = 0;
+  double _windowLoudnessTotal = 0;
+  double _windowPitchDeltaTotal = 0;
+  double? _windowPreviousFrequencyHz;
 
   @override
   void initState() {
@@ -77,7 +94,10 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       // 2. Download Pitch Map (.json)
       if (widget.drill.pitchMapUrl.isNotEmpty) {
         final pitchResponse = await http.get(Uri.parse(widget.drill.pitchMapUrl));
-        // We will re-add parsing logic here when we rebuild the live scoring engine
+        if (pitchResponse.statusCode == 200) {
+          final jsonMap = json.decode(pitchResponse.body) as Map<String, dynamic>;
+          _stages = _parsePitchMap(jsonMap);
+        }
       }
 
       // 3. Load Audio
@@ -104,6 +124,47 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     }
   }
 
+  List<TrainingRuntimeStage> _parsePitchMap(Map<String, dynamic> jsonMap) {
+    final List<TrainingRuntimeStage> stages = [];
+    int index = 0;
+    
+    final keys = jsonMap.keys.toList()..sort();
+    
+    for (int i = 0; i < keys.length; i++) {
+      final key = keys[i];
+      final freq = (jsonMap[key] as num).toDouble();
+      
+      final parts = key.split(':');
+      if (parts.length != 2) continue;
+      final min = int.parse(parts[0]);
+      final startSecDouble = min * 60.0 + double.parse(parts[1]);
+      
+      double endSecDouble = startSecDouble + 0.1;
+      if (i < keys.length - 1) {
+         final nextParts = keys[i+1].split(':');
+         if (nextParts.length == 2) {
+            final nextMin = int.parse(nextParts[0]);
+            final nextStartSec = nextMin * 60.0 + double.parse(nextParts[1]);
+            if (nextStartSec - startSecDouble <= 0.5) {
+                endSecDouble = nextStartSec;
+            }
+         }
+      }
+
+      stages.add(TrainingRuntimeStage(
+        stageId: 'stage_$index',
+        title: 'Note $index',
+        targetLabel: freq.toString(),
+        instruction: '',
+        durationSec: endSecDouble - startSecDouble,
+        startSec: startSecDouble,
+        endSec: endSecDouble,
+      ));
+      index++;
+    }
+    return stages;
+  }
+
   List<LyricLine> _parseLrc(String lrc) {
     final List<LyricLine> lines = [];
     final regex = RegExp(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)');
@@ -123,18 +184,103 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     return lines;
   }
 
+  double _centsDifference(double frequencyHz, double targetHz) {
+    if (frequencyHz <= 0 || targetHz <= 0) return 0;
+    return 1200 * (log(frequencyHz / targetHz) / ln2);
+  }
+
+  TrainingRuntimeStage? _currentStage(double elapsedSec) {
+    for (var stage in _stages) {
+      if (elapsedSec >= stage.startSec && elapsedSec <= stage.endSec) {
+        return stage;
+      }
+    }
+    return null;
+  }
+
+  TrainingAttemptMetricSummary _buildAttemptMetricSummary() {
+    final frameCount = max(_windowFrameCount, 1);
+    final voicedFrameCount = max(_windowVoicedFrameCount, 1);
+    
+    final avgAbsCents = _windowAbsCentsTotal / voicedFrameCount;
+    final avgLoudnessDb = _windowLoudnessTotal / frameCount;
+    final onPitchRatio = _windowOnPitchFrameCount / voicedFrameCount;
+    final voicedRatio = _windowVoicedFrameCount / frameCount;
+    
+    final avgPitchDelta = _windowPitchTransitions > 0
+        ? _windowPitchDeltaTotal / _windowPitchTransitions
+        : 0;
+
+    final pitchAccuracy = (avgAbsCents <= 50.0 ? 100.0 : (100.0 - (avgAbsCents - 50.0)))
+        .clamp(0, 100)
+        .toDouble() * voicedRatio;
+        
+    final timingAccuracy = (40 + (onPitchRatio * 60)).clamp(0, 100).toDouble() * voicedRatio;
+    final loudnessPenalty = (avgLoudnessDb + 24).abs() * 2.2;
+    final breathControl = ((100 - loudnessPenalty) * voicedRatio).clamp(0, 100).toDouble();
+    final pitchStability = ((100 - (avgPitchDelta * 1.5)) * voicedRatio).clamp(0, 100).toDouble();
+    final vibratoConsistency = (55 + (voicedRatio * 45) - (avgPitchDelta * 0.6)).clamp(0, 100).toDouble();
+    final noteTransitionSmoothness = ((100 - (avgPitchDelta * 1.2)) * voicedRatio).clamp(0, 100).toDouble();
+
+    return TrainingAttemptMetricSummary.voice(
+      sampleCount: frameCount,
+      pitchAccuracy: pitchAccuracy,
+      timingAccuracy: timingAccuracy,
+      breathControl: breathControl,
+      pitchStability: pitchStability,
+      vibratoConsistency: vibratoConsistency,
+      noteTransitionSmoothness: noteTransitionSmoothness,
+    );
+  }
+
   Future<void> _startSinging() async {
     setState(() => _isPlaying = true);
+    
+    _windowFrameCount = 0;
+    _windowVoicedFrameCount = 0;
+    _windowOnPitchFrameCount = 0;
+    _windowPitchTransitions = 0;
+    _windowAbsCentsTotal = 0;
+    _windowLoudnessTotal = 0;
+    _windowPitchDeltaTotal = 0;
+    _windowPreviousFrequencyHz = null;
+    
     await _analyzer.start();
     _audioSub = _analyzer.frames.listen((frame) {
-      if (!frame.voiced || frame.frequencyHz == null) return;
+      final elapsed = _currentPosition.inMilliseconds / 1000.0;
       
       setState(() {
-        _pitchHistory.add(PitchPoint(_currentPosition.inMilliseconds / 1000.0, frame.frequencyHz!));
-        if (_pitchHistory.length > 200) _pitchHistory.removeAt(0); // keep window small
+        if (frame.voiced && frame.frequencyHz != null) {
+          _pitchHistory.add(PitchPoint(elapsed, frame.frequencyHz!));
+          if (_pitchHistory.length > 250) _pitchHistory.removeAt(0);
+        }
       });
       
-      // Removed scoring logic temporarily
+      _windowFrameCount++;
+      _windowLoudnessTotal += frame.loudnessDb;
+      
+      if (!frame.voiced || frame.frequencyHz == null) return;
+      
+      _windowVoicedFrameCount++;
+      final freq = frame.frequencyHz!;
+      
+      final currentStage = _currentStage(elapsed);
+      if (currentStage != null) {
+          final targetHz = double.tryParse(currentStage.targetLabel) ?? 261.63;
+          final centsError = _centsDifference(freq, targetHz);
+          final absCents = centsError.abs();
+          
+          _windowAbsCentsTotal += absCents;
+          if (absCents <= 50) { 
+              _windowOnPitchFrameCount++;
+          }
+      }
+      
+      if (_windowPreviousFrequencyHz != null) {
+        _windowPitchDeltaTotal += (freq - _windowPreviousFrequencyHz!).abs();
+        _windowPitchTransitions++;
+      }
+      _windowPreviousFrequencyHz = freq;
     });
     
     await _player.play();
@@ -143,8 +289,45 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   Future<void> _finishSession() async {
     await _player.stop();
     await _analyzer.stop();
-    // Navigate to evaluation/feedback page
-    if (mounted) Navigator.pop(context);
+    
+    setState(() {
+      _isPlaying = false;
+      _isLoading = true;
+    });
+
+    try {
+      final summary = _buildAttemptMetricSummary();
+      final totalSec = (_currentPosition.inMilliseconds / 1000.0).clamp(10, 600).toInt();
+      
+      await widget.apiClient.saveTrainingAttempt(
+        sessionId: widget.sessionId,
+        attemptIndex: 1,
+        difficulty: widget.drill.difficulty,
+        durationSec: totalSec,
+        metricSummary: summary,
+      );
+      
+      await widget.apiClient.finalizeSession(sessionId: widget.sessionId);
+      await widget.appState.refreshAIJobs();
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => AnalysisQueuePage(
+              apiClient: widget.apiClient,
+              appState: widget.appState,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit score: $e')),
+        );
+        Navigator.pop(context);
+      }
+    }
   }
 
   @override
@@ -184,12 +367,12 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
               Positioned(
                 top: 50, left: 0, right: 0, height: 200,
                 child: KaraokePitchVisualizer(
-                  stages: const [], // TODO: convert pitch map to stages for rendering
+                  stages: _stages,
                   currentElapsedSec: _currentPosition.inMilliseconds / 1000.0,
                   pitchHistory: _pitchHistory,
                   minHz: 80,
                   maxHz: 800,
-                  getTargetFrequency: (label) => 261.63,
+                  getTargetFrequency: (label) => double.tryParse(label) ?? 261.63,
                   isRunning: _isPlaying,
                 ),
               ),

@@ -57,6 +57,7 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
         slideUpRoute(
           builder: (_) => KaraokeSingingPage(
             apiClient: widget.apiClient,
+            appState: widget.appState,
             drill: drillDetails,
             sessionId: created.sessionId,
           ),

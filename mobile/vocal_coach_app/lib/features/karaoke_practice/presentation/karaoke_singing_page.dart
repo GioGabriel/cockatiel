@@ -40,6 +40,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 
   bool _isLoading = true;
   bool _isPlaying = false;
+  bool _isFinishing = false;
   String? _error;
 
   List<LyricLine> _lyrics = [];
@@ -301,6 +302,9 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   }
   
   Future<void> _finishSession() async {
+    if (_isFinishing) return;
+    _isFinishing = true;
+
     await _player.stop();
     await _analyzer.stop();
     

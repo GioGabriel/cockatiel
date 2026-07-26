@@ -87,6 +87,38 @@ class _LyricScrollerState extends State<LyricScroller> {
         itemBuilder: (context, index) {
           final isCurrent = index == _currentIndex;
           final line = widget.lyrics[index];
+          
+          double progress = 0.0;
+          if (isCurrent) {
+            final nextLineTime = index < widget.lyrics.length - 1 
+                ? widget.lyrics[index + 1].time 
+                : line.time + const Duration(seconds: 4);
+            final durationMs = nextLineTime.inMilliseconds - line.time.inMilliseconds;
+            final elapsedMs = widget.currentPosition.inMilliseconds - line.time.inMilliseconds;
+            if (durationMs > 0) {
+               progress = (elapsedMs / durationMs).clamp(0.0, 1.0);
+            }
+          }
+
+          Widget textWidget = Text(
+            line.text,
+            textAlign: TextAlign.center,
+          );
+
+          if (isCurrent) {
+            textWidget = ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: const [Color(0xFFff3b7a), Colors.white],
+                  stops: [progress, progress],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.srcIn,
+              child: textWidget,
+            );
+          }
 
           return Center(
             child: AnimatedDefaultTextStyle(
@@ -99,16 +131,13 @@ class _LyricScrollerState extends State<LyricScroller> {
                     ? [
                         const Shadow(
                           blurRadius: 10.0,
-                          color: Colors.pinkAccent,
+                          color: Color(0x88ff3b7a),
                           offset: Offset(0, 0),
                         ),
                       ]
                     : [],
               ),
-              child: Text(
-                line.text,
-                textAlign: TextAlign.center,
-              ),
+              child: textWidget,
             ),
           );
         },

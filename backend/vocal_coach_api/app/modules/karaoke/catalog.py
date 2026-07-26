@@ -1,217 +1,110 @@
-from copy import deepcopy
 from typing import Any
+import logging
 
-_KARAOKE_CATALOG: dict[str, Any] = {
-  "module_id": "karaoke",
-  "title": "Karaoke Practice",
-  "description": "Song-based vocal drills combining entertainment with AI evaluation.",
-  "categories": [
-    {
-      "category_id": "pop_ballad",
-      "style_label": "Pop Ballad",
-      "description": "Slow-tempo pop songs emphasizing breath control and sustained phrasing.",
-      "drills": [
-        {
-          "drill_id": "justgivemeareason",
-          "title": "Just Give Me a Reason",
-          "style_category": "Pop Ballad",
-          "difficulty": "intermediate",
-          "duration_sec": 242,
-          "tempo_bpm": 95,
-          "vocal_range": {"low": "G3", "high": "C5"},
-          "objective": "Sing along to P!nk's hit Just Give Me a Reason.",
-          "performance_tips": [
-            "Maintain pitch accuracy and expressive dynamics",
-          ],
-          "melody_reference": [
-            {"note": "G4", "start_beat": 0.0, "duration_beats": 4.0}
-          ],
-          "artist_name": "P!nk",
-          "instrumental_url": "https://res.cloudinary.com/dzddt8r3p/video/upload/v1785075568/t5jmnxprkxqkztfu83jo.mp3",
-          "pitch_map_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1785075454/wiuyt1f5tvtzvtstvokm.json",
-        },
-        {
-          "drill_id": "pop_breath_control_1",
-          "title": "Sustained Phrases Pop Drill",
-          "style_category": "Pop Ballad",
-          "difficulty": "beginner",
-          "duration_sec": 60,
-          "tempo_bpm": 72,
-          "vocal_range": {"low": "C3", "high": "G4"},
-          "objective": "Practice maintaining steady breath support through long pop phrases.",
-          "performance_tips": [
-            "Focus on smooth onset without breathiness",
-            "Keep shoulders relaxed and breathe from the diaphragm",
-          ],
-          "melody_reference": [
-            {"note": "C4", "start_beat": 0.0, "duration_beats": 2.0},
-            {"note": "E4", "start_beat": 2.0, "duration_beats": 1.5},
-            {"note": "G4", "start_beat": 3.5, "duration_beats": 2.5},
-            {"note": "F4", "start_beat": 6.0, "duration_beats": 2.0},
-            {"note": "D4", "start_beat": 8.0, "duration_beats": 4.0},
-          ],
-          "artist_name": "Generic Pop Artist",
-          "instrumental_url": "",
-          "pitch_map_url": "",
-        },
-        {
-          "drill_id": "pop_dynamic_control_1",
-          "title": "Dynamic Crescendo Ballad",
-          "style_category": "Pop Ballad",
-          "difficulty": "intermediate",
-          "duration_sec": 90,
-          "tempo_bpm": 66,
-          "vocal_range": {"low": "A3", "high": "A4"},
-          "objective": "Build dynamic control by gradually increasing volume across a phrase.",
-          "performance_tips": [
-            "Start at piano and build smoothly to forte",
-            "Maintain pitch stability as volume increases",
-            "Reset breath support at each new phrase",
-          ],
-          "melody_reference": [
-            {"note": "A3", "start_beat": 0.0, "duration_beats": 3.0},
-            {"note": "C4", "start_beat": 3.0, "duration_beats": 2.0},
-            {"note": "E4", "start_beat": 5.0, "duration_beats": 2.0},
-            {"note": "A4", "start_beat": 7.0, "duration_beats": 4.0},
-          ],
-        },
-      ],
-    },
-    {
-      "category_id": "jazz_standard",
-      "style_label": "Jazz Standard",
-      "description": "Swing and jazz phrasing drills with syncopation and smooth intervals.",
-      "drills": [
-        {
-          "drill_id": "jazz_swing_phrasing_1",
-          "title": "Swing Eighth Note Phrasing",
-          "style_category": "Jazz Standard",
-          "difficulty": "intermediate",
-          "duration_sec": 75,
-          "tempo_bpm": 120,
-          "vocal_range": {"low": "Bb3", "high": "F5"},
-          "objective": "Develop swing feel by practicing uneven eighth note rhythms.",
-          "performance_tips": [
-            "Let the first eighth note linger slightly longer than the second",
-            "Keep a relaxed jaw to support smooth legato transitions",
-          ],
-          "melody_reference": [
-            {"note": "Bb3", "start_beat": 0.0, "duration_beats": 1.5},
-            {"note": "D4", "start_beat": 1.5, "duration_beats": 1.0},
-            {"note": "F4", "start_beat": 2.5, "duration_beats": 1.5},
-            {"note": "A4", "start_beat": 4.0, "duration_beats": 1.0},
-            {"note": "F5", "start_beat": 5.0, "duration_beats": 3.0},
-          ],
-        },
-        {
-          "drill_id": "jazz_scat_basics_1",
-          "title": "Scat Syllable Basics",
-          "style_category": "Jazz Standard",
-          "difficulty": "advanced",
-          "duration_sec": 90,
-          "tempo_bpm": 140,
-          "vocal_range": {"low": "C3", "high": "E5"},
-          "objective": "Practice rhythmic scat patterns with clear syllable articulation.",
-          "performance_tips": [
-            "Use syllables like 'doo', 'bah', 'dee' for crisp attack",
-            "Keep time steady even as melodic patterns vary",
-            "Relax between phrases to avoid throat tension",
-          ],
-          "melody_reference": [
-            {"note": "C4", "start_beat": 0.0, "duration_beats": 0.5},
-            {"note": "E4", "start_beat": 0.5, "duration_beats": 0.5},
-            {"note": "G4", "start_beat": 1.0, "duration_beats": 0.5},
-            {"note": "Bb4", "start_beat": 1.5, "duration_beats": 1.0},
-            {"note": "A4", "start_beat": 2.5, "duration_beats": 0.5},
-            {"note": "F4", "start_beat": 3.0, "duration_beats": 1.0},
-            {"note": "D4", "start_beat": 4.0, "duration_beats": 2.0},
-          ],
-        },
-      ],
-    },
-    {
-      "category_id": "rock_anthem",
-      "style_label": "Rock Anthem",
-      "description": "High-energy rock drills focusing on power, projection, and stamina.",
-      "drills": [
-        {
-          "drill_id": "rock_power_projection_1",
-          "title": "Power Chest Voice Projection",
-          "style_category": "Rock Anthem",
-          "difficulty": "intermediate",
-          "duration_sec": 60,
-          "tempo_bpm": 130,
-          "vocal_range": {"low": "E3", "high": "B4"},
-          "objective": "Build chest voice power and projection without straining.",
-          "performance_tips": [
-            "Engage core muscles for supported projection",
-            "Avoid pushing from the throat; let resonance do the work",
-          ],
-          "melody_reference": [
-            {"note": "E3", "start_beat": 0.0, "duration_beats": 1.0},
-            {"note": "G3", "start_beat": 1.0, "duration_beats": 1.0},
-            {"note": "B3", "start_beat": 2.0, "duration_beats": 1.0},
-            {"note": "E4", "start_beat": 3.0, "duration_beats": 2.0},
-            {"note": "B4", "start_beat": 5.0, "duration_beats": 3.0},
-          ],
-        },
-        {
-          "drill_id": "rock_belt_stamina_1",
-          "title": "Belt Stamina Builder",
-          "style_category": "Rock Anthem",
-          "difficulty": "advanced",
-          "duration_sec": 120,
-          "tempo_bpm": 145,
-          "vocal_range": {"low": "G3", "high": "D5"},
-          "objective": "Develop vocal stamina for sustained belting passages.",
-          "performance_tips": [
-            "Pace your energy; start at 80% intensity and build",
-            "Take quick catch breaths between phrases",
-            "Keep larynx neutral to avoid vocal fatigue",
-          ],
-          "melody_reference": [
-            {"note": "G3", "start_beat": 0.0, "duration_beats": 1.0},
-            {"note": "B3", "start_beat": 1.0, "duration_beats": 1.0},
-            {"note": "D4", "start_beat": 2.0, "duration_beats": 1.5},
-            {"note": "G4", "start_beat": 3.5, "duration_beats": 2.0},
-            {"note": "B4", "start_beat": 5.5, "duration_beats": 1.5},
-            {"note": "D5", "start_beat": 7.0, "duration_beats": 3.0},
-          ],
-        },
-        {
-          "drill_id": "rock_grit_intro_1",
-          "title": "Controlled Grit Introduction",
-          "style_category": "Rock Anthem",
-          "difficulty": "beginner",
-          "duration_sec": 45,
-          "tempo_bpm": 100,
-          "vocal_range": {"low": "A3", "high": "E4"},
-          "objective": "Safely introduce vocal grit texture at low intensity.",
-          "performance_tips": [
-            "Use minimal air pressure; grit comes from fold closure, not force",
-            "Stop immediately if you feel pain or excessive strain",
-          ],
-          "melody_reference": [
-            {"note": "A3", "start_beat": 0.0, "duration_beats": 2.0},
-            {"note": "C4", "start_beat": 2.0, "duration_beats": 2.0},
-            {"note": "E4", "start_beat": 4.0, "duration_beats": 4.0},
-          ],
-        },
-      ],
-    },
-  ],
-}
+from app.core.config import settings
+from app.repositories.firestore.client import build_firestore_client
+
+logger = logging.getLogger("vocal-coach-api.karaoke.catalog")
+
+def _apply_drill_defaults(drill_id: str, raw_data: dict[str, Any]) -> dict[str, Any]:
+    """Applies sensible defaults to a drill to ensure the Flutter frontend can parse it safely."""
+    # Base required fields
+    drill = {
+        "drill_id": drill_id,
+        "title": raw_data.get("title") or drill_id,
+        "style_category": raw_data.get("style_category") or "Pop Ballad",
+        "difficulty": raw_data.get("difficulty") or "intermediate",
+        "duration_sec": int(raw_data.get("duration_sec") or 240),
+        "tempo_bpm": int(raw_data.get("tempo_bpm") or 120),
+        "objective": raw_data.get("objective") or "Sing along and match the pitch!",
+        "artist_name": raw_data.get("artist_name") or "Unknown Artist",
+        "instrumental_url": raw_data.get("instrumental_url") or "",
+        "pitch_map_url": raw_data.get("pitch_map_url") or "",
+    }
+    
+    # Complex fields
+    vocal_range = raw_data.get("vocal_range") or {}
+    drill["vocal_range"] = {
+        "low": vocal_range.get("low") or "C3",
+        "high": vocal_range.get("high") or "C5"
+    }
+    
+    performance_tips = raw_data.get("performance_tips") or []
+    if not performance_tips:
+        performance_tips = ["Maintain pitch accuracy and expressive dynamics"]
+    drill["performance_tips"] = performance_tips
+    
+    melody_reference = raw_data.get("melody_reference") or []
+    if not melody_reference:
+        melody_reference = [
+            {"note": "C4", "start_beat": 0.0, "duration_beats": 4.0}
+        ]
+    drill["melody_reference"] = melody_reference
+    
+    return drill
 
 
 def get_catalog() -> dict[str, Any]:
-  """Return a deep copy of the full karaoke drill catalog."""
-  return deepcopy(_KARAOKE_CATALOG)
+    """Dynamically fetch all karaoke drills from Firestore and group them by category."""
+    base_catalog = {
+        "module_id": "karaoke",
+        "title": "Karaoke Practice",
+        "description": "Song-based vocal drills combining entertainment with AI evaluation.",
+        "categories": []
+    }
+    
+    if not settings.firestore_enabled:
+        logger.warning("Firestore is disabled. Returning empty karaoke catalog.")
+        return base_catalog
+
+    try:
+        db = build_firestore_client()
+        docs = db.collection("karaoke_songs").stream()
+        
+        categories_map: dict[str, dict[str, Any]] = {}
+        
+        for doc in docs:
+            raw_data = doc.to_dict() or {}
+            drill_id = doc.id
+            drill = _apply_drill_defaults(drill_id, raw_data)
+            
+            style_label = drill["style_category"]
+            category_id = style_label.lower().replace(" ", "_")
+            
+            if category_id not in categories_map:
+                categories_map[category_id] = {
+                    "category_id": category_id,
+                    "style_label": style_label,
+                    "description": f"{style_label} songs emphasizing vocal control.",
+                    "drills": []
+                }
+            
+            categories_map[category_id]["drills"].append(drill)
+            
+        base_catalog["categories"] = list(categories_map.values())
+        return base_catalog
+
+    except Exception as exc:
+        logger.error(f"Failed to fetch karaoke catalog from Firestore: {exc}")
+        return base_catalog
 
 
 def get_drill_by_id(drill_id: str) -> dict[str, Any] | None:
-  """Return a deep copy of a single drill by its ID, or None if not found."""
-  for cat in _KARAOKE_CATALOG["categories"]:
-    for drill in cat["drills"]:
-      if drill["drill_id"] == drill_id:
-        return deepcopy(drill)
-  return None
+    """Fetch a single drill from Firestore by its ID."""
+    if not settings.firestore_enabled:
+        return None
+        
+    try:
+        db = build_firestore_client()
+        doc_ref = db.collection("karaoke_songs").document(drill_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            return None
+            
+        raw_data = doc.to_dict() or {}
+        return _apply_drill_defaults(doc.id, raw_data)
+        
+    except Exception as exc:
+        logger.error(f"Failed to fetch karaoke drill {drill_id} from Firestore: {exc}")
+        return None

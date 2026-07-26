@@ -97,21 +97,14 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
         final pitchResponse = await http.get(Uri.parse(widget.drill.pitchMapUrl));
         if (pitchResponse.statusCode == 200) {
           final decoded = json.decode(pitchResponse.body);
-          Map<String, dynamic> jsonMap = {};
+          
           if (decoded is List) {
-             for (var item in decoded) {
-                if (item is Map<String, dynamic>) {
-                   jsonMap.addAll(item);
-                } else if (item is Map) {
-                   jsonMap.addAll(Map<String, dynamic>.from(item));
-                }
-             }
+            _stages = _parsePitchMapList(decoded);
           } else if (decoded is Map<String, dynamic>) {
-             jsonMap = decoded;
-          } else if (decoded is Map) {
-             jsonMap = Map<String, dynamic>.from(decoded);
+            _stages = _parsePitchMap(decoded);
+          } else {
+             _stages = [];
           }
-          _stages = _parsePitchMap(jsonMap);
         }
       }
 
@@ -137,6 +130,45 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
         _isLoading = false;
       });
     }
+  }
+
+  List<TrainingRuntimeStage> _parsePitchMapList(List<dynamic> jsonList) {
+    final List<TrainingRuntimeStage> stages = [];
+    
+    for (int i = 0; i < jsonList.length; i++) {
+      final item = jsonList[i];
+      if (item is! Map) continue;
+      
+      final timeSec = (item['time'] as num).toDouble();
+      final freq = (item['pitch'] as num).toDouble();
+      
+      if (freq <= 0) continue; // Skip silences
+      
+      // Determine duration (diff to next frame, or default to 0.05s)
+      double durationSec = 0.05;
+      if (i < jsonList.length - 1) {
+         final nextItem = jsonList[i + 1];
+         if (nextItem is Map) {
+            final nextTimeSec = (nextItem['time'] as num).toDouble();
+            final nextFreq = (nextItem['pitch'] as num).toDouble();
+            
+            // If the next note is the exact same pitch and continuous, we could merge them.
+            // For now, just generate discrete tiny stages or rely on the visualizer to merge them.
+            // Actually, we should just emit the exact frame as a tiny 0.05s stage so the visualizer draws a continuous line!
+            durationSec = (nextTimeSec - timeSec).clamp(0.01, 0.5);
+         }
+      }
+      
+      stages.add(TrainingRuntimeStage(
+        stageId: 'pitch_$i',
+        targetLabel: freq.toStringAsFixed(1),
+        instruction: 'Match pitch',
+        durationSec: durationSec,
+        startSec: timeSec,
+        endSec: timeSec + durationSec,
+      ));
+    }
+    return stages;
   }
 
   List<TrainingRuntimeStage> _parsePitchMap(Map<String, dynamic> jsonMap) {

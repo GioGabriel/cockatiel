@@ -161,7 +161,9 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       
       stages.add(TrainingRuntimeStage(
         stageId: 'pitch_$i',
+        title: freq.toStringAsFixed(1),
         targetLabel: freq.toStringAsFixed(1),
+        solfege: freq.toStringAsFixed(1),
         instruction: 'Match pitch',
         durationSec: durationSec,
         startSec: timeSec,

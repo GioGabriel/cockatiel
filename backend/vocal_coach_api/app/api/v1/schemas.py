@@ -428,7 +428,7 @@ class KaraokeDrillOut(BaseModel):
   title: str
   style_category: str
   difficulty: KaraokeDifficulty
-  duration_sec: int = Field(ge=30, le=180)
+  duration_sec: int = Field(ge=10, le=600)
   tempo_bpm: int = Field(ge=40, le=220)
   vocal_range: dict[str, str]
   objective: str
@@ -450,7 +450,7 @@ class KaraokeCatalogOut(BaseModel):
   module_id: str
   title: str
   description: str
-  categories: list[KaraokeCategoryOut] = Field(min_length=3)
+  categories: list[KaraokeCategoryOut] = Field(min_length=0)
 
 
 class KaraokeCategoryPreviewOut(BaseModel):

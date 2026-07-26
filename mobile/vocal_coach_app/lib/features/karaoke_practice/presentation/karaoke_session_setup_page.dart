@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/animations/page_transitions.dart';
-import '../../vocal_training/presentation/training_session_page.dart';
+import 'karaoke_singing_page.dart';
 
 class KaraokeSessionSetupPage extends StatefulWidget {
   const KaraokeSessionSetupPage({
@@ -45,13 +45,19 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
         return;
       }
 
+      // We need the KaraokeDrill object to pass to KaraokeSingingPage.
+      // For now we will mock it or fetch it, but let's assume we can fetch it:
+      final drillDetails = await widget.apiClient.fetchKaraokeDrill(drillId: _selectedExercise);
+
+      if (!mounted) {
+        return;
+      }
+
       Navigator.of(context).push(
         slideUpRoute(
-          builder: (_) => TrainingSessionPage(
+          builder: (_) => KaraokeSingingPage(
             apiClient: widget.apiClient,
-            appState: widget.appState,
-            mode: 'karaoke',
-            exerciseType: _selectedExercise,
+            drill: drillDetails,
             sessionId: created.sessionId,
           ),
         ),

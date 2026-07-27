@@ -111,7 +111,7 @@ class _LyricScrollerState extends State<LyricScroller> {
                 return LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: const [Color(0xFFff3b7a), Colors.white],
+                  colors: const [Colors.white, Colors.white38],
                   stops: [progress, progress],
                 ).createShader(bounds);
               },
@@ -130,8 +130,8 @@ class _LyricScrollerState extends State<LyricScroller> {
                 shadows: isCurrent
                     ? [
                         const Shadow(
-                          blurRadius: 10.0,
-                          color: Color(0x88ff3b7a),
+                          blurRadius: 12.0,
+                          color: Colors.white54,
                           offset: Offset(0, 0),
                         ),
                       ]

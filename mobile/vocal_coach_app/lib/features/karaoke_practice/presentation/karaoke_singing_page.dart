@@ -42,6 +42,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   bool _isPlaying = false;
   bool _isFinishing = false;
   String? _error;
+  String? _coverUrl;
 
   List<LyricLine> _lyrics = [];
   List<TrainingRuntimeStage> _stages = [];
@@ -90,6 +91,22 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
         if (match != null) {
           _lyrics = _parseLrc(match['syncedLyrics']);
         }
+      }
+
+      // Fetch Cover Art from iTunes
+      try {
+        final itunesUrl = Uri.parse('https://itunes.apple.com/search?term=${Uri.encodeComponent(query)}&entity=song&limit=1');
+        final itunesResponse = await http.get(itunesUrl);
+        if (itunesResponse.statusCode == 200) {
+          final decoded = json.decode(itunesResponse.body);
+          if (decoded['results'] != null && (decoded['results'] as List).isNotEmpty) {
+            String artwork = decoded['results'][0]['artworkUrl100'];
+            // Upgrade 100x100 to 600x600 for a crisp background
+            _coverUrl = artwork.replaceAll('100x100bb', '600x600bb');
+          }
+        }
+      } catch (e) {
+        debugPrint("Failed to fetch iTunes cover art: $e");
       }
 
       // 2. Download Pitch Map (.json)
@@ -403,54 +420,92 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF1E002B), Color(0xFF0F0018)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          image: _coverUrl != null
+              ? DecorationImage(
+                  image: NetworkImage(_coverUrl!),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(
+                    Colors.black.withOpacity(0.3),
+                    BlendMode.darken,
+                  ),
+                )
+              : null,
         ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Pitch Visualizer Background Layer
-              Positioned(
-                top: 50, left: 0, right: 0, height: 200,
-                child: KaraokePitchVisualizer(
-                  stages: _stages,
-                  currentElapsedSec: _currentPosition.inMilliseconds / 1000.0,
-                  pitchHistory: _pitchHistory,
-                  minHz: 80,
-                  maxHz: 800,
-                  getTargetFrequency: (label) => double.tryParse(label) ?? 261.63,
-                  isRunning: _isPlaying,
-                ),
-              ),
-              
-              // Lyrics Scroller Layer
-              Positioned.fill(
-                top: 250,
-                child: LyricScroller(
-                  lyrics: _lyrics,
-                  currentPosition: _currentPosition,
-                ),
-              ),
-              
-              // Bottom Controls
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: FloatingActionButton.extended(
-                    onPressed: _isPlaying ? _finishSession : _startSinging,
-                    icon: Icon(_isPlaying ? Icons.stop : Icons.mic),
-                    label: Text(_isPlaying ? 'Finish' : 'Sing Now'),
-                    backgroundColor: Colors.pinkAccent,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.6),
+                Colors.black.withOpacity(0.85),
+                Colors.black,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                // Pitch Visualizer Background Layer
+                Positioned(
+                  top: 50, left: 0, right: 0, height: 200,
+                  child: KaraokePitchVisualizer(
+                    stages: _stages,
+                    currentElapsedSec: _currentPosition.inMilliseconds / 1000.0,
+                    pitchHistory: _pitchHistory,
+                    minHz: 80,
+                    maxHz: 800,
+                    getTargetFrequency: (label) => double.tryParse(label) ?? 261.63,
+                    isRunning: _isPlaying,
                   ),
                 ),
-              ),
-            ],
+                
+                // Lyrics Scroller Layer
+                Positioned.fill(
+                  top: 250,
+                  child: LyricScroller(
+                    lyrics: _lyrics,
+                    currentPosition: _currentPosition,
+                  ),
+                ),
+                
+                // Bottom Controls
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 60.0),
+                    child: OutlinedButton(
+                      onPressed: _isPlaying ? _finishSession : _startSinging,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: _isPlaying ? Colors.white30 : Colors.redAccent, 
+                          width: 2
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(40)
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                        backgroundColor: Colors.black.withOpacity(0.5),
+                      ),
+                      child: Text(
+                        _isPlaying ? 'FINISH' : 'START SINGING',
+                        style: const TextStyle(
+                          fontSize: 18, 
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

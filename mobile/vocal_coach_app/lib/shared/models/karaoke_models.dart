@@ -38,6 +38,7 @@ class KaraokeDrill {
   final String instrumentalUrl;
   final String pitchMapUrl;
   final String artistName;
+  final String coverUrl;
 
   const KaraokeDrill({
     required this.drillId,
@@ -53,6 +54,7 @@ class KaraokeDrill {
     this.instrumentalUrl = '',
     this.pitchMapUrl = '',
     this.artistName = '',
+    this.coverUrl = '',
   });
 
   factory KaraokeDrill.fromJson(Map<String, dynamic> json) {
@@ -75,6 +77,7 @@ class KaraokeDrill {
       instrumentalUrl: json['instrumental_url'] as String? ?? '',
       pitchMapUrl: json['pitch_map_url'] as String? ?? '',
       artistName: json['artist_name'] as String? ?? '',
+      coverUrl: json['cover_url'] as String? ?? '',
     );
   }
 
@@ -93,6 +96,7 @@ class KaraokeDrill {
     'instrumental_url': instrumentalUrl,
     'pitch_map_url': pitchMapUrl,
     'artist_name': artistName,
+    'cover_url': coverUrl,
   };
 }
 

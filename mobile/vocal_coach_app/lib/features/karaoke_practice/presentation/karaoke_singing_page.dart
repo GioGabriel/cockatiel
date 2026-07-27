@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -42,7 +43,6 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   bool _isPlaying = false;
   bool _isFinishing = false;
   String? _error;
-  String? _coverUrl;
 
   List<LyricLine> _lyrics = [];
   List<TrainingRuntimeStage> _stages = [];
@@ -74,54 +74,47 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   Future<void> _initializeKaraoke() async {
     try {
       // 1. Fetch from LRCLIB using the song title and artist name
-      final query = '${widget.drill.title} ${widget.drill.artistName}'.trim();
-      final url = Uri.parse('https://lrclib.net/api/search?q=${Uri.encodeComponent(query)}');
-      final response = await http.get(url, headers: {
-        'User-Agent': 'Cockatiel Vocal Coach (vocalcoach@example.com)'
-      });
-      
-      if (response.statusCode == 200) {
-        final List<dynamic> results = json.decode(response.body);
-        // Find the first result that has syncedLyrics
-        final match = results.firstWhere(
-          (r) => r['syncedLyrics'] != null && r['syncedLyrics'].toString().isNotEmpty, 
-          orElse: () => null
-        );
-        
-        if (match != null) {
-          _lyrics = _parseLrc(match['syncedLyrics']);
-        }
-      }
-
-      // Fetch Cover Art from iTunes
       try {
-        final itunesUrl = Uri.parse('https://itunes.apple.com/search?term=${Uri.encodeComponent(query)}&entity=song&limit=1');
-        final itunesResponse = await http.get(itunesUrl);
-        if (itunesResponse.statusCode == 200) {
-          final decoded = json.decode(itunesResponse.body);
-          if (decoded['results'] != null && (decoded['results'] as List).isNotEmpty) {
-            String artwork = decoded['results'][0]['artworkUrl100'];
-            // Upgrade 100x100 to 600x600 for a crisp background
-            _coverUrl = artwork.replaceAll('100x100bb', '600x600bb');
+        final query = '${widget.drill.title} ${widget.drill.artistName}'.trim();
+        final url = Uri.parse('https://lrclib.net/api/search?q=${Uri.encodeComponent(query)}');
+        final response = await http.get(url, headers: {
+          'User-Agent': 'Cockatiel Vocal Coach (vocalcoach@example.com)'
+        });
+        
+        if (response.statusCode == 200) {
+          final List<dynamic> results = json.decode(response.body);
+          // Find the first result that has syncedLyrics
+          final match = results.firstWhere(
+            (r) => r['syncedLyrics'] != null && r['syncedLyrics'].toString().isNotEmpty, 
+            orElse: () => null
+          );
+          
+          if (match != null) {
+            _lyrics = _parseLrc(match['syncedLyrics']);
           }
         }
       } catch (e) {
-        debugPrint("Failed to fetch iTunes cover art: $e");
+        debugPrint("Failed to fetch lyrics: $e");
       }
 
       // 2. Download Pitch Map (.json)
       if (widget.drill.pitchMapUrl.isNotEmpty) {
-        final pitchResponse = await http.get(Uri.parse(widget.drill.pitchMapUrl));
-        if (pitchResponse.statusCode == 200) {
-          final decoded = json.decode(pitchResponse.body);
-          
-          if (decoded is List) {
-            _stages = _parsePitchMapList(decoded);
-          } else if (decoded is Map<String, dynamic>) {
-            _stages = _parsePitchMap(decoded);
-          } else {
-             _stages = [];
+        try {
+          final pitchResponse = await http.get(Uri.parse(widget.drill.pitchMapUrl));
+          if (pitchResponse.statusCode == 200) {
+            final decoded = json.decode(pitchResponse.body);
+            
+            if (decoded is List) {
+              _stages = _parsePitchMapList(decoded);
+            } else if (decoded is Map<String, dynamic>) {
+              _stages = _parsePitchMap(decoded);
+            } else {
+               _stages = [];
+            }
           }
+        } catch (e) {
+          debugPrint("Failed to parse pitch map JSON (likely a dead link returning HTML): $e");
+          _stages = [];
         }
       }
 
@@ -167,7 +160,6 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
          final nextItem = jsonList[i + 1];
          if (nextItem is Map) {
             final nextTimeSec = (nextItem['time'] as num).toDouble();
-            final nextFreq = (nextItem['pitch'] as num).toDouble();
             
             // If the next note is the exact same pitch and continuous, we could merge them.
             // For now, just generate discrete tiny stages or rely on the visualizer to merge them.
@@ -424,12 +416,12 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       body: Container(
         decoration: BoxDecoration(
           color: Colors.black,
-          image: _coverUrl != null
+          image: widget.drill.coverUrl.isNotEmpty
               ? DecorationImage(
-                  image: NetworkImage(_coverUrl!),
+                  image: NetworkImage(widget.drill.coverUrl),
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
-                    Colors.black.withOpacity(0.3),
+                    Colors.black.withValues(alpha: 0.3),
                     BlendMode.darken,
                   ),
                 )
@@ -441,8 +433,8 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.6),
-                Colors.black.withOpacity(0.85),
+                Colors.black.withValues(alpha: 0.6),
+                Colors.black.withValues(alpha: 0.85),
                 Colors.black,
               ],
               stops: const [0.0, 0.5, 1.0],
@@ -479,32 +471,104 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 60.0),
-                    child: OutlinedButton(
-                      onPressed: _isPlaying ? _finishSession : _startSinging,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: BorderSide(
-                          color: _isPlaying ? Colors.white30 : Colors.redAccent, 
-                          width: 2
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(40)
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                        backgroundColor: Colors.black.withOpacity(0.5),
-                      ),
-                      child: Text(
-                        _isPlaying ? 'FINISH' : 'START SINGING',
-                        style: const TextStyle(
-                          fontSize: 18, 
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
+                    child: _isPlaying 
+                        ? _buildPlayingControls()
+                        : _buildStartControls(),
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStartControls() {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE94057).withValues(alpha: 0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        borderRadius: BorderRadius.circular(40),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _startSinging,
+          borderRadius: BorderRadius.circular(40),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(40),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE94057), Color(0xFFF27121)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.mic_rounded, color: Colors.white, size: 26),
+                SizedBox(width: 12),
+                Text(
+                  'START SINGING',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayingControls() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _finishSession,
+            borderRadius: BorderRadius.circular(30),
+            child: Ink(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.stop_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'FINISH',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

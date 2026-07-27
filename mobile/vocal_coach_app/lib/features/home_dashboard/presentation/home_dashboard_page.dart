@@ -183,7 +183,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
           await _loadData();
         },
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
           children: [
             // Welcome greeting
             _buildWelcomeSection(user, theme),

@@ -183,7 +183,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (profile == null) return const SizedBox.shrink();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       children: [
         // ─── PROFILE HEADER ──────────────────────────────────────
         _buildProfileHeader(theme, profile),

@@ -40,6 +40,10 @@ void main() {
       'melody_reference': [
         {'note': 'C4', 'start_beat': 1.0, 'duration_beats': 1.0},
       ],
+      'instrumental_url': '',
+      'pitch_map_url': '',
+      'artist_name': '',
+      'cover_url': '',
     };
 
     test('fromJson parses correctly', () {
@@ -88,6 +92,10 @@ void main() {
           'objective': 'Warm up',
           'performance_tips': [],
           'melody_reference': [],
+          'instrumental_url': '',
+          'pitch_map_url': '',
+          'artist_name': '',
+          'cover_url': '',
         }
       ],
     };

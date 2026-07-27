@@ -30,11 +30,19 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
   bool _isLoading = true;
   bool _hasError = false;
   int _selectedCategoryIndex = 0;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -155,14 +163,58 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
   }
 
   Widget _buildCatalogList(ThemeData theme) {
-    final categories = _catalog?.categories ?? [];
-    if (categories.isEmpty) return const SizedBox.shrink();
+    final originalCategories = _catalog?.categories ?? [];
+    if (originalCategories.isEmpty) return const SizedBox.shrink();
 
+    final Map<String, KaraokeDrill> uniqueDrills = {};
+    for (var c in originalCategories) {
+      for (var d in c.drills) {
+        uniqueDrills[d.drillId] = d;
+      }
+    }
+
+    final allCategory = KaraokeCategory(
+      categoryId: 'all',
+      styleLabel: 'all',
+      description: 'All Songs',
+      drills: uniqueDrills.values.toList(),
+    );
+
+    final categories = [allCategory, ...originalCategories];
     final selectedCategory = categories[_selectedCategoryIndex];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+            decoration: InputDecoration(
+              hintText: 'Search Song or Artist',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: theme.colorScheme.surfaceContainerHighest,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+            ),
+          ),
+        ),
+        
         // Filter Chips
         SizedBox(
           height: 60,
@@ -191,19 +243,30 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
         
         // Grid View
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.78, // Adjusted to fit progress stats
-            ),
-            itemCount: selectedCategory.drills.length,
-            itemBuilder: (context, index) {
-              final drill = selectedCategory.drills[index];
-              final progress = _progressByDrill[drill.drillId];
-              return _buildDrillCard(drill, progress, theme);
+          child: Builder(
+            builder: (context) {
+              final filteredDrills = selectedCategory.drills.where((drill) {
+                if (_searchQuery.isEmpty) return true;
+                final q = _searchQuery.toLowerCase();
+                return drill.title.toLowerCase().contains(q) || 
+                       drill.artistName.toLowerCase().contains(q);
+              }).toList();
+              
+              return GridView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.70, // Taller to fit image
+                ),
+                itemCount: filteredDrills.length,
+                itemBuilder: (context, index) {
+                  final drill = filteredDrills[index];
+                  final progress = _progressByDrill[drill.drillId];
+                  return _buildDrillCard(drill, progress, theme);
+                },
+              );
             },
           ),
         ),
@@ -218,77 +281,120 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     return Pressable(
       onTap: () => _onDrillTap(drill),
       child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Cover Image Header
+            Expanded(
+              flex: 3,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  DifficultyBadge(difficulty: drill.difficulty),
-                  Icon(
-                    Icons.play_circle_fill_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 24,
+                  drill.coverUrl.isNotEmpty
+                      ? Image.network(drill.coverUrl, fit: BoxFit.cover)
+                      : Container(color: theme.colorScheme.surfaceContainerHighest),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.black54, Colors.transparent, Colors.black87],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: DifficultyBadge(difficulty: drill.difficulty),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Icon(
+                      Icons.play_circle_fill_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 28,
+                    ),
                   ),
                 ],
               ),
-              const Spacer(),
-              Hero(
-                tag: 'karaoke_song_title_${drill.drillId}',
-                child: Material(
-                  color: Colors.transparent,
-                  child: Text(
-                    formattedTitle,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (progress != null && progress.sessionsCompleted > 0) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ),
+            // Text Content
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Best: ${progress.bestScore.toInt()}%',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+                    Hero(
+                      tag: 'karaoke_song_title_${drill.drillId}',
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Text(
+                          formattedTitle,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
-                      '${progress.sessionsCompleted} Takes',
-                      style: theme.textTheme.labelSmall?.copyWith(
+                      drill.artistName,
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    if (progress != null && progress.sessionsCompleted > 0) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Best: ${progress.bestScore.toInt()}%',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${progress.sessionsCompleted} Takes',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          durationLabel,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-              ],
-              Row(
-                children: [
-                  Icon(
-                    Icons.timer_outlined,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    durationLabel,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

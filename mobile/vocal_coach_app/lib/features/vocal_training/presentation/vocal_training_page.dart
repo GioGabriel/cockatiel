@@ -250,7 +250,7 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
   Widget _buildShimmerSkeleton(BuildContext context) {
     final theme = Theme.of(context);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
       children: [
         ShimmerSkeleton(child: SkeletonShapes.dashboardCard(theme: theme)),
         const SizedBox(height: 18),
@@ -293,7 +293,7 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
       body: _isLoading
           ? _buildShimmerSkeleton(context)
           : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
               children: [
                 _HeroPanel(
                   title: _moduleTitle,
@@ -845,7 +845,7 @@ class _ExerciseCategoryPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(category.title)),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
         children: [
           Container(
             decoration: BoxDecoration(

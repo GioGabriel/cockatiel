@@ -35,11 +35,14 @@ The app does not treat every exercise as a scale lesson:
 - The Basic Ladder teaches the complete beginner sequence: `Do, Re, Mi, Fa, Sol`.
 - A warm-up ladder now uses the same five notes so beginners do not see a
   misleading partial scale.
-- Resonance exercises may use anchor tones such as `Do, Mi, Sol` to focus on
-  tone placement and relaxed support. Those are not presented as a complete
-  scale.
-- Interval exercises intentionally skip notes so the singer practices landing
-  accurately on larger pitch jumps.
+- Beginner resonance, warm-up, transition, and ladder exercises all present the
+  complete `Do, Re, Mi, Fa, Sol` sequence before adding any return or control
+  variation. This keeps the first lesson consistent with what a beginner
+  expects from a five-note solfège ladder.
+- Only the explicitly named Interval Jumps exercise intentionally skips notes,
+  and its teaching note explains that the goal is accurate landing rather than
+  scale memorization. Advanced transition practice still starts with the full
+  five-note ladder before adding its control variation.
 
 The API returns this teaching purpose with every runtime pattern, and the
 mobile briefing/session surfaces it before and during practice. This keeps a

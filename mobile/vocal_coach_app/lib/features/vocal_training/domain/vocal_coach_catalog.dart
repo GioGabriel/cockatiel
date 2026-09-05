@@ -128,7 +128,7 @@ const vocalCoachCatalog = <VocalCoachCategory>[
   ),
   VocalCoachCategory(
     id: 'do_re_mi',
-    title: 'Do Re Mi',
+    title: 'Do Re Mi Fa Sol',
     subtitle: 'Pitch-target drills and ear-voice alignment.',
     description:
         'Develop note recognition, interval awareness, and scale accuracy.',

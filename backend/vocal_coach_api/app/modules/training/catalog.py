@@ -22,8 +22,8 @@ _DEFAULT_METRIC_WEIGHTS = {
 }
 
 _PATTERN_TEACHING_NOTES = {
-  "ladder": "A ladder moves upward step by step. Use Basic Ladder for the complete beginner sequence: Do, Re, Mi, Fa, Sol.",
-  "sustain": "This uses anchor tones: selected notes such as Do, Mi, and Sol focus on tone placement, not the complete scale.",
+  "ladder": "This exercise moves through the five-note ladder: Do, Re, Mi, Fa, Sol. Any notes after Sol are a controlled return or variation.",
+  "sustain": "This resonance exercise follows the five-note sequence: Do, Re, Mi, Fa, Sol. Any notes after Sol are a controlled return.",
   "transition": "This is a connection exercise: repeated or nearby notes build smooth movement between pitches.",
   "jump": "This is an interval exercise: the notes intentionally skip steps so you can practice accurate leaps.",
   "breathing": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
@@ -126,7 +126,8 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "beginner": _pattern(
               "placement_foundation",
               pattern_type="sustain",
-              summary="Three relaxed sustained tones that build forward placement.",
+              summary="Five relaxed tones that build forward placement across the complete beginner sequence.",
+              teaching_note="This beginner resonance exercise follows the complete sequence: Do, Re, Mi, Fa, Sol.",
               stages=[
                 _stage(
                   "forward_hum",
@@ -136,10 +137,24 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   beats=1,
                 ),
                 _stage(
+                  "forward_re",
+                  title="Re Lift",
+                  solfege="Re",
+                  instruction="Move gently upward while keeping the forward buzz.",
+                  beats=1,
+                ),
+                _stage(
                   "open_vowel",
                   title="Open Vowel",
                   solfege="Mi",
                   instruction="Open to a clean vowel without losing the forward buzz.",
+                  beats=1,
+                ),
+                _stage(
+                  "forward_fa",
+                  title="Fa Lift",
+                  solfege="Fa",
+                  instruction="Stay relaxed as the tone rises through the vowel.",
                   beats=1,
                 ),
                 _stage(
@@ -164,10 +179,24 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   beats=1,
                 ),
                 _stage(
+                  "lifted_re",
+                  title="Gentle Rise",
+                  solfege="Re",
+                  instruction="Move up while keeping the same easy support.",
+                  beats=1,
+                ),
+                _stage(
                   "lifted_mi",
                   title="Lifted Placement",
                   solfege="Mi",
                   instruction="Keep the tone forward as the vowel opens.",
+                  beats=1,
+                ),
+                _stage(
+                  "lifted_fa",
+                  title="Supported Rise",
+                  solfege="Fa",
+                  instruction="Keep the vowel open without adding throat pressure.",
                   beats=1,
                 ),
                 _stage(
@@ -199,10 +228,24 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   beats=1,
                 ),
                 _stage(
+                  "advanced_re_start",
+                  title="Measured Rise",
+                  solfege="Re",
+                  instruction="Prepare the next pitch while keeping placement forward.",
+                  beats=1,
+                ),
+                _stage(
                   "advanced_mi",
                   title="Lifted Vowel",
                   solfege="Mi",
                   instruction="Keep brightness steady as the pitch rises.",
+                  beats=1,
+                ),
+                _stage(
+                  "advanced_fa",
+                  title="Supported Rise",
+                  solfege="Fa",
+                  instruction="Keep support even as the pitch rises.",
                   beats=1,
                 ),
                 _stage(
@@ -213,14 +256,14 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   beats=2,
                 ),
                 _stage(
-                  "advanced_fa",
+                  "advanced_fa_return",
                   title="Controlled Return",
                   solfege="Fa",
                   instruction="Return while keeping support even and relaxed.",
                   beats=1,
                 ),
                 _stage(
-                  "advanced_re",
+                  "advanced_re_finish",
                   title="Balanced Finish",
                   solfege="Re",
                   instruction="End with the same easy, forward placement.",
@@ -346,6 +389,13 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   beats=1,
                 ),
                 _stage(
+                  "warmup_arc_sol",
+                  title="Sol Peak",
+                  solfege="Sol",
+                  instruction="Reach the top note without pressing or lifting the chin.",
+                  beats=1,
+                ),
+                _stage(
                   "warmup_arc_mi_return",
                   title="Mi Return",
                   solfege="Mi",
@@ -448,7 +498,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "beginner": _pattern(
               "transition_steps",
               pattern_type="transition",
-              summary="Adjacent note pairs that build controlled legato transitions.",
+              summary="Complete five-note ladder with controlled legato transitions.",
               stages=[
                 _stage(
                   "transition_do",
@@ -471,18 +521,39 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   instruction="Let the pitch settle quickly and evenly.",
                   beats=1,
                 ),
+                _stage(
+                  "transition_fa",
+                  title="Fa Reach",
+                  solfege="Fa",
+                  instruction="Keep airflow even as you continue upward.",
+                  beats=1,
+                ),
+                _stage(
+                  "transition_sol",
+                  title="Sol Finish",
+                  solfege="Sol",
+                  instruction="Finish the ladder without tightening the throat.",
+                  beats=1,
+                ),
               ],
             ),
             "intermediate": _pattern(
               "transition_arc",
               pattern_type="transition",
-              summary="Longer connected path with repeated changes in direction.",
+              summary="Complete five-note ladder with a controlled return through the connected line.",
               stages=[
                 _stage(
                   "transition_arc_do",
                   title="Do Start",
                   solfege="Do",
                   instruction="Center the line before moving.",
+                  beats=1,
+                ),
+                _stage(
+                  "transition_arc_re",
+                  title="Re Connect",
+                  solfege="Re",
+                  instruction="Move smoothly into the next pitch.",
                   beats=1,
                 ),
                 _stage(
@@ -493,17 +564,17 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   beats=1,
                 ),
                 _stage(
-                  "transition_arc_re",
-                  title="Re Return",
-                  solfege="Re",
-                  instruction="Return without breaking the line.",
-                  beats=1,
-                ),
-                _stage(
                   "transition_arc_fa",
                   title="Fa Reach",
                   solfege="Fa",
                   instruction="Keep airflow even through the reach.",
+                  beats=1,
+                ),
+                _stage(
+                  "transition_arc_sol",
+                  title="Sol Peak",
+                  solfege="Sol",
+                  instruction="Reach the top without breaking the connected line.",
                   beats=1,
                 ),
                 _stage(
@@ -518,38 +589,53 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "advanced": _pattern(
               "transition_skips",
               pattern_type="transition",
-              summary="Mixed adjacent and skip transitions for faster pitch settling.",
+              summary="Complete five-note ladder followed by controlled return transitions.",
+              teaching_note="This advanced transition exercise first follows Do, Re, Mi, Fa, Sol, then returns through selected notes to build connected control.",
               stages=[
                 _stage(
                   "transition_skip_do",
                   title="Do Start",
                   solfege="Do",
-                  instruction="Stay poised and ready for the leap.",
+                  instruction="Stay poised and ready to connect the line.",
+                  beats=1,
+                ),
+                _stage(
+                  "transition_skip_re",
+                  title="Re Connect",
+                  solfege="Re",
+                  instruction="Move smoothly without breaking the line.",
                   beats=1,
                 ),
                 _stage(
                   "transition_skip_mi",
-                  title="Mi Leap",
+                  title="Mi Lift",
                   solfege="Mi",
-                  instruction="Land directly with minimal slide.",
+                  instruction="Travel upward with a steady vowel.",
+                  beats=1,
+                ),
+                _stage(
+                  "transition_skip_fa",
+                  title="Fa Reach",
+                  solfege="Fa",
+                  instruction="Keep airflow even through the reach.",
                   beats=1,
                 ),
                 _stage(
                   "transition_skip_sol",
                   title="Sol Extend",
                   solfege="Sol",
-                  instruction="Keep the line connected through the reach.",
+                  instruction="Keep the line connected through the top note.",
                   beats=1,
                 ),
                 _stage(
-                  "transition_skip_fa",
+                  "transition_skip_fa_return",
                   title="Fa Return",
                   solfege="Fa",
                   instruction="Return smoothly without collapsing support.",
                   beats=1,
                 ),
                 _stage(
-                  "transition_skip_re",
+                  "transition_skip_re_return",
                   title="Re Balance",
                   solfege="Re",
                   instruction="Settle quickly into the lower pitch.",
@@ -570,7 +656,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
     },
     {
       "category_id": "do_re_mi",
-      "title": "Do Re Mi",
+      "title": "Do Re Mi Fa Sol",
       "subtitle": "Pitch-target drills and interval control",
       "description": "Strengthen ear-voice mapping and note accuracy.",
       "exercises": [
@@ -629,12 +715,13 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "intermediate": _pattern(
               "basic_ladder_extended",
               pattern_type="ladder",
-              summary="Extended scale ladder with return pattern.",
+              summary="Complete scale ladder with a controlled return pattern.",
               stages=[
                 _stage("ladder_ext_do", title="Do", solfege="Do", instruction="Start cleanly.", beats=1),
                 _stage("ladder_ext_re", title="Re", solfege="Re", instruction="Prepare before moving.", beats=1),
                 _stage("ladder_ext_mi", title="Mi", solfege="Mi", instruction="Hold the center.", beats=1),
                 _stage("ladder_ext_fa", title="Fa", solfege="Fa", instruction="Stay relaxed as you rise.", beats=1),
+                _stage("ladder_ext_sol", title="Sol", solfege="Sol", instruction="Lock the top note clearly.", beats=1),
                 _stage("ladder_ext_mi_return", title="Mi", solfege="Mi", instruction="Return without scooping.", beats=1),
               ],
             ),

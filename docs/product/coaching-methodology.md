@@ -28,6 +28,23 @@ Each guided exercise should make the same sequence visible to the user:
 4. Review understandable strengths and one or two improvements.
 5. Recommend the next short practice and allow a repeat or recalibration.
 
+## Why note sequences differ
+
+The app does not treat every exercise as a scale lesson:
+
+- The Basic Ladder teaches the complete beginner sequence: `Do, Re, Mi, Fa, Sol`.
+- A warm-up ladder now uses the same five notes so beginners do not see a
+  misleading partial scale.
+- Resonance exercises may use anchor tones such as `Do, Mi, Sol` to focus on
+  tone placement and relaxed support. Those are not presented as a complete
+  scale.
+- Interval exercises intentionally skip notes so the singer practices landing
+  accurately on larger pitch jumps.
+
+The API returns this teaching purpose with every runtime pattern, and the
+mobile briefing/session surfaces it before and during practice. This keeps a
+pedagogical variation from looking like missing content.
+
 The deterministic coaching logic engine remains authoritative for metric
 interpretation. OpenRouter may add a bounded natural-language summary, but it
 does not replace the metrics or the local live feedback path.

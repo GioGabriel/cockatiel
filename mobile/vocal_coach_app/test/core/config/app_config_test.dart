@@ -24,6 +24,16 @@ void main() {
     );
   });
 
+  test('rejects local HTTP endpoint in a release build', () {
+    expect(
+      () => AppConfig.normalizeApiBaseUrl(
+        'http://127.0.0.1:8000',
+        isReleaseBuild: true,
+      ),
+      throwsStateError,
+    );
+  });
+
   test('rejects endpoint overrides that contain paths, queries, or credentials',
       () {
     expect(

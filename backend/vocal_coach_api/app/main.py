@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 from app.api.v1.router import api_router
-from app.core.config import settings
+from app.core.config import settings, validate_runtime_settings
 from app.core.exceptions import ApiError, error_envelope
 from app.observability.logging.setup import configure_logging
 from app.observability.metrics.registry import increment, observe, snapshot
@@ -26,6 +26,7 @@ logger = logging.getLogger("vocal-coach-api")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+  validate_runtime_settings(settings)
   ai_worker: AIEvaluationWorker | None = None
   snippet_cleanup_worker: AudioSnippetCleanupWorker | None = None
   logger.info(

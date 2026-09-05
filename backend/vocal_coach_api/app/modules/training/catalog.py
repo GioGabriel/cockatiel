@@ -21,6 +21,14 @@ _DEFAULT_METRIC_WEIGHTS = {
   "note_transition_smoothness": 0.15,
 }
 
+_PATTERN_TEACHING_NOTES = {
+  "ladder": "A ladder moves upward step by step. Use Basic Ladder for the complete beginner sequence: Do, Re, Mi, Fa, Sol.",
+  "sustain": "This uses anchor tones: selected notes such as Do, Mi, and Sol focus on tone placement, not the complete scale.",
+  "transition": "This is a connection exercise: repeated or nearby notes build smooth movement between pitches.",
+  "jump": "This is an interval exercise: the notes intentionally skip steps so you can practice accurate leaps.",
+  "breathing": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
+}
+
 
 def _stage(
   stage_id: str,
@@ -46,11 +54,16 @@ def _pattern(
   pattern_type: str,
   summary: str,
   stages: list[dict[str, Any]],
+  teaching_note: str | None = None,
 ) -> dict[str, Any]:
   return {
     "pattern_id": pattern_id,
     "pattern_type": pattern_type,
     "summary": summary,
+    "teaching_note": teaching_note or _PATTERN_TEACHING_NOTES.get(
+      pattern_type,
+      "Follow the guided steps and use the live cue as your next action.",
+    ),
     "stages": stages,
   }
 
@@ -260,7 +273,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "beginner": _pattern(
               "warmup_ladder",
               pattern_type="ladder",
-              summary="Short ascending ladder for clean, steady warmup onset.",
+              summary="Complete Do Re Mi Fa Sol warmup ladder for clean, steady onset.",
               stages=[
                 _stage(
                   "warmup_do",
@@ -281,6 +294,20 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   title="Mi Center",
                   solfege="Mi",
                   instruction="Keep the vowel aligned and centered.",
+                  beats=1,
+                ),
+                _stage(
+                  "warmup_fa",
+                  title="Fa Lift",
+                  solfege="Fa",
+                  instruction="Stay relaxed as the ladder rises.",
+                  beats=1,
+                ),
+                _stage(
+                  "warmup_sol",
+                  title="Sol Peak",
+                  solfege="Sol",
+                  instruction="Finish the ladder with a clear, steady tone.",
                   beats=1,
                 ),
               ],
@@ -590,6 +617,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
               "basic_ladder",
               pattern_type="ladder",
               summary="Straight scale ladder to reinforce note recognition.",
+              teaching_note="This is the complete beginner scale: Do, Re, Mi, Fa, Sol.",
               stages=[
                 _stage("ladder_do", title="Do", solfege="Do", instruction="Lock the tonic cleanly.", beats=1),
                 _stage("ladder_re", title="Re", solfege="Re", instruction="Move up without sliding.", beats=1),

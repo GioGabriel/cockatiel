@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -79,8 +80,9 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
     try {
       catalog = await catalogFuture;
     } catch (_) {
-      catalogError =
-          'Unable to load the latest training catalog. Showing local backup.';
+      catalogError = kReleaseMode
+          ? 'Training catalog is temporarily unavailable. Please retry when your connection is restored.'
+          : 'Unable to load the latest training catalog. Showing the local practice guide.';
     }
 
     try {
@@ -96,7 +98,7 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
     }
 
     final categories = catalog == null
-        ? vocalCoachCatalog
+        ? (kReleaseMode ? const <VocalCoachCategory>[] : vocalCoachCatalog)
         : catalog.categories.map(_mapCategory).toList();
 
     if (!mounted) {
@@ -292,101 +294,142 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
       ),
       body: _isLoading
           ? _buildShimmerSkeleton(context)
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
-              children: [
-                _HeroPanel(
-                  title: _moduleTitle,
-                  description: _moduleDescription,
-                  recommendation: _topRecommendation,
-                  totalSessions: totalSessions,
-                  trackedExercises: trackedExercises,
-                  bestRecentScore: bestRecentScore,
-                  onOpenRecommendation: _topRecommendation == null
-                      ? null
-                      : _openRecommendedExercise,
-                ),
-                if (_catalogError != null) ...[
-                  const SizedBox(height: 12),
-                  _InlineNotice(message: _catalogError!),
-                ],
-                if (_recommendations.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Recommended Next',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  StaggeredEntrance(
-                    staggerDelay: const Duration(milliseconds: 50),
-                    children: [
-                      for (final item in _recommendations.take(3))
-                        _RecommendationCard(
-                          recommendation: item,
-                          exercise: _findExercise(item.exerciseId),
-                          onTap: () {
-                            final category =
-                                _findCategoryByExerciseId(item.exerciseId);
-                            final exercise = _findExercise(item.exerciseId);
-                            if (category == null || exercise == null) {
-                              return;
-                            }
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => ExerciseBriefingPage(
-                                  categoryTitle: category.title,
-                                  exercise: exercise,
-                                  recommendation: item,
-                                  progress: _progressByExercise[exercise.id],
-                                  apiClient: widget.apiClient,
-                                  appState: widget.appState,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Text(
-                  'Training Tracks',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                StaggeredEntrance(
-                  staggerDelay: const Duration(milliseconds: 50),
+          : _categories.isEmpty
+              ? _buildUnavailableState(context)
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
                   children: [
-                    for (final category in _categories)
-                      _TrackCard(
-                        category: category,
-                        completedExercises: category.exercises
-                            .where((exercise) =>
-                                _progressByExercise.containsKey(exercise.id))
-                            .length,
-                        recommendedCount: category.exercises
-                            .where((exercise) => _recommendationByExercise
-                                .containsKey(exercise.id))
-                            .length,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => _ExerciseCategoryPage(
-                                category: category,
-                                apiClient: widget.apiClient,
-                                appState: widget.appState,
-                                progressByExercise: _progressByExercise,
-                                recommendationByExercise:
-                                    _recommendationByExercise,
-                              ),
-                            ),
-                          );
-                        },
+                    _HeroPanel(
+                      title: _moduleTitle,
+                      description: _moduleDescription,
+                      recommendation: _topRecommendation,
+                      totalSessions: totalSessions,
+                      trackedExercises: trackedExercises,
+                      bestRecentScore: bestRecentScore,
+                      onOpenRecommendation: _topRecommendation == null
+                          ? null
+                          : _openRecommendedExercise,
+                    ),
+                    if (_catalogError != null) ...[
+                      const SizedBox(height: 12),
+                      _InlineNotice(message: _catalogError!),
+                    ],
+                    if (_recommendations.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        'Recommended Next',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
+                      const SizedBox(height: 8),
+                      StaggeredEntrance(
+                        staggerDelay: const Duration(milliseconds: 50),
+                        children: [
+                          for (final item in _recommendations.take(3))
+                            _RecommendationCard(
+                              recommendation: item,
+                              exercise: _findExercise(item.exerciseId),
+                              onTap: () {
+                                final category =
+                                    _findCategoryByExerciseId(item.exerciseId);
+                                final exercise = _findExercise(item.exerciseId);
+                                if (category == null || exercise == null) {
+                                  return;
+                                }
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ExerciseBriefingPage(
+                                      categoryTitle: category.title,
+                                      exercise: exercise,
+                                      recommendation: item,
+                                      progress:
+                                          _progressByExercise[exercise.id],
+                                      apiClient: widget.apiClient,
+                                      appState: widget.appState,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Text(
+                      'Training Tracks',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    StaggeredEntrance(
+                      staggerDelay: const Duration(milliseconds: 50),
+                      children: [
+                        for (final category in _categories)
+                          _TrackCard(
+                            category: category,
+                            completedExercises: category.exercises
+                                .where((exercise) => _progressByExercise
+                                    .containsKey(exercise.id))
+                                .length,
+                            recommendedCount: category.exercises
+                                .where((exercise) => _recommendationByExercise
+                                    .containsKey(exercise.id))
+                                .length,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => _ExerciseCategoryPage(
+                                    category: category,
+                                    apiClient: widget.apiClient,
+                                    appState: widget.appState,
+                                    progressByExercise: _progressByExercise,
+                                    recommendationByExercise:
+                                        _recommendationByExercise,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+    );
+  }
+
+  Widget _buildUnavailableState(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
+            const SizedBox(height: 16),
+            Text(
+              'Training is temporarily unavailable',
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _catalogError ??
+                  'We could not load the current practice library.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _loadCatalog,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

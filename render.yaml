@@ -12,8 +12,8 @@ services:
       - key: APP_ENV
         value: "production"
       - key: CORS_ALLOWED_ORIGINS
-        # Explicit local Chrome smoke-test origins; Firebase auth is still required.
-        value: "http://localhost:4173,http://127.0.0.1:4173"
+        # Set the deployed web-client origin(s) in Render. Never use localhost here.
+        sync: false
       - key: CORS_ALLOW_LOCALHOST
         value: "false"
       - key: API_REQUEST_TIMEOUT_S
@@ -22,10 +22,14 @@ services:
         value: "true"
       - key: FIRESTORE_PROJECT_ID
         value: "cockatiel-enhanced"
+      - key: AUDIO_SNIPPET_STORAGE_BACKEND
+        value: "firestore"
       - key: METRICS_ACCESS_TOKEN
         sync: false
       - key: OPENROUTER_ENABLED
-        value: "true"
+        # Deterministic coaching remains authoritative; enable remote summaries
+        # explicitly only after an OpenRouter key is configured.
+        value: "false"
       - key: OPENROUTER_API_KEYS
         sync: false
       # Legacy deployments may continue using OPENROUTER_API_KEY; the backend

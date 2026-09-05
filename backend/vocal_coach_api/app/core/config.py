@@ -83,6 +83,14 @@ def _allow_localhost_cors_by_default() -> bool:
   return app_env not in {"prod", "production", "staging"}
 
 
+def _cors_allow_localhost_enabled() -> bool:
+  """Never allow the local-origin shortcut in a production environment."""
+  app_env = os.getenv("APP_ENV", "dev").strip().lower()
+  if app_env in {"prod", "production", "staging"}:
+    return False
+  return _as_bool("CORS_ALLOW_LOCALHOST", _allow_localhost_cors_by_default())
+
+
 
 
 @dataclass(frozen=True)
@@ -92,7 +100,7 @@ class Settings:
   api_prefix: str = os.getenv("API_PREFIX", "/v1")
   auth_bypass: bool = _auth_bypass_enabled()
   cors_allowed_origins: list[str] = field(default_factory=_cors_allowed_origins_from_env)
-  cors_allow_localhost: bool = _as_bool("CORS_ALLOW_LOCALHOST", _allow_localhost_cors_by_default())
+  cors_allow_localhost: bool = _cors_allow_localhost_enabled()
   metrics_access_token: str | None = os.getenv("METRICS_ACCESS_TOKEN") or None
   api_request_timeout_s: float = _as_float("API_REQUEST_TIMEOUT_S", 30.0, minimum=1.0, maximum=120.0)
 
@@ -124,3 +132,34 @@ class Settings:
 
 
 settings = Settings()
+
+
+def validate_runtime_settings(config: object = settings) -> None:
+  """Fail closed when required production services are not explicitly configured.
+
+  Development may use the in-memory repository, local CORS, and local audio
+  storage through an explicit local process configuration. Production must not
+  silently start with any of those development-only paths.
+  """
+  app_env = str(getattr(config, "app_env", "dev")).strip().lower()
+  if app_env not in {"prod", "production", "staging"}:
+    return
+
+  problems: list[str] = []
+  if bool(getattr(config, "auth_bypass", False)):
+    problems.append("AUTH_BYPASS must be false")
+  if not bool(getattr(config, "firestore_enabled", False)):
+    problems.append("FIRESTORE_ENABLED must be true")
+  if not str(getattr(config, "firestore_project_id", "") or "").strip():
+    problems.append("FIRESTORE_PROJECT_ID must be configured")
+  if not list(getattr(config, "cors_allowed_origins", []) or []):
+    problems.append("CORS_ALLOWED_ORIGINS must contain the deployed web origin")
+  if bool(getattr(config, "cors_allow_localhost", False)):
+    problems.append("localhost CORS must be disabled")
+
+  audio_backend = str(getattr(config, "audio_snippet_storage_backend", "") or "").strip().lower()
+  if audio_backend in {"local", "filesystem", "fs"}:
+    problems.append("local audio storage is not permitted in production")
+
+  if problems:
+    raise RuntimeError("Production configuration is incomplete: " + "; ".join(problems) + ".")

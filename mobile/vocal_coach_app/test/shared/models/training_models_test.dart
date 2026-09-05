@@ -97,6 +97,7 @@ void main() {
         'pattern_id': 'p1',
         'pattern_type': 'scale',
         'summary': 'A scale',
+        'teaching_note': 'Sing each step in order.',
         'stages': [
           {
             'stage_id': 's1',
@@ -108,6 +109,7 @@ void main() {
       };
       final pattern = TrainingPatternTemplate.fromJson(json);
       expect(pattern.patternId, 'p1');
+      expect(pattern.teachingNote, 'Sing each step in order.');
       expect(pattern.stages.length, 1);
     });
   });

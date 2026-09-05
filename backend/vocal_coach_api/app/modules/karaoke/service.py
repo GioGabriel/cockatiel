@@ -189,8 +189,8 @@ def evaluate_tone_and_get_feedback(audio_bytes: bytes, pitch_score: float, rhyth
     explicitly labelled result.
     """
     import io
-    import numpy as np
     try:
+        import numpy as np
         import librosa
         import soundfile as sf
         

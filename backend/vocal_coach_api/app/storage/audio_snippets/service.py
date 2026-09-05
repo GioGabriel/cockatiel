@@ -7,6 +7,10 @@ from app.storage.audio_snippets.adapters.local_file.storage import LocalAudioSni
 logger = logging.getLogger("vocal-coach-api.audio-snippets")
 
 
+def _is_production_environment() -> bool:
+  return settings.app_env.strip().lower() in {"prod", "production", "staging"}
+
+
 class NoopAudioSnippetStorage:
   backend_name = "metadata-only"
 
@@ -44,14 +48,25 @@ def get_audio_snippet_storage():
       logger.info("audio_snippet_storage backend=firestore")
       return FirestoreAudioSnippetStorage(build_firestore_client())
     except Exception as exc:
+      if _is_production_environment():
+        logger.error(
+          "audio_snippet_storage firestore unavailable in production error_type=%s",
+          type(exc).__name__,
+        )
+        raise RuntimeError("Audio snippet storage is unavailable in production.") from exc
       logger.warning(
         "audio_snippet_storage firestore init failed, falling back to local error_type=%s",
         type(exc).__name__,
       )
 
   if backend in {"local", "filesystem", "fs"}:
+    if _is_production_environment():
+      raise RuntimeError("Local audio storage is not permitted in production.")
     logger.info("audio_snippet_storage backend=local root=%s", settings.audio_snippet_local_dir)
     return LocalAudioSnippetStorage(settings.audio_snippet_local_dir)
+
+  if _is_production_environment():
+    raise RuntimeError(f"Unsupported audio snippet storage backend in production: {backend}.")
 
   logger.warning("audio_snippet_storage backend=%s unsupported, defaulting to local", backend)
   return LocalAudioSnippetStorage(settings.audio_snippet_local_dir)

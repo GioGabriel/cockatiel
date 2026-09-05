@@ -16,7 +16,11 @@ class AppConfig {
   final int firebaseAuthEmulatorPort;
 
   /// Normalizes and validates a compile-time API endpoint override.
-  static String normalizeApiBaseUrl(String value) => _normalizeBaseUrl(value);
+  static String normalizeApiBaseUrl(String value, {bool? isReleaseBuild}) =>
+      _normalizeBaseUrl(
+        value,
+        isReleaseBuild: isReleaseBuild ?? kReleaseMode,
+      );
 
   static AppConfig resolve() {
     const overrideUrl =
@@ -58,7 +62,7 @@ class AppConfig {
 
 const _productionApiBaseUrl = 'https://cockatiel-wdkv.onrender.com';
 
-String _normalizeBaseUrl(String raw) {
+String _normalizeBaseUrl(String raw, {bool isReleaseBuild = kReleaseMode}) {
   final value = raw.trim().replaceFirst(RegExp(r'/+$'), '');
   final uri = Uri.tryParse(value);
   if (uri == null ||
@@ -72,7 +76,7 @@ String _normalizeBaseUrl(String raw) {
       uri.userInfo.isNotEmpty) {
     throw StateError('API_BASE_URL must contain only scheme, host, and port.');
   }
-  if (uri.scheme != 'https' && !_isLocalUrl(value)) {
+  if (uri.scheme != 'https' && (!_isLocalUrl(value) || isReleaseBuild)) {
     throw StateError(
         'Non-HTTPS API_BASE_URL values are only allowed for local development.');
   }

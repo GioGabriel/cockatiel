@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/training_models.dart';
+import '../../../shared/utils/vocal_utils.dart';
 import '../domain/vocal_coach_catalog.dart';
 import 'training_session_page.dart';
 
@@ -34,11 +35,6 @@ class ExerciseBriefingPage extends StatefulWidget {
 }
 
 class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
-  static const _durationsByDifficulty = {
-    'beginner': 20,
-    'intermediate': 30,
-    'advanced': 45,
-  };
   static const _keyOptions = [
     'C',
     'C#',
@@ -141,7 +137,8 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
   String get _sessionNoun => _isBreathingExercise ? 'cycle' : 'take';
 
   int get _selectedDurationSec =>
-      _durationsByDifficulty[_selectedDifficulty] ?? 20;
+      durationByDifficulty[_selectedDifficulty] ??
+      durationByDifficulty['beginner']!;
 
   String get _exerciseName => _catalogExercise?.name ?? widget.exercise.name;
 
@@ -358,6 +355,41 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                        if (_selectedPattern != null) ...[
+                          const SizedBox(height: 14),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer
+                                  .withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: theme.colorScheme.primary
+                                    .withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Why these notes?',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _selectedPattern!.teachingNote,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         Text('What you\'ll do',
                             style: theme.textTheme.titleSmall),
@@ -449,6 +481,14 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                                       },
                               ),
                           ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Practice blocks are intentionally short so you can repeat them without vocal fatigue. Karaoke songs remain full length.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.35,
+                          ),
                         ),
                         if (_requiresMicrophone) ...[
                           const SizedBox(height: 24),

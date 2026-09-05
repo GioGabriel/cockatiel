@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 from app.modules.training.catalog import default_metric_weights, get_exercise
@@ -38,10 +39,18 @@ def _default_breathing_metric_weights() -> dict[str, float]:
   }
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+  try:
+    parsed = float(value)
+  except (TypeError, ValueError):
+    return default
+  return parsed if math.isfinite(parsed) else default
+
+
 def _normalized_metric_weights(exercise_id: str, metric_fields: tuple[str, ...]) -> dict[str, float]:
   exercise = get_exercise(exercise_id) or {}
   weights = dict(exercise.get("metric_weights") or default_metric_weights())
-  total = sum(float(weights.get(field, 0.0)) for field in metric_fields)
+  total = sum(max(_safe_float(weights.get(field)), 0.0) for field in metric_fields)
   if total <= 0:
     fallback = (
       _default_breathing_metric_weights()
@@ -51,19 +60,19 @@ def _normalized_metric_weights(exercise_id: str, metric_fields: tuple[str, ...])
     total = sum(float(fallback[field]) for field in metric_fields)
     weights = fallback
   return {
-    field: round(float(weights.get(field, 0.0)) / total, 4)
+    field: round(max(_safe_float(weights.get(field)), 0.0) / total, 4)
     for field in metric_fields
   }
 
 
-def _metric_value(metric_summary: dict[str, float | int], field: str) -> float:
-  return round(float(metric_summary.get(field, 0.0)), 2)
+def _metric_value(metric_summary: dict[str, Any], field: str) -> float:
+  return round(min(max(_safe_float(metric_summary.get(field)), 0.0), 100.0), 2)
 
 
 def score_training_attempt(
   *,
   exercise_id: str,
-  metric_summary: dict[str, float | int],
+  metric_summary: dict[str, Any],
 ) -> dict[str, Any]:
   exercise = get_exercise(exercise_id) or {}
   metric_mode = metric_mode_for_exercise(exercise_id)
@@ -80,7 +89,11 @@ def score_training_attempt(
   overall_score = round(sum(weighted_components.values()), 2)
 
   default_focus_metrics = list(metric_fields[:3])
-  focus_metrics = list(exercise.get("focus_metrics") or default_focus_metrics)
+  focus_metrics = [
+    field
+    for field in list(exercise.get("focus_metrics") or default_focus_metrics)
+    if field in metric_fields
+  ] or default_focus_metrics
   ranked_focus_metrics = sorted(
     focus_metrics,
     key=lambda field: metric_scores.get(field, 0.0),
@@ -89,10 +102,11 @@ def score_training_attempt(
   strongest_metric = ranked_focus_metrics[-1] if ranked_focus_metrics else metric_fields[0]
 
   thresholds = dict(exercise.get("success_thresholds") or {})
-  overall_threshold = float(thresholds.get("overall_score") or 0.0)
+  overall_threshold = min(max(_safe_float(thresholds.get("overall_score")), 0.0), 100.0)
   metric_floors = {
-    field: float(value)
+    field: min(max(_safe_float(value), 0.0), 100.0)
     for field, value in dict(thresholds.get("metric_floors") or {}).items()
+    if field in metric_fields
   }
   passed_threshold = overall_score >= overall_threshold and all(
     metric_scores.get(field, 0.0) >= value

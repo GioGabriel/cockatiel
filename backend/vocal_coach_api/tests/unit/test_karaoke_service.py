@@ -113,6 +113,43 @@ class TestGetDrillById:
     with pytest.raises(RuntimeError, match="Karaoke catalog unavailable in production"):
       karaoke_catalog.get_catalog()
 
+  def test_production_without_firestore_does_not_return_sample_drills(self, monkeypatch) -> None:
+    production_settings = replace(
+      karaoke_catalog.settings,
+      app_env="production",
+      firestore_enabled=False,
+    )
+    monkeypatch.setattr(karaoke_catalog, "settings", production_settings)
+
+    catalog = karaoke_catalog.get_catalog()
+
+    assert catalog["categories"] == []
+
+  def test_production_missing_firestore_drill_does_not_return_sample_drill(self, monkeypatch) -> None:
+    class MissingDocument:
+      exists = False
+
+      def get(self):
+        return self
+
+    class Collection:
+      def document(self, _drill_id):
+        return MissingDocument()
+
+    class Database:
+      def collection(self, _collection_name):
+        return Collection()
+
+    production_settings = replace(
+      karaoke_catalog.settings,
+      app_env="production",
+      firestore_enabled=True,
+    )
+    monkeypatch.setattr(karaoke_catalog, "settings", production_settings)
+    monkeypatch.setattr(karaoke_catalog, "build_firestore_client", lambda: Database())
+
+    assert karaoke_catalog.get_drill_by_id("pop_breath_control_1") is None
+
 
 class TestCatalogPreview:
   def test_preview_has_expected_structure(self) -> None:

@@ -101,12 +101,14 @@ class TrainingPatternTemplate {
     required this.patternId,
     required this.patternType,
     required this.summary,
+    required this.teachingNote,
     required this.stages,
   });
 
   final String patternId;
   final String patternType;
   final String summary;
+  final String teachingNote;
   final List<TrainingPatternStageTemplate> stages;
 
   factory TrainingPatternTemplate.fromJson(Map<String, dynamic> json) {
@@ -114,6 +116,8 @@ class TrainingPatternTemplate {
       patternId: json['pattern_id'] as String,
       patternType: json['pattern_type'] as String,
       summary: json['summary'] as String,
+      teachingNote: (json['teaching_note'] as String?) ??
+          'Follow the guided steps and use the live cue as your next action.',
       stages: (json['stages'] as List<dynamic>? ?? const <dynamic>[])
           .map(
             (item) => TrainingPatternStageTemplate.fromJson(

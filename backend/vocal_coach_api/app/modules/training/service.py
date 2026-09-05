@@ -136,6 +136,7 @@ def resolve_training_runtime(
     "pattern_id": str(pattern.get("pattern_id") or f"{exercise_id}_{difficulty}"),
     "pattern_type": str(pattern.get("pattern_type") or "default"),
     "summary": str(pattern.get("summary") or exercise.get("description") or ""),
+    "teaching_note": str(pattern.get("teaching_note") or "Follow the guided steps and use the live cue as your next action."),
     "difficulty": difficulty,
     "key": key,
     "octave": octave,

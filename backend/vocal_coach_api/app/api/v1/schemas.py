@@ -238,6 +238,7 @@ class TrainingPatternTemplateOut(BaseModel):
   pattern_id: str
   pattern_type: str
   summary: str
+  teaching_note: str | None = None
   stages: list[TrainingPatternStageTemplateOut]
 
 

@@ -11,6 +11,7 @@ import '../../../core/state/app_state.dart';
 import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/session_models.dart';
 import '../../../shared/models/training_models.dart';
+import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/animated_score_display.dart';
 import '../../../shared/widgets/audio_waveform_visualizer.dart';
 import '../../../shared/widgets/glass_card.dart';
@@ -103,12 +104,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     'La': 9,
     'Ti': 11,
   };
-  static const Map<String, int> _defaultDurationSecByDifficulty = {
-    'beginner': 20,
-    'intermediate': 30,
-    'advanced': 45,
-  };
-
   bool _isLoadingSessionMeta = true;
   bool _isSavingAttempt = false;
   bool _isFinalizing = false;
@@ -612,8 +607,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   }
 
   int _durationForDifficulty(String difficulty) {
-    return _defaultDurationSecByDifficulty[difficulty] ??
-        _defaultDurationSecByDifficulty['beginner']!;
+    return durationByDifficulty[difficulty] ??
+        durationByDifficulty['beginner']!;
   }
 
   bool get _canStartAnotherAttempt {
@@ -1427,6 +1422,16 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                                     color: theme.colorScheme.onSurface,
                                   ),
                                 ),
+                                if (_runtimePlan != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _runtimePlan!.teachingNote,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
                                 if (_nextActionLabel != null) ...[
                                   const SizedBox(height: 8),
                                   Text(

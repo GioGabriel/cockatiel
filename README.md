@@ -43,10 +43,16 @@ credentials; the backend refuses to silently use in-memory persistence in
 production. Keep `API_REQUEST_TIMEOUT_S` bounded. Do not print or commit
 credentials.
 
-The Render blueprint permits only the fixed local Chrome smoke-test origins
-`http://localhost:4173` and `http://127.0.0.1:4173`; this does not bypass
-Firebase authentication. Add the deployed frontend origin explicitly when a
-hosted web client is introduced.
+The Render blueprint intentionally does not allow localhost origins in
+production. Set the deployed web-client origin explicitly in the Render
+environment as `CORS_ALLOWED_ORIGINS`; this does not bypass Firebase
+authentication. Local Chrome smoke testing should use a separate local API
+process and local CORS configuration, never a production allowlist.
+
+Production never serves the built-in metadata-only sample karaoke catalog. If
+Firestore is disabled, empty, or unavailable, the API returns an empty catalog
+or a safe unavailable error rather than presenting demo songs. Production audio
+storage also fails closed instead of falling back to ephemeral local disk.
 
 OpenRouter is optional. The canonical setting is `OPENROUTER_API_KEYS`; the
 legacy singular `OPENROUTER_API_KEY` is accepted only as a migration fallback.

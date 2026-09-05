@@ -51,6 +51,39 @@ def test_cors_localhost_default_is_disabled_for_production(monkeypatch):
   assert config._allow_localhost_cors_by_default() is False
 
 
+def test_explicit_localhost_cors_is_disabled_for_production(monkeypatch):
+  from app.core import config
+
+  monkeypatch.setenv("APP_ENV", "production")
+  monkeypatch.setenv("CORS_ALLOW_LOCALHOST", "true")
+
+  assert config._cors_allow_localhost_enabled() is False
+
+
+def test_production_runtime_validation_requires_real_persistence_and_origin():
+  from types import SimpleNamespace
+
+  from app.core import config
+
+  production = SimpleNamespace(
+    app_env="production",
+    auth_bypass=False,
+    firestore_enabled=False,
+    firestore_project_id=None,
+    cors_allowed_origins=[],
+    cors_allow_localhost=False,
+    audio_snippet_storage_backend="local",
+  )
+
+  with pytest.raises(RuntimeError) as error:
+    config.validate_runtime_settings(production)
+
+  message = str(error.value)
+  assert "FIRESTORE_ENABLED" in message
+  assert "CORS_ALLOWED_ORIGINS" in message
+  assert "local audio storage" in message
+
+
 def test_cors_origin_reader_rejects_wildcards_and_non_origins(monkeypatch):
   from app.core import config
 

@@ -155,6 +155,9 @@ def get_catalog() -> dict[str, Any]:
   }
 
   if not settings.firestore_enabled:
+    if _is_production_environment():
+      logger.error("Karaoke catalog is not configured: Firestore is disabled in production.")
+      return base_catalog
     logger.info("Firestore is disabled. Returning metadata-only local karaoke catalog.")
     return _local_fallback_catalog()
 
@@ -179,7 +182,11 @@ def get_catalog() -> dict[str, Any]:
       )["drills"].append(drill)
 
     base_catalog["categories"] = list(categories_map.values())
-    return base_catalog if base_catalog["categories"] else _local_fallback_catalog()
+    if base_catalog["categories"] or _is_production_environment():
+      if not base_catalog["categories"]:
+        logger.warning("Karaoke catalog is empty in production.")
+      return base_catalog
+    return _local_fallback_catalog()
   except Exception as exc:
     logger.warning("Failed to fetch karaoke catalog from Firestore: %s", type(exc).__name__)
     if _is_production_environment():
@@ -190,6 +197,9 @@ def get_catalog() -> dict[str, Any]:
 def get_drill_by_id(drill_id: str) -> dict[str, Any] | None:
   """Fetch a single drill from Firestore by its ID."""
   if not settings.firestore_enabled:
+    if _is_production_environment():
+      logger.error("Karaoke drill lookup is unavailable: Firestore is disabled in production.")
+      return None
     for category in _local_fallback_catalog()["categories"]:
       for drill in category["drills"]:
         if drill["drill_id"] == drill_id:
@@ -205,6 +215,9 @@ def get_drill_by_id(drill_id: str) -> dict[str, Any] | None:
     logger.warning("Failed to fetch karaoke drill %s from Firestore: %s", drill_id, type(exc).__name__)
     if _is_production_environment():
       raise RuntimeError("Karaoke catalog unavailable in production.") from exc
+
+  if _is_production_environment():
+    return None
 
   for category in _local_fallback_catalog()["categories"]:
     for drill in category["drills"]:

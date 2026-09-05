@@ -1,3 +1,6 @@
+from app.modules.training.catalog import default_attempt_policy, get_exercise
+
+
 def test_training_catalog_hierarchy(client, auth_headers):
   response = client.get("/v1/training/catalog", headers=auth_headers)
   assert response.status_code == 200
@@ -102,6 +105,7 @@ def test_training_session_stores_category_and_config(client, auth_headers):
   assert session_payload["exercise_spec"]["objective"]
   assert session_payload["exercise_spec"]["what_you_do"]
   assert session_payload["runtime_plan"]["pattern_type"] == "sustain"
+  assert "anchor tones" in session_payload["runtime_plan"]["teaching_note"]
   assert session_payload["runtime_plan"]["total_duration_sec"] == 30
   assert session_payload["runtime_plan"]["stages"][0]["target_label"] == "Do"
 
@@ -130,3 +134,47 @@ def test_do_re_mi_session_resolves_jump_runtime_plan(client, auth_headers):
   assert session_payload["runtime_plan"]["pattern_type"] == "jump"
   assert session_payload["runtime_plan"]["key"] == "G"
   assert session_payload["runtime_plan"]["stages"][0]["target_label"] == "Do"
+
+
+def test_training_catalog_explains_scale_and_interval_patterns():
+  ladder = get_exercise("do_re_mi_basic_ladder")
+  interval = get_exercise("do_re_mi_interval_jumps")
+  placement = get_exercise("resonance_placement")
+
+  assert ladder is not None
+  assert interval is not None
+  assert placement is not None
+
+  ladder_pattern = ladder["patterns_by_difficulty"]["beginner"]
+  interval_pattern = interval["patterns_by_difficulty"]["beginner"]
+  placement_pattern = placement["patterns_by_difficulty"]["beginner"]
+
+  assert ladder_pattern["teaching_note"] == (
+    "This is the complete beginner scale: Do, Re, Mi, Fa, Sol."
+  )
+  assert "intentionally skip" in interval_pattern["teaching_note"]
+  assert "anchor tones" in placement_pattern["teaching_note"]
+
+
+def test_beginner_warmup_uses_the_complete_five_note_ladder():
+  exercise = get_exercise("warmup_pitch")
+
+  assert exercise is not None
+  pattern = exercise["patterns_by_difficulty"]["beginner"]
+  assert [stage["target_label"] for stage in pattern["stages"]] == [
+    "Do",
+    "Re",
+    "Mi",
+    "Fa",
+    "Sol",
+  ]
+
+
+def test_training_duration_policy_is_short_and_repeatable():
+  policy = default_attempt_policy()
+
+  assert policy["duration_sec_by_difficulty"] == {
+    "beginner": 20,
+    "intermediate": 30,
+    "advanced": 45,
+  }

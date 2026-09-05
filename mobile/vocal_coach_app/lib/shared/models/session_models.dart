@@ -204,6 +204,7 @@ class TrainingRuntimePlan {
     required this.patternId,
     required this.patternType,
     required this.summary,
+    required this.teachingNote,
     required this.difficulty,
     required this.key,
     required this.octave,
@@ -214,6 +215,7 @@ class TrainingRuntimePlan {
   final String patternId;
   final String patternType;
   final String summary;
+  final String teachingNote;
   final String difficulty;
   final String key;
   final int octave;
@@ -225,6 +227,8 @@ class TrainingRuntimePlan {
       patternId: json['pattern_id'] as String,
       patternType: json['pattern_type'] as String,
       summary: json['summary'] as String,
+      teachingNote: (json['teaching_note'] as String?) ??
+          'Follow the guided steps and use the live cue as your next action.',
       difficulty: json['difficulty'] as String,
       key: json['key'] as String,
       octave: (json['octave'] as num).toInt(),

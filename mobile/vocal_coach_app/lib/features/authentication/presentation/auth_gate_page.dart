@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/session_models.dart';
+import '../../../shared/widgets/animated_cockatiel_splash.dart';
 import '../../ai_feedback_display/presentation/feedback_page.dart';
 import '../../onboarding/presentation/onboarding_page.dart';
 import 'authentication_page.dart';
@@ -145,119 +146,13 @@ class _AuthGatePageState extends State<AuthGatePage> {
   }
 }
 
-class _BootstrappingPage extends StatefulWidget {
+class _BootstrappingPage extends StatelessWidget {
   const _BootstrappingPage();
 
   @override
-  State<_BootstrappingPage> createState() => _BootstrappingPageState();
-}
-
-class _BootstrappingPageState extends State<_BootstrappingPage>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fadeIn;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _fadeIn = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
-    _scale = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      body: ColoredBox(
-        color: theme.scaffoldBackgroundColor,
-        child: FadeTransition(
-          opacity: _fadeIn,
-          child: ScaleTransition(
-            scale: _scale,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Semantics(
-                  label: 'Cockatiel bird, microphone, and waveform',
-                  child: Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      border: Border.all(
-                        color:
-                            theme.colorScheme.primary.withValues(alpha: 0.45),
-                      ),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Icon(
-                          Icons.pets_rounded,
-                          size: 46,
-                          color: theme.colorScheme.primary,
-                        ),
-                        Positioned(
-                          right: 12,
-                          bottom: 12,
-                          child: Icon(
-                            Icons.mic_rounded,
-                            size: 22,
-                            color: theme.colorScheme.secondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Cockatiel',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Voice practice, made clear',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return const Scaffold(
+      body: AnimatedCockatielSplash(showProgress: true),
     );
   }
 }

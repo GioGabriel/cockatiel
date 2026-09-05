@@ -1,6 +1,8 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.core.safe_errors import public_ai_failure_message
 
 
 SessionMode = Literal["karaoke", "training"]
@@ -137,6 +139,13 @@ class AIJobOut(BaseModel):
   mode: SessionMode
   exercise_type: str
 
+  @field_validator("last_error", mode="before")
+  @classmethod
+  def sanitize_last_error(cls, value: object) -> str | None:
+    if value is None:
+      return None
+    return public_ai_failure_message(value)
+
 
 class CoachingFeedback(BaseModel):
   session_id: str
@@ -169,6 +178,13 @@ class SessionOut(BaseModel):
   feedback: CoachingFeedback | None = None
   failure_reason: str | None = None
   ai_job: AIJobOut | None = None
+
+  @field_validator("failure_reason", mode="before")
+  @classmethod
+  def sanitize_failure_reason(cls, value: object) -> str | None:
+    if value is None:
+      return None
+    return public_ai_failure_message(value)
 
 
 class MetricsAcceptedOut(BaseModel):
@@ -381,14 +397,38 @@ class AudioSnippetCleanupOut(BaseModel):
 
 
 class AIHealthOut(BaseModel):
-  status: Literal["ok", "degraded", "disabled"]
+  status: Literal["ok", "configured", "degraded", "disabled"]
   detail: str
   openrouter_enabled: bool
+  configured: bool
+  reachability: Literal["reachable", "unreachable", "unknown", "unconfigured", "disabled"]
   ai_async_enabled: bool
   openrouter_model: str
   openrouter_timeout_s: int = Field(ge=1)
   reachable: bool
   latency_ms: int | None = Field(default=None, ge=0)
+
+
+class VoiceCalibration(BaseModel):
+  """Persisted calibration metadata; deliberately excludes raw microphone audio."""
+
+  model_config = ConfigDict(extra="forbid")
+
+  voice_type: VocalRange
+  confidence: float = Field(ge=0, le=1)
+  average_frequency_hz: float = Field(gt=0, le=2000)
+  lowest_frequency_hz: float = Field(gt=0, le=2000)
+  highest_frequency_hz: float = Field(gt=0, le=2000)
+  sample_count: int = Field(ge=1, le=100000)
+  calibrated_at_ms: int = Field(ge=0)
+
+  @model_validator(mode="after")
+  def validate_frequency_order(self) -> "VoiceCalibration":
+    if self.lowest_frequency_hz > self.highest_frequency_hz:
+      raise ValueError("lowest_frequency_hz must not exceed highest_frequency_hz")
+    if not self.lowest_frequency_hz <= self.average_frequency_hz <= self.highest_frequency_hz:
+      raise ValueError("average_frequency_hz must be between the lowest and highest frequencies")
+    return self
 
 
 class VocalPreferencesIn(BaseModel):
@@ -397,12 +437,14 @@ class VocalPreferencesIn(BaseModel):
   vocal_range: VocalRange
   preferred_categories: list[str] = Field(min_length=1, max_length=3)
   training_goal: TrainingGoal
+  voice_calibration: VoiceCalibration | None = None
 
 
 class VocalPreferencesOut(BaseModel):
   vocal_range: VocalRange
   preferred_categories: list[str]
   training_goal: TrainingGoal
+  voice_calibration: VoiceCalibration | None = None
 
 
 class UserProfileOut(BaseModel):
@@ -437,6 +479,15 @@ class KaraokeDrillOut(BaseModel):
   instrumental_url: str = ""
   pitch_map_url: str = ""
   artist_name: str = ""
+  cover_url: str = ""
+
+
+class KaraokeEvaluationOut(BaseModel):
+  pitch_score: float = Field(ge=0, le=100)
+  rhythm_delay_ms: float = Field(ge=-5000, le=5000)
+  tone_score: float | None = Field(default=None, ge=0, le=100)
+  ai_feedback: str = Field(min_length=1, max_length=1000)
+  feedback_source: Literal["local_audio_analysis", "pitch_timing_only"]
 
 
 class KaraokeCategoryOut(BaseModel):

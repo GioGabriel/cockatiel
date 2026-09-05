@@ -122,11 +122,13 @@ class VocalPreferences {
   final VocalRange vocalRange;
   final List<String> preferredCategories;
   final TrainingGoal trainingGoal;
+  final VoiceCalibration? voiceCalibration;
 
   const VocalPreferences({
     required this.vocalRange,
     required this.preferredCategories,
     required this.trainingGoal,
+    this.voiceCalibration,
   });
 
   factory VocalPreferences.fromJson(Map<String, dynamic> json) {
@@ -136,25 +138,76 @@ class VocalPreferences {
         json['preferred_categories'] as List,
       ),
       trainingGoal: trainingGoalFromString(json['training_goal'] as String),
+      voiceCalibration: json['voice_calibration'] != null
+          ? VoiceCalibration.fromJson(
+              json['voice_calibration'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'vocal_range': vocalRangeToString(vocalRange),
-    'preferred_categories': preferredCategories,
-    'training_goal': trainingGoalToString(trainingGoal),
-  };
+        'vocal_range': vocalRangeToString(vocalRange),
+        'preferred_categories': preferredCategories,
+        'training_goal': trainingGoalToString(trainingGoal),
+        if (voiceCalibration != null)
+          'voice_calibration': voiceCalibration!.toJson(),
+      };
+}
+
+class VoiceCalibration {
+  final VocalRange voiceType;
+  final double confidence;
+  final double averageFrequencyHz;
+  final double lowestFrequencyHz;
+  final double highestFrequencyHz;
+  final int sampleCount;
+  final int calibratedAtMs;
+
+  const VoiceCalibration({
+    required this.voiceType,
+    required this.confidence,
+    required this.averageFrequencyHz,
+    required this.lowestFrequencyHz,
+    required this.highestFrequencyHz,
+    required this.sampleCount,
+    required this.calibratedAtMs,
+  });
+
+  factory VoiceCalibration.fromJson(Map<String, dynamic> json) {
+    return VoiceCalibration(
+      voiceType: vocalRangeFromString(json['voice_type'] as String),
+      confidence: (json['confidence'] as num).toDouble(),
+      averageFrequencyHz: (json['average_frequency_hz'] as num).toDouble(),
+      lowestFrequencyHz: (json['lowest_frequency_hz'] as num).toDouble(),
+      highestFrequencyHz: (json['highest_frequency_hz'] as num).toDouble(),
+      sampleCount: (json['sample_count'] as num).toInt(),
+      calibratedAtMs: (json['calibrated_at_ms'] as num).toInt(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'voice_type': vocalRangeToString(voiceType),
+        'confidence': confidence,
+        'average_frequency_hz': averageFrequencyHz,
+        'lowest_frequency_hz': lowestFrequencyHz,
+        'highest_frequency_hz': highestFrequencyHz,
+        'sample_count': sampleCount,
+        'calibrated_at_ms': calibratedAtMs,
+      };
 }
 
 class VocalPreferencesUpdate {
   final VocalRange? vocalRange;
   final List<String>? preferredCategories;
   final TrainingGoal? trainingGoal;
+  final VoiceCalibration? voiceCalibration;
 
   const VocalPreferencesUpdate({
     this.vocalRange,
     this.preferredCategories,
     this.trainingGoal,
+    this.voiceCalibration,
   });
 
   Map<String, dynamic> toJson() {
@@ -167,6 +220,9 @@ class VocalPreferencesUpdate {
     }
     if (trainingGoal != null) {
       map['training_goal'] = trainingGoalToString(trainingGoal!);
+    }
+    if (voiceCalibration != null) {
+      map['voice_calibration'] = voiceCalibration!.toJson();
     }
     return map;
   }
@@ -205,11 +261,11 @@ class UserProfileFull {
   }
 
   Map<String, dynamic> toJson() => {
-    'uid': uid,
-    'email': email,
-    'name': name,
-    'access_tier': accessTierToString(accessTier),
-    'vocal_preferences': vocalPreferences?.toJson(),
-    'premium_expires_at': premiumExpiresAt,
-  };
+        'uid': uid,
+        'email': email,
+        'name': name,
+        'access_tier': accessTierToString(accessTier),
+        'vocal_preferences': vocalPreferences?.toJson(),
+        'premium_expires_at': premiumExpiresAt,
+      };
 }

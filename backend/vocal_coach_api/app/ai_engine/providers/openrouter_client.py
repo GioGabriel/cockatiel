@@ -17,33 +17,41 @@ class OpenRouterClient:
     temperature: float,
     base_url: str = "https://openrouter.ai/api/v1",
     fallback_models: list[str] | None = None,
+    max_total_time_s: float = 20.0,
   ) -> None:
-    self._api_keys = api_keys
+    self._api_keys = [key.strip() for key in api_keys if key and key.strip()]
     self._model = model
-    self._timeout_s = timeout_s
+    self._timeout_s = max(1, min(timeout_s, 60))
     self._temperature = temperature
     self._base_url = base_url.rstrip("/")
-    self._fallback_models = fallback_models or [
+    self._max_total_time_s = max(1.0, min(max_total_time_s, 90.0))
+    self._fallback_models = [
       "google/gemini-2.5-flash",
       "mistralai/mistral-7b-instruct",
       "meta-llama/llama-3-8b-instruct",
-    ]
+    ] if fallback_models is None else list(fallback_models)
 
   @property
   def model(self) -> str:
     return self._model
 
   def generate_json(self, *, system_prompt: str, user_prompt: str) -> tuple[dict[str, Any], int]:
+    if not self._api_keys:
+      raise ValueError("No OpenRouter API keys configured.")
+
     # Construct ordered unique list of models to try (primary first, then fallbacks)
     models_to_try = []
     for m in [self._model] + self._fallback_models:
       if m and m not in models_to_try:
         models_to_try.append(m)
 
-    last_exc = None
+    last_exc: Exception | None = None
     start = perf_counter()
+    deadline = start + self._max_total_time_s
 
     for current_model in models_to_try:
+      if perf_counter() >= deadline:
+        break
       payload = {
         "model": current_model,
         "messages": [
@@ -56,8 +64,11 @@ class OpenRouterClient:
       payload_bytes = json.dumps(payload).encode("utf-8")
 
       for api_key in self._api_keys:
-        # Up to 2 attempts per key/model with brief backoff for 429s
+        # Up to two attempts per key/model, bounded by one total deadline.
         for attempt in range(2):
+          remaining_s = deadline - perf_counter()
+          if remaining_s <= 0:
+            break
           request = Request(
             url=f"{self._base_url}/chat/completions",
             data=payload_bytes,
@@ -71,9 +82,9 @@ class OpenRouterClient:
           )
 
           try:
-            with urlopen(request, timeout=self._timeout_s) as response:
+            with urlopen(request, timeout=min(self._timeout_s, max(0.1, remaining_s))) as response:
               raw = response.read().decode("utf-8")
-            
+
             latency_ms = int((perf_counter() - start) * 1000)
 
             try:
@@ -81,11 +92,15 @@ class OpenRouterClient:
             except json.JSONDecodeError as exc:
               raise ValueError("OpenRouter returned invalid JSON payload.") from exc
 
+            if not isinstance(body, dict):
+              raise ValueError("OpenRouter response payload must be an object.")
+
             choices = body.get("choices")
             if not choices or not isinstance(choices, list):
               raise ValueError("OpenRouter returned no choices.")
 
-            content = (choices[0].get("message") or {}).get("content")
+            first_choice = choices[0]
+            content = (first_choice.get("message") or {}).get("content") if isinstance(first_choice, dict) else None
             if not isinstance(content, str) or not content.strip():
               raise ValueError("OpenRouter returned an empty response content.")
 
@@ -100,31 +115,36 @@ class OpenRouterClient:
             self._model = current_model
             return parsed, latency_ms
 
-          except (TimeoutError, socket.timeout) as exc:
-            last_exc = TimeoutError(f"OpenRouter request timed out on model {current_model}.")
-            if attempt == 0:
-              time.sleep(0.2)
+          except (TimeoutError, socket.timeout):
+            last_exc = TimeoutError("OpenRouter request timed out.")
+            if attempt == 0 and perf_counter() < deadline:
+              time.sleep(min(0.2, max(0.0, deadline - perf_counter())))
             continue
           except HTTPError as exc:
-            last_exc = ValueError(f"OpenRouter HTTP error: {exc.code} on model {current_model}")
-            # Retry on 401 Unauthorized, 402 Payment Required, 403 Forbidden, 429 Too Many Requests, or 5xx server errors
-            if exc.code in (401, 402, 403, 429, 500, 502, 503, 504):
-              if attempt == 0:
-                time.sleep(0.3 * (2 ** attempt))
+            last_exc = ValueError(f"OpenRouter request failed with HTTP status {exc.code}.")
+            # Invalid credentials and malformed requests are not transient. Move
+            # to the next key/model without spending another attempt on them.
+            if exc.code in (429, 500, 502, 503, 504):
+              if attempt == 0 and perf_counter() < deadline:
+                time.sleep(min(0.3, max(0.0, deadline - perf_counter())))
               continue
-            # Non-retryable HTTP error (e.g. 400 Bad Request or 404 Not Found) - break attempt loop
             break
           except URLError as exc:
             reason = str(getattr(exc, "reason", exc)).lower()
             if "timed out" in reason or "timeout" in reason:
-              last_exc = TimeoutError(f"OpenRouter request timed out on model {current_model}.")
+              last_exc = TimeoutError("OpenRouter request timed out.")
             else:
-              last_exc = ValueError(f"OpenRouter connection failed on model {current_model}.")
-            if attempt == 0:
-              time.sleep(0.2)
+              last_exc = ValueError("OpenRouter connection failed.")
+            if attempt == 0 and perf_counter() < deadline:
+              time.sleep(min(0.2, max(0.0, deadline - perf_counter())))
             continue
-          except Exception as exc:
+          except ValueError as exc:
+            # Payload/schema shape errors are safe to report internally but must
+            # not trigger an unbounded retry storm.
             last_exc = exc
             break
+          except Exception:
+            last_exc = ValueError("OpenRouter request failed unexpectedly.")
+            break
 
-    raise last_exc or ValueError("No OpenRouter API keys available or all fallback models failed.")
+    raise last_exc or ValueError("OpenRouter request deadline exceeded.")

@@ -1,5 +1,6 @@
 from time import time
 from typing import Any
+from numbers import Real
 
 from app.core.exceptions import ApiError
 from app.repositories.provider import get_user_repository
@@ -18,6 +19,16 @@ VALID_TRAINING_GOALS = [
   "range_extension",
   "general_skill_building",
 ]
+
+_VOICE_CALIBRATION_FIELDS = {
+  "voice_type",
+  "confidence",
+  "average_frequency_hz",
+  "lowest_frequency_hz",
+  "highest_frequency_hz",
+  "sample_count",
+  "calibrated_at_ms",
+}
 
 
 def upsert_user(identity: dict[str, Any]) -> dict[str, Any]:
@@ -76,6 +87,57 @@ def update_vocal_preferences(user_id: str, preferences: dict[str, Any]) -> dict[
     errors.append(
       f"training_goal must be one of {VALID_TRAINING_GOALS}"
     )
+
+  voice_calibration = preferences.get("voice_calibration")
+  if voice_calibration is not None:
+    if not isinstance(voice_calibration, dict):
+      errors.append("voice_calibration must be an object")
+    else:
+      missing = sorted(_VOICE_CALIBRATION_FIELDS - set(voice_calibration))
+      unknown = sorted(set(voice_calibration) - _VOICE_CALIBRATION_FIELDS)
+      if missing:
+        errors.append(f"voice_calibration is missing fields: {missing}")
+      if unknown:
+        errors.append(f"voice_calibration contains unknown fields: {unknown}")
+
+      calibration_voice_type = voice_calibration.get("voice_type")
+      if calibration_voice_type not in VALID_VOCAL_RANGES:
+        errors.append(
+          f"voice_calibration.voice_type must be one of {VALID_VOCAL_RANGES}"
+        )
+
+      for field_name in (
+        "confidence",
+        "average_frequency_hz",
+        "lowest_frequency_hz",
+        "highest_frequency_hz",
+      ):
+        value = voice_calibration.get(field_name)
+        if not isinstance(value, Real) or isinstance(value, bool):
+          errors.append(f"voice_calibration.{field_name} must be numeric")
+
+      confidence = voice_calibration.get("confidence")
+      if isinstance(confidence, Real) and not isinstance(confidence, bool) and not 0 <= confidence <= 1:
+        errors.append("voice_calibration.confidence must be between 0 and 1")
+
+      low_hz = voice_calibration.get("lowest_frequency_hz")
+      high_hz = voice_calibration.get("highest_frequency_hz")
+      average_hz = voice_calibration.get("average_frequency_hz")
+      if all(isinstance(value, Real) and not isinstance(value, bool) for value in (low_hz, high_hz, average_hz)):
+        if low_hz <= 0 or high_hz <= 0 or average_hz <= 0:
+          errors.append("voice_calibration frequencies must be positive")
+        if low_hz > high_hz:
+          errors.append("voice_calibration.lowest_frequency_hz must not exceed highest_frequency_hz")
+        if not low_hz <= average_hz <= high_hz:
+          errors.append("voice_calibration.average_frequency_hz must be between the lowest and highest frequencies")
+
+      sample_count = voice_calibration.get("sample_count")
+      if not isinstance(sample_count, int) or isinstance(sample_count, bool) or sample_count < 1:
+        errors.append("voice_calibration.sample_count must be a positive integer")
+
+      calibrated_at_ms = voice_calibration.get("calibrated_at_ms")
+      if not isinstance(calibrated_at_ms, int) or isinstance(calibrated_at_ms, bool) or calibrated_at_ms < 0:
+        errors.append("voice_calibration.calibrated_at_ms must be a non-negative integer")
 
   if errors:
     raise ApiError(

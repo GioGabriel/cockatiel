@@ -12,26 +12,38 @@ paths:
   /v1/auth/me:
     get:
       summary: Get current user profile
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: OK
   /v1/ai/health:
     get:
       summary: Get AI runtime diagnostics
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIHealthOut'
   /v1/ai/jobs:
     get:
       summary: List user AI evaluation jobs
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: OK
-  /v1/ai/jobs/{jobId}:
+  /v1/ai/jobs/{job_id}:
     get:
       summary: Get AI evaluation job details
+      security:
+        - bearerAuth: []
       parameters:
-        - name: jobId
+        - name: job_id
           in: path
           required: true
           schema:
@@ -48,26 +60,41 @@ paths:
   /v1/training/progress:
     get:
       summary: Get per-exercise training progress
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: OK
   /v1/training/recommendations:
     get:
       summary: Get recommended next exercises
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: OK
   /v1/sessions:
+    get:
+      summary: List current-user sessions
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
     post:
       summary: Create session
+      security:
+        - bearerAuth: []
       responses:
         "201":
           description: Created
-  /v1/sessions/{sessionId}/metrics:
+  /v1/sessions/{session_id}/metrics:
     post:
       summary: Submit canonical metric batch
+      security:
+        - bearerAuth: []
       parameters:
-        - name: sessionId
+        - name: session_id
           in: path
           required: true
           schema:
@@ -75,11 +102,13 @@ paths:
       responses:
         "202":
           description: Accepted
-  /v1/sessions/{sessionId}/attempts:
+  /v1/sessions/{session_id}/attempts:
     post:
       summary: Save completed training attempt
+      security:
+        - bearerAuth: []
       parameters:
-        - name: sessionId
+        - name: session_id
           in: path
           required: true
           schema:
@@ -87,11 +116,13 @@ paths:
       responses:
         "201":
           description: Created
-  /v1/sessions/{sessionId}/finalize:
+  /v1/sessions/{session_id}/finalize:
     post:
       summary: Finalize session and trigger evaluation
+      security:
+        - bearerAuth: []
       parameters:
-        - name: sessionId
+        - name: session_id
           in: path
           required: true
           schema:
@@ -99,11 +130,13 @@ paths:
       responses:
         "200":
           description: Finalized
-  /v1/sessions/{sessionId}:
+  /v1/sessions/{session_id}:
     get:
       summary: Get session details
+      security:
+        - bearerAuth: []
       parameters:
-        - name: sessionId
+        - name: session_id
           in: path
           required: true
           schema:
@@ -111,11 +144,13 @@ paths:
       responses:
         "200":
           description: OK
-  /v1/sessions/{sessionId}/feedback:
+  /v1/sessions/{session_id}/feedback:
     get:
       summary: Get session feedback
+      security:
+        - bearerAuth: []
       parameters:
-        - name: sessionId
+        - name: session_id
           in: path
           required: true
           schema:
@@ -123,11 +158,13 @@ paths:
       responses:
         "200":
           description: OK
-  /v1/sessions/{sessionId}/audio-snippets:
+  /v1/sessions/{session_id}/audio-snippets:
     post:
       summary: Upload session audio snippet
+      security:
+        - bearerAuth: []
       parameters:
-        - name: sessionId
+        - name: session_id
           in: path
           required: true
           schema:
@@ -137,8 +174,10 @@ paths:
           description: Created
     get:
       summary: List session audio snippets
+      security:
+        - bearerAuth: []
       parameters:
-        - name: sessionId
+        - name: session_id
           in: path
           required: true
           schema:
@@ -149,6 +188,8 @@ paths:
   /v1/audio-snippets/cleanup:
     post:
       summary: Cleanup expired audio snippets
+      security:
+        - bearerAuth: []
       parameters:
         - name: before_ms
           in: query
@@ -161,12 +202,16 @@ paths:
   /v1/analytics/dashboard:
     get:
       summary: Get user analytics dashboard
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: OK
   /v1/analytics/trends:
     get:
       summary: Get user analytics trend points
+      security:
+        - bearerAuth: []
       parameters:
         - name: range
           in: query
@@ -185,6 +230,10 @@ paths:
       responses:
         "200":
           description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileOut'
         "401":
           description: Unauthorized
   /v1/profile/preferences:
@@ -201,6 +250,10 @@ paths:
       responses:
         "200":
           description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileOut'
         "401":
           description: Unauthorized
         "422":
@@ -223,6 +276,10 @@ paths:
       responses:
         "200":
           description: Karaoke catalog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KaraokeCatalogOut'
         "401":
           description: Unauthorized
   /v1/karaoke/catalog/preview:
@@ -231,13 +288,17 @@ paths:
       responses:
         "200":
           description: Catalog preview
-  /v1/karaoke/catalog/{drillId}:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KaraokeCatalogPreviewOut'
+  /v1/karaoke/catalog/{drill_id}:
     get:
       summary: Get single karaoke drill detail
       security:
         - bearerAuth: []
       parameters:
-        - name: drillId
+        - name: drill_id
           in: path
           required: true
           schema:
@@ -245,15 +306,91 @@ paths:
       responses:
         "200":
           description: Drill detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KaraokeDrillOut'
         "401":
           description: Unauthorized
         "404":
           description: Drill not found
+  /v1/karaoke/progress:
+    get:
+      summary: Get current-user karaoke progress
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+  /v1/karaoke/evaluate-tone:
+    post:
+      summary: Evaluate a karaoke audio sample
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio, pitch_score, rhythm_delay_ms]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                pitch_score:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                rhythm_delay_ms:
+                  type: number
+                  minimum: -5000
+                  maximum: 5000
+      responses:
+        "200":
+          description: Tone evaluation
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pitch_score, rhythm_delay_ms, tone_score, ai_feedback, feedback_source]
+                properties:
+                  pitch_score:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                  rhythm_delay_ms:
+                    type: number
+                    minimum: -5000
+                    maximum: 5000
+                  tone_score:
+                    type: [number, "null"]
+                    minimum: 0
+                    maximum: 100
+                  ai_feedback:
+                    type: string
+                  feedback_source:
+                    type: string
+                    enum: [local_audio_analysis, pitch_timing_only]
+  /metrics:
+    get:
+      summary: Protected in-process metrics snapshot
+      security:
+        - metricsToken: []
+      responses:
+        "200":
+          description: Metrics snapshot
+        "404":
+          description: Metrics endpoint is protected or unavailable
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
+    metricsToken:
+      type: apiKey
+      in: header
+      name: X-Metrics-Token
   schemas:
     VocalPreferencesIn:
       type: object
@@ -274,6 +411,248 @@ components:
         training_goal:
           type: string
           enum: [pitch_improvement, breath_control, tone_quality, range_extension, general_skill_building]
+        voice_calibration:
+          $ref: '#/components/schemas/VoiceCalibration'
+    VoiceCalibration:
+      type: object
+      additionalProperties: false
+      required:
+        - voice_type
+        - confidence
+        - average_frequency_hz
+        - lowest_frequency_hz
+        - highest_frequency_hz
+        - sample_count
+        - calibrated_at_ms
+      properties:
+        voice_type:
+          type: string
+          enum: [soprano, mezzo-soprano, alto, tenor, baritone, bass]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        average_frequency_hz:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 2000
+        lowest_frequency_hz:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 2000
+        highest_frequency_hz:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 2000
+        sample_count:
+          type: integer
+          minimum: 1
+        calibrated_at_ms:
+          type: integer
+          minimum: 0
+    VocalPreferencesOut:
+      type: object
+      required: [vocal_range, preferred_categories, training_goal]
+      properties:
+        vocal_range:
+          type: string
+          enum: [soprano, mezzo-soprano, alto, tenor, baritone, bass]
+        preferred_categories:
+          type: array
+          items:
+            type: string
+        training_goal:
+          type: string
+          enum: [pitch_improvement, breath_control, tone_quality, range_extension, general_skill_building]
+        voice_calibration:
+          $ref: '#/components/schemas/VoiceCalibration'
+    UserProfileOut:
+      type: object
+      required: [uid, email, name, access_tier]
+      properties:
+        uid:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        access_tier:
+          type: string
+          enum: [guest, registered, premium]
+        vocal_preferences:
+          anyOf:
+            - $ref: '#/components/schemas/VocalPreferencesOut'
+            - type: 'null'
+        premium_expires_at:
+          type: integer
+          minimum: 0
+          nullable: true
+    AIHealthOut:
+      type: object
+      required:
+        - status
+        - detail
+        - openrouter_enabled
+        - configured
+        - reachability
+        - ai_async_enabled
+        - openrouter_model
+        - openrouter_timeout_s
+        - reachable
+      properties:
+        status:
+          type: string
+          enum: [ok, configured, degraded, disabled]
+        detail:
+          type: string
+        openrouter_enabled:
+          type: boolean
+        configured:
+          type: boolean
+        reachability:
+          type: string
+          enum: [reachable, unreachable, unknown, unconfigured, disabled]
+        ai_async_enabled:
+          type: boolean
+        openrouter_model:
+          type: string
+        openrouter_timeout_s:
+          type: integer
+          minimum: 1
+        reachable:
+          type: boolean
+        latency_ms:
+          type: integer
+          minimum: 0
+          nullable: true
+    MelodyNote:
+      type: object
+      required: [note, start_beat, duration_beats]
+      properties:
+        note:
+          type: string
+          minLength: 1
+        start_beat:
+          type: number
+          minimum: 0
+        duration_beats:
+          type: number
+          exclusiveMinimum: 0
+    KaraokeDrillOut:
+      type: object
+      required:
+        - drill_id
+        - title
+        - style_category
+        - difficulty
+        - duration_sec
+        - tempo_bpm
+        - vocal_range
+        - objective
+        - performance_tips
+        - melody_reference
+      properties:
+        drill_id:
+          type: string
+        title:
+          type: string
+        style_category:
+          type: string
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        duration_sec:
+          type: integer
+          minimum: 10
+          maximum: 600
+        tempo_bpm:
+          type: integer
+          minimum: 40
+          maximum: 220
+        vocal_range:
+          type: object
+          additionalProperties:
+            type: string
+        objective:
+          type: string
+        performance_tips:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        melody_reference:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/MelodyNote'
+        instrumental_url:
+          type: string
+        pitch_map_url:
+          type: string
+        artist_name:
+          type: string
+        cover_url:
+          type: string
+    KaraokeCategoryOut:
+      type: object
+      required: [category_id, style_label, description, drills]
+      properties:
+        category_id:
+          type: string
+        style_label:
+          type: string
+        description:
+          type: string
+        drills:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/KaraokeDrillOut'
+    KaraokeCatalogOut:
+      type: object
+      required: [module_id, title, description, categories]
+      properties:
+        module_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/KaraokeCategoryOut'
+    KaraokeCategoryPreviewOut:
+      type: object
+      required: [category_id, style_label, drill_count]
+      properties:
+        category_id:
+          type: string
+        style_label:
+          type: string
+        drill_count:
+          type: integer
+          minimum: 0
+    KaraokeCatalogPreviewOut:
+      type: object
+      required: [module_id, title, description, category_count, total_drills, categories]
+      properties:
+        module_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        category_count:
+          type: integer
+          minimum: 0
+        total_drills:
+          type: integer
+          minimum: 0
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/KaraokeCategoryPreviewOut'
     AccessTier:
       type: string
       enum: [guest, registered, premium]

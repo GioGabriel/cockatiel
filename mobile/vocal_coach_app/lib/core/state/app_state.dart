@@ -48,6 +48,16 @@ class AppState extends ChangeNotifier {
       .where((job) => job.state == 'queued' || job.state == 'processing')
       .length;
 
+  /// Applies a profile returned by the API without re-authenticating.
+  ///
+  /// This is used after first-run voice setup so the auth gate can immediately
+  /// transition to the main shell while preserving the server as the source of truth.
+  void updateCurrentUserProfile(UserProfileFull profile) {
+    _currentUser = profile;
+    _accessTier = profile.accessTier;
+    notifyListeners();
+  }
+
   Future<void> initialize(ApiClient apiClient) async {
     if (_hasInitialized) {
       return;
@@ -228,10 +238,10 @@ class AppState extends ChangeNotifier {
     try {
       // First, hit /auth/me to guarantee the user is upserted in the backend database
       await apiClient.fetchCurrentUser();
-      
+
       // Then fetch the full profile which contains vocal_preferences
       final profile = await apiClient.fetchFullProfile();
-      
+
       final effectiveName = (user.displayName ?? '').trim().isNotEmpty
           ? user.displayName!.trim()
           : profile.name;
@@ -253,8 +263,15 @@ class AppState extends ChangeNotifier {
 
       _startAIJobsPolling();
       await refreshAIJobs();
-    } catch (error) {
-      _authError = 'Failed to sync account: $error';
+    } on ApiException catch (error) {
+      _authError = _safeApiErrorMessage(error);
+      _currentUser = null;
+      _accessTier = AccessTier.registered;
+      _aiJobs = const [];
+      _stopAIJobsPolling();
+    } catch (_) {
+      _authError =
+          'We could not load your account right now. Please try again.';
       _currentUser = null;
       _accessTier = AccessTier.registered;
       _aiJobs = const [];
@@ -294,6 +311,19 @@ class AppState extends ChangeNotifier {
         return 'Network unavailable. Check your internet connection.';
       default:
         return 'Authentication failed. Please try again.';
+    }
+  }
+
+  String _safeApiErrorMessage(ApiException error) {
+    switch (error.code) {
+      case 'AUTH_INVALID':
+      case 'AUTH_MISSING':
+        return 'Your session has expired. Please sign in again.';
+      case 'NETWORK_ERROR':
+      case 'NETWORK_TIMEOUT':
+        return 'We could not reach the server. Check your connection and try again.';
+      default:
+        return 'We could not load your account right now. Please try again.';
     }
   }
 

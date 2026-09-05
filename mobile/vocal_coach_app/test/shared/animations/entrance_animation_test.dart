@@ -60,9 +60,11 @@ void main() {
       // Pump 200ms — first item should have started animating
       await tester.pump(const Duration(milliseconds: 200));
 
-      final fadeWidgets = tester.widgetList<FadeTransition>(
-        fadeTransitionsInEntrance(),
-      ).toList();
+      final fadeWidgets = tester
+          .widgetList<FadeTransition>(
+            fadeTransitionsInEntrance(),
+          )
+          .toList();
 
       expect(fadeWidgets.isNotEmpty, isTrue);
 
@@ -88,7 +90,8 @@ void main() {
       );
     });
 
-    testWidgets('children are fully visible after pumpAndSettle', (tester) async {
+    testWidgets('children are fully visible after pumpAndSettle',
+        (tester) async {
       await tester.pumpWidget(buildTestWidget(), duration: Duration.zero);
       await tester.pumpAndSettle();
 

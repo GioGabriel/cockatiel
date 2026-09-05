@@ -1,6 +1,9 @@
+import logging
 from typing import Any
 
 from app.modules.karaoke.catalog import get_catalog, get_drill_by_id as _get_drill_by_id
+
+logger = logging.getLogger("vocal-coach-api.karaoke.service")
 
 
 def get_karaoke_catalog() -> dict[str, Any]:
@@ -179,7 +182,11 @@ def get_karaoke_progress(user_id: str) -> dict[str, Any]:
 
 def evaluate_tone_and_get_feedback(audio_bytes: bytes, pitch_score: float, rhythm_delay_ms: float) -> dict[str, Any]:
     """
-    Evaluates vocal tone using librosa and generates AI feedback.
+    Evaluates vocal tone locally when the optional audio stack is available.
+
+    The function never fabricates a tone score when decoding or feature
+    extraction fails. Pitch/timing feedback remains available as a partial,
+    explicitly labelled result.
     """
     import io
     import numpy as np
@@ -197,40 +204,39 @@ def evaluate_tone_and_get_feedback(audio_bytes: bytes, pitch_score: float, rhyth
             
         # Extract MFCCs
         mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-        mfcc_mean = np.mean(mfccs, axis=1)
-        
-        # Placeholder for ML model (e.g., Random Forest loaded via joblib)
-        # For now, we simulate a tone score based on MFCC variance (proxy for resonance/stability)
+        # This is a bounded heuristic, not a trained model. Keep the result
+        # labelled as local audio analysis in the response.
         mfcc_var = np.var(mfccs, axis=1)
         stability_proxy = float(np.mean(mfcc_var))
-        
-        # Map to 0-100 score (highly simplified heuristic for the thesis placeholder)
+
+        # Map to 0-100 using a documented proxy for resonance/stability.
         tone_score = min(max(50 + (stability_proxy / 10), 0), 100)
         tone_score = round(tone_score, 1)
-        
-    except Exception as e:
-        print(f"Error extracting audio features: {e}")
-        tone_score = 75.0 # Fallback score
-        
-    # Generate AI Feedback
-    # Note: In a full integration, you would use OpenRouter/Langchain here.
-    # For now, we generate rule-based feedback mimicking an LLM response.
-    
-    feedback = f"Great effort! Your pitch accuracy was {pitch_score:.1f}%."
+
+    except Exception as exc:
+        logger.warning("Audio feature extraction failed: %s", type(exc).__name__)
+        tone_score = None
+
+    feedback = f"Local coaching feedback: your pitch accuracy was {pitch_score:.1f}%."
     if rhythm_delay_ms > 200:
-        feedback += f" However, you were slightly behind the beat by about {rhythm_delay_ms:.0f}ms. Try to anticipate the rhythm a bit more."
+        feedback += f" You were behind the beat by about {rhythm_delay_ms:.0f} ms. Try anticipating the rhythm slightly more."
     else:
-        feedback += " Your timing was perfectly in the pocket."
-        
-    if tone_score > 80:
-        feedback += " Your vocal tone was resonant and clear throughout the performance."
+        feedback += " Your timing stayed close to the target."
+
+    if tone_score is None:
+        feedback += " Tone detail was unavailable, so this review uses pitch and timing only."
+        feedback_source = "pitch_timing_only"
+    elif tone_score > 80:
+        feedback += " The local tone heuristic found a stable, resonant signal."
+        feedback_source = "local_audio_analysis"
     else:
-        feedback += " Focus on relaxing your jaw to reduce strain and improve your overall tone."
-        
+        feedback += " The local tone heuristic suggests focusing on relaxed, steady sound."
+        feedback_source = "local_audio_analysis"
+
     return {
         "pitch_score": pitch_score,
         "rhythm_delay_ms": rhythm_delay_ms,
         "tone_score": tone_score,
         "ai_feedback": feedback,
+        "feedback_source": feedback_source,
     }
-

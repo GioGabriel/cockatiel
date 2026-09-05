@@ -6,9 +6,9 @@ DifficultyLevel = str
 _DEFAULT_ATTEMPT_POLICY = {
   "max_attempts": 3,
   "duration_sec_by_difficulty": {
-    "beginner": 30,
-    "intermediate": 45,
-    "advanced": 60,
+    "beginner": 20,
+    "intermediate": 30,
+    "advanced": 45,
   },
 }
 
@@ -594,6 +594,8 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                 _stage("ladder_do", title="Do", solfege="Do", instruction="Lock the tonic cleanly.", beats=1),
                 _stage("ladder_re", title="Re", solfege="Re", instruction="Move up without sliding.", beats=1),
                 _stage("ladder_mi", title="Mi", solfege="Mi", instruction="Keep the center steady.", beats=1),
+                _stage("ladder_fa", title="Fa", solfege="Fa", instruction="Stay relaxed as you rise.", beats=1),
+                _stage("ladder_sol", title="Sol", solfege="Sol", instruction="Lock the top note clearly.", beats=1),
               ],
             ),
             "intermediate": _pattern(

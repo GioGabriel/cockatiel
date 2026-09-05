@@ -167,23 +167,54 @@ class TrainingExercise {
         json['metric_weights'] as Map<String, dynamic>? ?? const {};
     final rawPatterns =
         json['patterns_by_difficulty'] as Map<String, dynamic>? ?? const {};
-    final isKaraoke = json.containsKey('drill_id') || json['style_category'] != null || json['exercise_mode'] == 'karaoke';
-    
+    final isKaraoke = json.containsKey('drill_id') ||
+        json['style_category'] != null ||
+        json['exercise_mode'] == 'karaoke';
+
     return TrainingExercise(
-      exerciseId: (json['exercise_id'] as String?) ?? (json['drill_id'] as String?) ?? (json['id'] as String?) ?? 'karaoke_song',
-      name: (json['name'] as String?) ?? (json['title'] as String?) ?? 'Karaoke Drill',
-      description: (json['description'] as String?) ?? (json['artist'] as String?) ?? (json['style_category'] as String?) ?? 'Karaoke Practice',
-      objective: (json['objective'] as String?) ?? (json['title'] as String?) ?? 'Sing along with accurate pitch and timing',
-      whatYouDo: (json['what_you_do'] as String?) ?? (json['description'] as String?) ?? (json['artist'] as String?) ?? 'Follow the pitch visualizer and sing along',
+      exerciseId: (json['exercise_id'] as String?) ??
+          (json['drill_id'] as String?) ??
+          (json['id'] as String?) ??
+          'karaoke_song',
+      name: (json['name'] as String?) ??
+          (json['title'] as String?) ??
+          'Karaoke Drill',
+      description: (json['description'] as String?) ??
+          (json['artist'] as String?) ??
+          (json['style_category'] as String?) ??
+          'Karaoke Practice',
+      objective: (json['objective'] as String?) ??
+          (json['title'] as String?) ??
+          'Sing along with accurate pitch and timing',
+      whatYouDo: (json['what_you_do'] as String?) ??
+          (json['description'] as String?) ??
+          (json['artist'] as String?) ??
+          'Follow the pitch visualizer and sing along',
       requiresMicrophone: (json['requires_microphone'] as bool?) ?? true,
-      exerciseMode: (json['exercise_mode'] as String?) ?? (isKaraoke ? 'karaoke' : 'voice'),
-      instructions: (json['instructions'] as List<dynamic>? ?? (isKaraoke ? const ['Watch the target notes on the visualizer', 'Match your pitch to the rainbow melody bars'] : const <dynamic>[]))
+      exerciseMode: (json['exercise_mode'] as String?) ??
+          (isKaraoke ? 'karaoke' : 'voice'),
+      instructions: (json['instructions'] as List<dynamic>? ??
+              (isKaraoke
+                  ? const [
+                      'Watch the target notes on the visualizer',
+                      'Match your pitch to the rainbow melody bars'
+                    ]
+                  : const <dynamic>[]))
           .map((item) => item as String)
           .toList(),
-      aiFocus: (json['ai_focus'] as String?) ?? 'Pitch accuracy, rhythm lock, and vocal expression',
-      defaultDifficulty: (json['default_difficulty'] as String?) ?? (json['difficulty'] as String?) ?? 'beginner',
+      aiFocus: (json['ai_focus'] as String?) ??
+          'Pitch accuracy, rhythm lock, and vocal expression',
+      defaultDifficulty: (json['default_difficulty'] as String?) ??
+          (json['difficulty'] as String?) ??
+          'beginner',
       recommendedOrder: (json['recommended_order'] as num?)?.toInt() ?? 1,
-      focusMetrics: (json['focus_metrics'] as List<dynamic>? ?? const ['pitch_accuracy', 'timing_accuracy', 'pitch_stability', 'note_transition_smoothness'])
+      focusMetrics: (json['focus_metrics'] as List<dynamic>? ??
+              const [
+                'pitch_accuracy',
+                'timing_accuracy',
+                'pitch_stability',
+                'note_transition_smoothness'
+              ])
           .map((item) => item as String)
           .toList(),
       metricWeights: rawWeights.map(
@@ -195,7 +226,10 @@ class TrainingExercise {
             )
           : TrainingSuccessThresholds(
               overallScore: 70.0,
-              metricFloors: const {'pitch_accuracy': 65.0, 'timing_accuracy': 65.0},
+              metricFloors: const {
+                'pitch_accuracy': 65.0,
+                'timing_accuracy': 65.0
+              },
             ),
       coachCues: json['coach_cues'] != null
           ? TrainingCoachCues.fromJson(

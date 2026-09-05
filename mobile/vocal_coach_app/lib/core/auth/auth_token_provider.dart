@@ -7,7 +7,7 @@ abstract class AuthTokenProvider {
 class FirebaseAuthTokenProvider implements AuthTokenProvider {
   FirebaseAuthTokenProvider({
     FirebaseAuth? firebaseAuth,
-  })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
 
   final FirebaseAuth _firebaseAuth;
 

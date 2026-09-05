@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
+import '../../../app/theme/app_theme_tokens.dart';
 import '../../../shared/models/session_models.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/glass_card.dart';
@@ -45,7 +46,9 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
     _fetchHistory();
     // Auto refresh periodically in case jobs are processing
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      if (mounted && _sessions.any((s) => s.status == 'processing' || s.status == 'queued')) {
+      if (mounted &&
+          _sessions
+              .any((s) => s.status == 'processing' || s.status == 'queued')) {
         _fetchHistory(silent: true);
       }
     });
@@ -81,10 +84,17 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } on ApiException catch (e) {
       if (mounted && !silent) {
         setState(() {
-          _error = 'Could not load practice history: $e';
+          _error = e.message;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && !silent) {
+        setState(() {
+          _error = 'Could not load practice history. Please try again.';
           _isLoading = false;
         });
       }
@@ -132,7 +142,8 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -143,19 +154,14 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
                 indicator: BoxDecoration(
                   color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(999),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: colorScheme.onPrimary,
                 unselectedLabelColor: colorScheme.onSurfaceVariant,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                labelStyle:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                unselectedLabelStyle:
+                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                 dividerColor: Colors.transparent,
                 tabs: const [
                   Tab(text: 'All Sessions'),
@@ -196,17 +202,20 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline_rounded, size: 48, color: colorScheme.error),
+              Icon(Icons.error_outline_rounded,
+                  size: 48, color: colorScheme.error),
               const SizedBox(height: 16),
               Text(
                 'Failed to load activity logs',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
@@ -230,7 +239,8 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
               : 'Practice';
       return EmptyStateView(
         headline: 'No $tabName logs yet',
-        body: 'Start your vocal exercises or karaoke songs to build your training logs and receive AI evaluation!',
+        body:
+            'Start a vocal exercise or karaoke song to build your history and receive understandable coaching feedback.',
         ctaLabel: 'Refresh',
         onCtaTap: _fetchHistory,
       );
@@ -281,7 +291,8 @@ class _SessionLogCardState extends State<_SessionLogCard> {
     if (raw.isEmpty) return 'Training Session';
     return raw
         .split('_')
-        .map((word) => word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1)}')
+        .map((word) =>
+            word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1)}')
         .join(' ');
   }
 
@@ -332,13 +343,17 @@ class _SessionLogCardState extends State<_SessionLogCard> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AI feedback is not yet available for this session.')),
+          const SnackBar(
+              content:
+                  Text('Coaching feedback is not ready for this session yet.')),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load AI feedback: $e')),
+          const SnackBar(
+              content:
+                  Text('Could not load coaching feedback. Please try again.')),
         );
       }
     } finally {
@@ -350,17 +365,19 @@ class _SessionLogCardState extends State<_SessionLogCard> {
 
   Future<void> _resumeSession() async {
     HapticFeedback.lightImpact();
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TrainingSessionPage(
-          apiClient: widget.apiClient,
-          appState: widget.appState,
-          mode: widget.session.mode,
-          exerciseType: widget.session.exerciseType,
-          sessionId: widget.session.sessionId,
-        ),
-      ),
-    ).then((_) => widget.onChanged());
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => TrainingSessionPage(
+              apiClient: widget.apiClient,
+              appState: widget.appState,
+              mode: widget.session.mode,
+              exerciseType: widget.session.exerciseType,
+              sessionId: widget.session.sessionId,
+            ),
+          ),
+        )
+        .then((_) => widget.onChanged());
   }
 
   @override
@@ -368,26 +385,31 @@ class _SessionLogCardState extends State<_SessionLogCard> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isKaraoke = widget.session.mode == 'karaoke';
+    final tokens = theme.appTokens;
 
     final modeColor = isKaraoke ? colorScheme.tertiary : colorScheme.primary;
     final modeLabel = isKaraoke ? 'Karaoke' : 'Vocal Coach';
     final title = _formatExerciseTitle(widget.session.exerciseType);
-    final dateStr = _formatDate(widget.session.completedAt ?? widget.session.createdAt);
+    final dateStr =
+        _formatDate(widget.session.completedAt ?? widget.session.createdAt);
     final attemptsCount = widget.session.attempts?.length ?? 0;
 
-    final score = widget.session.overallScore ?? widget.session.bestAttemptScore;
-    final isCompleted = widget.session.status == 'completed' || (score != null && score > 0);
-    final isProcessing = widget.session.status == 'processing' || widget.session.status == 'queued';
+    final score =
+        widget.session.overallScore ?? widget.session.bestAttemptScore;
+    final isCompleted =
+        widget.session.status == 'completed' || (score != null && score > 0);
+    final isProcessing = widget.session.status == 'processing' ||
+        widget.session.status == 'queued';
     final isFailed = widget.session.status == 'failed';
 
     Color statusColor = colorScheme.outline;
     String statusLabel = 'Incomplete';
     if (isCompleted) {
-      statusColor = Colors.greenAccent.shade400;
+      statusColor = tokens.success;
       statusLabel = 'Completed';
     } else if (isProcessing) {
       statusColor = colorScheme.primary;
-      statusLabel = 'Analyzing AI...';
+      statusLabel = 'Preparing feedback...';
     } else if (isFailed) {
       statusColor = colorScheme.error;
       statusLabel = 'Failed';
@@ -405,17 +427,21 @@ class _SessionLogCardState extends State<_SessionLogCard> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: modeColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: modeColor.withValues(alpha: 0.5), width: 1),
+                    border: Border.all(
+                        color: modeColor.withValues(alpha: 0.5), width: 1),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isKaraoke ? Icons.mic_external_on_rounded : Icons.graphic_eq_rounded,
+                        isKaraoke
+                            ? Icons.mic_external_on_rounded
+                            : Icons.graphic_eq_rounded,
                         size: 14,
                         color: modeColor,
                       ),
@@ -432,7 +458,8 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                   ),
                 ),
                 const Spacer(),
-                Icon(Icons.access_time_rounded, size: 14, color: colorScheme.onSurfaceVariant),
+                Icon(Icons.access_time_rounded,
+                    size: 14, color: colorScheme.onSurfaceVariant),
                 const SizedBox(width: 4),
                 Text(
                   dateStr,
@@ -463,7 +490,9 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        attemptsCount == 1 ? '1 take recorded' : '$attemptsCount takes recorded',
+                        attemptsCount == 1
+                            ? '1 take recorded'
+                            : '$attemptsCount takes recorded',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -474,12 +503,15 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                 if (score != null && score > 0) ...[
                   const SizedBox(width: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: _getScoreColor(score).withValues(alpha: 0.15),
+                      color: _getScoreColor(context, score)
+                          .withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: _getScoreColor(score).withValues(alpha: 0.5),
+                        color: _getScoreColor(context, score)
+                            .withValues(alpha: 0.5),
                         width: 1.5,
                       ),
                     ),
@@ -489,7 +521,7 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                         Text(
                           '${score.toStringAsFixed(0)}%',
                           style: TextStyle(
-                            color: _getScoreColor(score),
+                            color: _getScoreColor(context, score),
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),
@@ -497,7 +529,8 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                         Text(
                           'SCORE',
                           style: TextStyle(
-                            color: _getScoreColor(score).withValues(alpha: 0.8),
+                            color: _getScoreColor(context, score)
+                                .withValues(alpha: 0.8),
                             fontWeight: FontWeight.w700,
                             fontSize: 9,
                             letterSpacing: 0.5,
@@ -530,7 +563,8 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (widget.session.failureReason != null && widget.session.failureReason!.isNotEmpty) ...[
+                if (widget.session.failureReason != null &&
+                    widget.session.failureReason!.isNotEmpty) ...[
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
@@ -556,10 +590,12 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                         : const Icon(Icons.analytics_rounded, size: 16),
                     label: const Text(
                       'Review Take',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                     ),
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                       minimumSize: const Size(0, 36),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -572,10 +608,12 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                     icon: const Icon(Icons.refresh_rounded, size: 16),
                     label: const Text(
                       'Check Progress',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                       minimumSize: const Size(0, 36),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -588,12 +626,15 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                     icon: const Icon(Icons.play_arrow_rounded, size: 16),
                     label: const Text(
                       'Resume',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colorScheme.primary,
-                      side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5)),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      side: BorderSide(
+                          color: colorScheme.primary.withValues(alpha: 0.5)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                       minimumSize: const Size(0, 36),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -608,9 +649,10 @@ class _SessionLogCardState extends State<_SessionLogCard> {
     );
   }
 
-  Color _getScoreColor(double score) {
-    if (score >= 80) return Colors.greenAccent.shade400;
-    if (score >= 65) return Colors.amberAccent.shade400;
-    return Colors.redAccent.shade200;
+  Color _getScoreColor(BuildContext context, double score) {
+    final theme = Theme.of(context);
+    if (score >= 80) return theme.appTokens.success;
+    if (score >= 65) return theme.appTokens.warning;
+    return theme.appTokens.danger;
   }
 }

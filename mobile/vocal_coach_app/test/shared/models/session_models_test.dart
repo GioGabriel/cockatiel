@@ -48,6 +48,8 @@ void main() {
         'strengths': ['Pitch', 'Tone'],
         'improvements': ['Breath'],
         'next_exercises': ['ex1', 'ex2'],
+        'summary':
+            'Your pitch was steady. Keep practicing relaxed breath support.',
         'model_used': 'gemini-pro',
         'prompt_version': 'v2',
         'latency_ms': 1200,
@@ -60,6 +62,8 @@ void main() {
       expect(feedback.strengths, ['Pitch', 'Tone']);
       expect(feedback.improvements, ['Breath']);
       expect(feedback.nextExercises, ['ex1', 'ex2']);
+      expect(feedback.summary,
+          'Your pitch was steady. Keep practicing relaxed breath support.');
       expect(feedback.modelUsed, 'gemini-pro');
       expect(feedback.promptVersion, 'v2');
       expect(feedback.latencyMs, 1200);
@@ -79,6 +83,7 @@ void main() {
 
       expect(feedback.promptVersion, isNull);
       expect(feedback.latencyMs, isNull);
+      expect(feedback.summary, isNull);
     });
   });
 }

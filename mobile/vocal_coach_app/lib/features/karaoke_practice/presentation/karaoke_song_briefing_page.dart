@@ -53,7 +53,7 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
           ),
         ),
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = 'Could not start session. Please try again.';
@@ -99,7 +99,8 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -128,14 +129,17 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildIconStat(Icons.timer_outlined, durationLabel, theme),
+                            _buildIconStat(
+                                Icons.timer_outlined, durationLabel, theme),
                             const SizedBox(width: 24),
-                            _buildIconStat(Icons.speed_outlined, '${drill.tempoBpm} BPM', theme),
+                            _buildIconStat(Icons.speed_outlined,
+                                '${drill.tempoBpm} BPM', theme),
                           ],
                         ),
                         if (vocalLow.isNotEmpty && vocalHigh.isNotEmpty) ...[
                           const SizedBox(height: 24),
-                          _buildIconStat(Icons.mic_external_on_outlined, '$vocalLow – $vocalHigh', theme),
+                          _buildIconStat(Icons.mic_external_on_outlined,
+                              '$vocalLow – $vocalHigh', theme),
                         ],
                       ],
                     ),
@@ -158,11 +162,11 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
               // Start Session button
               FilledButton.icon(
                 onPressed: _isStarting ? null : _startSession,
-                icon: _isStarting 
+                icon: _isStarting
                     ? const SizedBox(
-                        width: 20, height: 20, 
-                        child: CircularProgressIndicator(strokeWidth: 2)
-                      )
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.play_arrow_rounded),
                 label: Text(
                   _isStarting ? 'Loading...' : 'Start Karaoke',

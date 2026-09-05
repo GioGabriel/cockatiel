@@ -7,7 +7,10 @@ BACKEND_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 cd "${BACKEND_DIR}"
 
-export AUTH_BYPASS="${AUTH_BYPASS:-true}"
+# Fail closed by default. Local development may opt into the synthetic identity
+# explicitly with AUTH_BYPASS=true; this must never be an implicit mode.
+export AUTH_BYPASS="${AUTH_BYPASS:-false}"
+export API_REQUEST_TIMEOUT_S="${API_REQUEST_TIMEOUT_S:-30}"
 export FIRESTORE_ENABLED="${FIRESTORE_ENABLED:-false}"
 export FIRESTORE_PROJECT_ID="${FIRESTORE_PROJECT_ID:-cockatiel-enhanced}"
 export PROMPT_VERSION="${PROMPT_VERSION:-v1}"

@@ -6,6 +6,8 @@
 __pycache__/
 .pytest_cache/
 .venv/
+.coverage
+coverage.xml
 
 # Dart/Flutter
 .dart_tool/

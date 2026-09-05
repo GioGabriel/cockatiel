@@ -2,8 +2,8 @@
 
 Core metrics:
 - API: `api_requests_total`, `api_requests_failed_total`, `api_latency_ms`
-- AI global: `ai_feedback_requests_total`, `ai_feedback_success_total`, `ai_feedback_failure_total`, `ai_feedback_fallback_total`, `ai_feedback_latency_ms`
-- AI per prompt version: `ai_feedback_success_prompt_<version>_total`, `ai_feedback_failure_prompt_<version>_total`, `ai_feedback_fallback_prompt_<version>_total`
+- AI global: `ai_feedback_requests_total`, `ai_feedback_success_total`, `ai_feedback_model_failure_total`, `ai_feedback_validation_failure_total`, `ai_feedback_fallback_total`, `ai_feedback_latency_ms`
+- AI per prompt version: `ai_feedback_success_prompt_<version>_total`, `ai_feedback_fallback_prompt_<version>_total`
 - AI per model: `ai_model_usage_<model>`
 - AI failure reasons: `ai_feedback_model_failure_reason_<reason>_total`, `ai_feedback_fallback_reason_<reason>_total`
 

@@ -10,7 +10,8 @@ void main() {
   }
 
   group('GlassCard default', () {
-    testWidgets('does NOT have BackdropFilter in widget tree (matte design)', (tester) async {
+    testWidgets('does NOT have BackdropFilter in widget tree (matte design)',
+        (tester) async {
       await tester.pumpWidget(
         buildApp(
           const GlassCard(
@@ -57,7 +58,8 @@ void main() {
       );
     });
 
-    testWidgets('default fill color falls back to theme surface (0xFFF5F5F5 in light mode)', (tester) async {
+    testWidgets('default fill color falls back to theme surface',
+        (tester) async {
       await tester.pumpWidget(
         buildApp(
           const GlassCard(
@@ -68,23 +70,27 @@ void main() {
 
       final container = tester.widget<Container>(find.byType(Container).last);
       final decoration = container.decoration! as BoxDecoration;
-      expect(decoration.color, const Color(0xFFF5F5F5));
+      expect(decoration.color, ThemeData.light().colorScheme.surface);
     });
   });
 
   group('GlassCard.dark', () {
-    testWidgets('uses dark fill color Color(0xFF181818)', (tester) async {
+    testWidgets('uses the raised dark theme surface', (tester) async {
+      final theme = ThemeData.dark();
       await tester.pumpWidget(
-        buildApp(
-          const GlassCard.dark(
-            child: SizedBox(width: 100, height: 100),
+        MaterialApp(
+          theme: theme,
+          home: const Scaffold(
+            body: GlassCard.dark(
+              child: SizedBox(width: 100, height: 100),
+            ),
           ),
         ),
       );
 
       final container = tester.widget<Container>(find.byType(Container).last);
       final decoration = container.decoration! as BoxDecoration;
-      expect(decoration.color, const Color(0xFF181818));
+      expect(decoration.color, theme.colorScheme.surfaceContainerHighest);
     });
 
     testWidgets('does NOT have BackdropFilter in widget tree', (tester) async {

@@ -64,13 +64,13 @@ This document maps every feature and module described in the thesis documentatio
 | Function | Thesis Basis | Implemented? | Where |
 |---|---|---|---|
 | Real-time vocal practice | "facilitate real-time vocal practice" | ✅ | `training_session_page.dart` — live mic + guided steps |
-| AI assessment of vocal input | "AI algorithms to assess vocal input" | ✅ | Metrics → AI orchestrator → structured feedback |
+| Vocal input assessment | "AI algorithms to assess vocal input" | ✅ | Local analyzer captures metrics; deterministic coaching interprets them and OpenRouter is optional for summaries |
 | Pitch accuracy feedback | "pitch accuracy" | ✅ | `pitch_accuracy` metric (0–100) |
 | Tone feedback | "tone" | ✅ | `pitch_stability` + `vibrato_consistency` metrics |
 | Vocal clarity feedback | "vocal clarity" | ✅ | `note_transition_smoothness` metric |
 | Other relevant metrics | "other relevant metrics" | ✅ | `timing_accuracy`, `breath_control` |
 | Controlled practice environment | "safe and controlled environment" | ✅ | Max attempts (3), retry flow, error handling |
-| Continuous refinement | "continuously refine its assessments" | ✅ | AI uses exercise context, difficulty, attempt history |
+| Continuous refinement | "continuously refine its assessments" | ✅ | Deterministic engine uses exercise context, difficulty, and attempt history; provider summaries are optional |
 
 **Verdict: ✅ COMPLETE.**
 
@@ -87,7 +87,7 @@ This document maps every feature and module described in the thesis documentatio
 | Pitch correction teaching | "pitch correction" | ✅ | Do Re Mi Pitch category |
 | Tone quality teaching | "tone quality" | ✅ | Vocal Training category (Resonance, Transitions) |
 | Articulation teaching | "articulation" | ⚠️ Partial | Covered by `note_transition_smoothness` metric. Not a standalone category — thesis lists it alongside other techniques, not as a separate module. |
-| AI-based feedback guiding exercises | "AI-based feedback to guide users" | ✅ | AI generates per-session coaching with strengths/improvements |
+| Coaching feedback guiding exercises | "AI-based feedback to guide users" | ✅ | Deterministic engine generates per-session strengths/improvements; OpenRouter may add wording |
 | Tailored to skill level | "tailored to current skill level" | ✅ | Recommendations filtered by performance + preferences |
 | Exercise briefing | implied by "structured lessons" | ✅ | `exercise_briefing_page.dart` |
 
@@ -106,11 +106,11 @@ This document maps every feature and module described in the thesis documentatio
 | Pitch accuracy evaluation | "pitch accuracy" | ✅ | `pitch_accuracy` metric |
 | Tone quality evaluation | "tone quality" | ✅ | `pitch_stability`, `vibrato_consistency` |
 | Rhythm alignment evaluation | "rhythm alignment with the song" | ✅ | `timing_accuracy` metric |
-| Real-time AI analysis | "AI analyzes in real-time" | ✅ | Metrics captured live → AI feedback on finalize |
-| Instant feedback | "providing instant feedback" | ✅ | Score + strengths + improvements + next exercises |
+| Real-time local analysis | "AI analyzes in real-time" | ✅ | Local microphone/pitch/timing guidance is shown live; remote AI is not claimed per frame |
+| Post-session coaching feedback | "providing instant feedback" | ✅ | Local score and live cues are immediate; deterministic strengths/improvements/next steps are produced on finalize |
 | Entertainment + education | "both entertainment and education" | ✅ | Song-style drills with musical context |
 
-**Verdict: ✅ COMPLETE.**
+**Verdict: ✅ COMPLETE with the implementation boundary documented: live guidance is local, while post-session coaching is deterministic and provider-independent.**
 
 ---
 

@@ -60,7 +60,7 @@ def generate_feedback(
   )
 
   model_used = "coaching-logic-engine"
-  prompt_version = "v1"
+  prompt_version = settings.prompt_version
   model_latency_ms = 0
   summary = None
   
@@ -83,6 +83,7 @@ def generate_feedback(
         model=settings.openrouter_model,
         timeout_s=settings.openrouter_timeout_s,
         temperature=settings.openrouter_temperature,
+        max_total_time_s=getattr(settings, "openrouter_max_total_time_s", settings.openrouter_timeout_s),
       )
       payload, model_latency_ms = client.generate_json(system_prompt=system_prompt, user_prompt=user_prompt)
       validated_payload = LlmFeedbackPayload.model_validate(payload)
@@ -95,10 +96,18 @@ def generate_feedback(
       observe("ai_feedback_latency_ms", model_latency_ms)
 
     except ValidationError as exc:
-      logger.warning("openrouter_feedback_validation_failed session_id=%s error=%s", session_id, exc)
+      logger.warning(
+        "openrouter_feedback_validation_failed session_id=%s error_type=%s",
+        session_id,
+        type(exc).__name__,
+      )
       increment("ai_feedback_validation_failure_total")
     except Exception as exc:
-      logger.warning("openrouter_feedback_failed session_id=%s error=%s", session_id, exc)
+      logger.warning(
+        "openrouter_feedback_failed session_id=%s error_type=%s",
+        session_id,
+        type(exc).__name__,
+      )
       increment("ai_feedback_model_failure_total")
       failure_reason = _classify_model_exception(exc)
       increment(f"ai_feedback_model_failure_reason_{_metric_name_for_reason(failure_reason)}_total")
@@ -113,6 +122,10 @@ def generate_feedback(
     )
     if model_used == "coaching-logic-engine" and settings.openrouter_enabled and settings.openrouter_api_keys:
       model_used = "coaching-logic-engine-fallback"
+    increment("ai_feedback_fallback_total")
+    increment(f"ai_feedback_fallback_prompt_{_metric_name_for_prompt_version(prompt_version)}_total")
+    fallback_reason = "openrouter_unavailable" if settings.openrouter_enabled else "openrouter_disabled"
+    increment(f"ai_feedback_fallback_reason_{_metric_name_for_reason(fallback_reason)}_total")
 
   total_latency_ms = int((perf_counter() - start) * 1000)
 

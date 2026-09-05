@@ -51,8 +51,7 @@ void main() {
       expect(scaleAfter, closeTo(1.0, 0.01));
     });
 
-    testWidgets('fires onTap callback on tap up',
-        (WidgetTester tester) async {
+    testWidgets('fires onTap callback on tap up', (WidgetTester tester) async {
       var tapCount = 0;
 
       await tester.pumpWidget(
@@ -149,8 +148,7 @@ void main() {
       expect(card.elevation, closeTo(2.0, 0.01));
     });
 
-    testWidgets('scales down during press',
-        (WidgetTester tester) async {
+    testWidgets('scales down during press', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -185,8 +183,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('fires onTap callback on tap',
-        (WidgetTester tester) async {
+    testWidgets('fires onTap callback on tap', (WidgetTester tester) async {
       var tapped = false;
 
       await tester.pumpWidget(

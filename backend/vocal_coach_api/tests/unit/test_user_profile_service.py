@@ -3,7 +3,7 @@ import os
 
 os.environ["AUTH_BYPASS"] = "true"
 os.environ["FIRESTORE_ENABLED"] = "false"
-os.environ["OLLAMA_ENABLED"] = "false"
+os.environ["OPENROUTER_ENABLED"] = "false"
 os.environ["AUDIO_SNIPPET_STORAGE_BACKEND"] = "local"
 os.environ["AUDIO_SNIPPET_LOCAL_DIR"] = "/tmp/vocal-coach-audio-test"
 os.environ["AUDIO_SNIPPET_RETENTION_DAYS"] = "30"
@@ -63,6 +63,51 @@ class TestUpdateVocalPreferences:
     }
     result = update_vocal_preferences("u1", prefs)
     assert result["vocal_preferences"] == prefs
+
+  def test_voice_calibration_is_persisted_without_raw_audio(self) -> None:
+    _create_user("u1")
+    calibration = {
+      "voice_type": "alto",
+      "confidence": 0.74,
+      "average_frequency_hz": 277.2,
+      "lowest_frequency_hz": 174.6,
+      "highest_frequency_hz": 523.3,
+      "sample_count": 64,
+      "calibrated_at_ms": 1760000000000,
+    }
+    result = update_vocal_preferences(
+      "u1",
+      {
+        "vocal_range": "alto",
+        "preferred_categories": ["vocal_training"],
+        "training_goal": "general_skill_building",
+        "voice_calibration": calibration,
+      },
+    )
+    assert result["vocal_preferences"]["voice_calibration"] == calibration
+    assert "audio" not in result["vocal_preferences"]["voice_calibration"]
+
+  def test_voice_calibration_with_reversed_range_raises_422(self) -> None:
+    _create_user("u1")
+    with pytest.raises(ApiError) as exc_info:
+      update_vocal_preferences(
+        "u1",
+        {
+          "vocal_range": "alto",
+          "preferred_categories": ["vocal_training"],
+          "training_goal": "general_skill_building",
+          "voice_calibration": {
+            "voice_type": "alto",
+            "confidence": 0.74,
+            "average_frequency_hz": 277.2,
+            "lowest_frequency_hz": 523.3,
+            "highest_frequency_hz": 174.6,
+            "sample_count": 64,
+            "calibrated_at_ms": 1760000000000,
+          },
+        },
+      )
+    assert exc_info.value.status_code == 422
 
   def test_invalid_vocal_range_raises_422(self) -> None:
     _create_user("u1")

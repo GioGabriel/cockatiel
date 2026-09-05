@@ -2,7 +2,6 @@ from typing import Any, Literal
 
 from fastapi import Depends, Header
 
-from app.core.exceptions import ApiError
 from app.core.firebase import firebase_verifier
 from app.core.security import extract_bearer_token
 
@@ -18,18 +17,17 @@ def get_current_user(token: str = Depends(extract_bearer_token)) -> dict[str, An
 def get_current_user_or_guest(
   authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
-  """Return authenticated user with tier metadata, or a synthetic guest identity."""
-  if not authorization:
-    return GUEST_IDENTITY
+  """Return a guest only when no credential was supplied.
 
-  try:
-    parts = authorization.split(" ", maxsplit=1)
-    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1].strip():
-      return GUEST_IDENTITY
-    token = parts[1].strip()
-    user = firebase_verifier.verify(token)
-    if "tier" not in user:
-      user["tier"] = "registered"
-    return user
-  except (ApiError, Exception):
-    return GUEST_IDENTITY
+  A malformed or rejected credential must never silently downgrade to guest. That
+  behavior makes client auth bugs look like successful anonymous requests and can
+  hide authorization failures in production.
+  """
+  if not authorization:
+    return dict(GUEST_IDENTITY)
+
+  token = extract_bearer_token(authorization)
+  user = firebase_verifier.verify(token)
+  if "tier" not in user:
+    user["tier"] = "registered"
+  return user

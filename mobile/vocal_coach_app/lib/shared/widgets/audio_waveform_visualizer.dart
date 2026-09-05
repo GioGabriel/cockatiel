@@ -114,13 +114,12 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
     // Smooth the incoming amplitude to avoid jarring jumps.
     final targetAmplitude = widget.isActive ? widget.amplitude : 0.0;
     _smoothedAmplitude = _smoothedAmplitude +
-        (targetAmplitude - _smoothedAmplitude) *
-            (1.0 - widget.smoothingFactor);
+        (targetAmplitude - _smoothedAmplitude) * (1.0 - widget.smoothingFactor);
 
     // Generate target heights based on amplitude with natural variance.
     for (var i = 0; i < widget.barCount; i++) {
-      final centerBias = 1.0 -
-          (2.0 * (i - widget.barCount / 2).abs() / widget.barCount) * 0.4;
+      final centerBias =
+          1.0 - (2.0 * (i - widget.barCount / 2).abs() / widget.barCount) * 0.4;
       final noise = 0.7 + _random.nextDouble() * 0.6;
       final rawHeight =
           _smoothedAmplitude * widget.maxBarHeight * centerBias * noise;
@@ -147,9 +146,8 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
     final inactiveColor = widget.inactiveColor ??
         theme.colorScheme.onSurface.withValues(alpha: 0.2);
 
-    final totalWidth =
-        widget.barCount * (widget.barWidth + widget.barSpacing) -
-            widget.barSpacing;
+    final totalWidth = widget.barCount * (widget.barWidth + widget.barSpacing) -
+        widget.barSpacing;
 
     return SizedBox(
       width: totalWidth,

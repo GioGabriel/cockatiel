@@ -1,4 +1,3 @@
-
 String formatDuration(int sec) {
   final m = sec ~/ 60;
   final s = sec % 60;
@@ -14,13 +13,24 @@ String formatSnakeCaseTitle(String snakeCase) {
 }
 
 const keyOptions = [
-  'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B'
 ];
 
 const durationByDifficulty = {
-  'beginner': 30,
-  'intermediate': 45,
-  'advanced': 60,
+  'beginner': 20,
+  'intermediate': 30,
+  'advanced': 45,
 };
 
 String displayMetricLabel(String metric, {String? exerciseMode}) {

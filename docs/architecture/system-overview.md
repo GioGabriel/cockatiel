@@ -12,10 +12,11 @@ This document outlines the high-level architecture of the Vocal Coach (Cockatiel
   - Custom painters for UI rendering (e.g., scrolling karaoke visualizers).
 
 ## 2. API Backend
-- **Framework:** FastAPI (Python 3.14)
-- **Deployment:** Render (`https://cockatiel-wdkv.onrender.com`)
+- **Framework:** FastAPI (Python 3.11+)
+- **Deployment target:** Render (`render.yaml`); the live service and environment
+  variables are external state and must be verified separately.
 - **Key Capabilities:**
-  - AI Orchestration using `langchain` and OpenRouter models (e.g., Claude, Gemini).
+  - Deterministic coaching orchestration with optional bounded OpenRouter summaries.
   - Aggregating vocal session metrics.
   - Generating detailed AI coaching feedback asynchronously.
 

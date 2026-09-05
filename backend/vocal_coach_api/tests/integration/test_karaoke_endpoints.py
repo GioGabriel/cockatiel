@@ -39,6 +39,18 @@ class TestFetchKaraokeCatalogPreview:
     resp = client.get("/v1/karaoke/catalog/preview", headers=auth_headers)
     assert resp.status_code == 200
 
+  def test_preview_rejects_malformed_optional_auth_instead_of_downgrading_to_guest(
+    self,
+    client: TestClient,
+  ) -> None:
+    resp = client.get(
+      "/v1/karaoke/catalog/preview",
+      headers={"Authorization": "Basic not-a-bearer-token"},
+    )
+
+    assert resp.status_code == 401
+    assert resp.json()["error"]["code"] == "AUTH_INVALID"
+
 
 class TestFetchKaraokeDrill:
   def test_valid_drill_id_returns_200(self, client: TestClient, auth_headers: dict) -> None:

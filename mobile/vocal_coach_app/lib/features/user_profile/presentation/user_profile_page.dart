@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:vocal_coach_app/shared/animations/page_transitions.dart';
 
+import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/user_models.dart';
@@ -52,7 +53,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Failed to load profile (${e.statusCode})';
+        _error = e.message;
         _isLoading = false;
       });
     } catch (_) {
@@ -96,14 +97,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   void _navigateToPreferences() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    Navigator.of(context)
+        .push<UserProfileFull>(
+      MaterialPageRoute<UserProfileFull>(
         builder: (_) => VocalPreferencesPage(
           apiClient: widget.apiClient,
           currentPreferences: _profile?.vocalPreferences,
         ),
       ),
-    ).then((_) => _loadProfile());
+    )
+        .then((result) {
+      if (result is UserProfileFull) {
+        widget.appState.updateCurrentUserProfile(result);
+      }
+      _loadProfile();
+    });
   }
 
   void _navigateToAnalytics() {
@@ -132,26 +140,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0F),
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Account Settings',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Account Settings'),
       ),
-      body: Container(
-        color: const Color(0xFF0A0A0F),
-        child: SafeArea(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: Colors.cyanAccent))
-              : _error != null
-                  ? _buildError(theme)
-                  : _buildContent(theme),
-        ),
+      body: SafeArea(
+        child: _isLoading
+            ? Center(
+                child:
+                    CircularProgressIndicator(color: theme.colorScheme.primary))
+            : _error != null
+                ? _buildError(theme)
+                : _buildContent(theme),
       ),
     );
   }
@@ -163,8 +162,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_rounded, size: 48,
-                color: theme.colorScheme.onSurfaceVariant),
+            Icon(Icons.cloud_off_rounded,
+                size: 48, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(height: 12),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -194,7 +193,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SizedBox(height: 8),
         _SettingsItem(
           icon: Icons.person_outline_rounded,
-          label: 'Full Name',
+          label: 'Display name',
           value: profile.name,
           onTap: () {
             Clipboard.setData(ClipboardData(text: profile.name));
@@ -234,7 +233,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SizedBox(height: 8),
         _SettingsItem(
           icon: Icons.music_note_outlined,
-          label: 'Vocal Preferences',
+          label: 'Voice Profile & Preferences',
           value: profile.vocalPreferences != null
               ? _formatVocalRange(profile.vocalPreferences!.vocalRange)
               : 'Not configured',
@@ -249,7 +248,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _SettingsItem(
           icon: Icons.history_rounded,
           label: 'Practice History & Logs',
-          value: 'Review takes & AI feedback',
+          value: 'Review takes & coaching feedback',
           onTap: _navigateToHistory,
         ),
         _SettingsItem(
@@ -291,23 +290,22 @@ class _UserProfilePageState extends State<UserProfilePage> {
           Container(
             width: 80,
             height: 80,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF1DB954),
+              color: theme.colorScheme.primary,
             ),
             child: Padding(
               padding: const EdgeInsets.all(2.0),
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFF181818),
+                  color: theme.colorScheme.surface,
                 ),
                 child: Center(
                   child: Text(
                     _getInitials(profile.name),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -318,18 +316,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
           const SizedBox(height: 16),
           Text(
             profile.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-            ),
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
             profile.email,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -347,12 +341,18 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   String _formatVocalRange(VocalRange range) {
     switch (range) {
-      case VocalRange.soprano: return 'Soprano';
-      case VocalRange.mezzoSoprano: return 'Mezzo-Soprano';
-      case VocalRange.alto: return 'Alto';
-      case VocalRange.tenor: return 'Tenor';
-      case VocalRange.baritone: return 'Baritone';
-      case VocalRange.bass: return 'Bass';
+      case VocalRange.soprano:
+        return 'Soprano';
+      case VocalRange.mezzoSoprano:
+        return 'Mezzo-Soprano';
+      case VocalRange.alto:
+        return 'Alto';
+      case VocalRange.tenor:
+        return 'Tenor';
+      case VocalRange.baritone:
+        return 'Baritone';
+      case VocalRange.bass:
+        return 'Bass';
     }
   }
 
@@ -371,13 +371,13 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.cyanAccent,
-          fontSize: 13,
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.primary,
           fontWeight: FontWeight.w800,
           letterSpacing: 1.2,
         ),
@@ -407,16 +407,17 @@ class _SettingsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final hasAction = onTap != null;
-    final itemIconColor = iconColor ?? Colors.cyanAccent;
+    final itemIconColor = iconColor ?? theme.colorScheme.primary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF282828),
+          color: theme.colorScheme.outlineVariant,
           width: 1,
         ),
       ),
@@ -424,71 +425,71 @@ class _SettingsItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          highlightColor: Colors.white.withValues(alpha: 0.05),
+          highlightColor: theme.colorScheme.primary.withValues(alpha: 0.08),
           splashColor: itemIconColor.withValues(alpha: 0.15),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: itemIconColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: itemIconColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 22,
-                      color: itemIconColor,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: itemIconColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: itemIconColor.withValues(alpha: 0.3),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: labelColor ?? Colors.white,
-                          ),
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: itemIconColor,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: labelColor ?? theme.colorScheme.onSurface,
                         ),
-                        if (value != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            value!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white.withValues(alpha: 0.6),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                      ),
+                      if (value != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          value!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
-                    ),
+                    ],
                   ),
-                  if (trailing != null) ...[
-                    const SizedBox(width: 8),
-                    trailing!,
-                  ],
-                  if (hasAction && trailing == null)
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: Colors.white.withValues(alpha: 0.5),
-                    ),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
                 ],
-              ),
+                if (hasAction && trailing == null)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+              ],
             ),
           ),
         ),
+      ),
     );
   }
 }
@@ -500,30 +501,25 @@ class _TierBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isPremium = tier == AccessTier.premium;
     final label = isPremium ? 'PREMIUM' : 'FREE';
-    final glowColor = isPremium ? Colors.purpleAccent : Colors.greenAccent;
+    final badgeColor =
+        isPremium ? theme.colorScheme.secondary : theme.appTokens.success;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: glowColor.withValues(alpha: 0.15),
+        color: badgeColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: glowColor.withValues(alpha: 0.5), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: glowColor.withValues(alpha: 0.3),
-            blurRadius: 8,
-            spreadRadius: -2,
-          )
-        ],
+        border: Border.all(color: badgeColor.withValues(alpha: 0.45)),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w800,
-          color: glowColor,
+          color: badgeColor,
           letterSpacing: 0.5,
         ),
       ),
@@ -536,14 +532,15 @@ class _TierBadge extends StatelessWidget {
 class _SignOutDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.appTokens;
     return Dialog(
-      backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 40),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF181818),
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFF282828)),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
@@ -557,75 +554,69 @@ class _SignOutDialog extends StatelessWidget {
                   height: 64,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.redAccent.withValues(alpha: 0.15),
-                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                    color: tokens.danger.withValues(alpha: 0.12),
+                    border: Border.all(
+                        color: tokens.danger.withValues(alpha: 0.45)),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.power_settings_new_rounded,
-                    color: Colors.redAccent,
+                    color: tokens.danger,
                     size: 32,
                   ),
                 ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'SYSTEM OFFLINE?',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.0,
-                    ),
+                const SizedBox(height: 20),
+                Text(
+                  'Sign out?',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Are you sure you want to sign out? Your vocal data is safely stored in the cloud.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Are you sure you want to sign out? Your vocal data is safely stored in the cloud.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.5,
                   ),
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'SIGN OUT',
-                        style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: tokens.danger,
+                      foregroundColor: theme.colorScheme.onError,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
+                    child: const Text('Sign out'),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white.withValues(alpha: 0.8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-                        ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onSurface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: theme.colorScheme.outline),
                       ),
-                      child: const Text('CANCEL'),
                     ),
+                    child: const Text('Cancel'),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
+      ),
     );
   }
 }

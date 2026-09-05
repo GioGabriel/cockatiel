@@ -122,9 +122,16 @@ void main() {
         'ai_focus': 'Focus',
         'default_difficulty': 'easy',
         'recommended_order': 1,
-        'success_thresholds': {'overall_score': 80.0, 'metric_floors': <String, dynamic>{}},
+        'success_thresholds': {
+          'overall_score': 80.0,
+          'metric_floors': <String, dynamic>{}
+        },
         'coach_cues': {
-          'ready': '1', 'too_soft': '2', 'on_pitch': '3', 'low_pitch': '4', 'high_pitch': '5'
+          'ready': '1',
+          'too_soft': '2',
+          'on_pitch': '3',
+          'low_pitch': '4',
+          'high_pitch': '5'
         },
       };
       final exercise = TrainingExercise.fromJson(json);
@@ -149,9 +156,16 @@ void main() {
         'recommended_order': 1,
         'focus_metrics': ['m1'],
         'metric_weights': {'m1': 1.0},
-        'success_thresholds': {'overall_score': 80.0, 'metric_floors': <String, dynamic>{}},
+        'success_thresholds': {
+          'overall_score': 80.0,
+          'metric_floors': <String, dynamic>{}
+        },
         'coach_cues': {
-          'ready': '1', 'too_soft': '2', 'on_pitch': '3', 'low_pitch': '4', 'high_pitch': '5'
+          'ready': '1',
+          'too_soft': '2',
+          'on_pitch': '3',
+          'low_pitch': '4',
+          'high_pitch': '5'
         },
         'patterns_by_difficulty': {
           'easy': {
@@ -194,7 +208,7 @@ void main() {
         'subtitle': 'Sub',
         'description': 'Desc',
         'attempt_policy': {
-           'max_attempts': 3,
+          'max_attempts': 3,
         },
         'categories': <dynamic>[]
       };

@@ -11,8 +11,7 @@ PageRouteBuilder<T> slideForwardRoute<T>({
   return PageRouteBuilder<T>(
     transitionDuration: duration,
     reverseTransitionDuration: duration,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        builder(context),
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curvedAnimation = CurvedAnimation(
         parent: animation,
@@ -44,8 +43,7 @@ PageRouteBuilder<T> slideBackRoute<T>({
   return PageRouteBuilder<T>(
     transitionDuration: duration,
     reverseTransitionDuration: duration,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        builder(context),
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curvedAnimation = CurvedAnimation(
         parent: animation,
@@ -76,8 +74,7 @@ PageRouteBuilder<T> crossFadeRoute<T>({
   return PageRouteBuilder<T>(
     transitionDuration: duration,
     reverseTransitionDuration: duration,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        builder(context),
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curvedAnimation = CurvedAnimation(
         parent: animation,
@@ -102,8 +99,7 @@ PageRouteBuilder<T> scaleWelcomeRoute<T>({
   return PageRouteBuilder<T>(
     transitionDuration: duration,
     reverseTransitionDuration: duration,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        builder(context),
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curvedAnimation = CurvedAnimation(
         parent: animation,
@@ -132,8 +128,7 @@ PageRouteBuilder<T> slideUpRoute<T>({
   return PageRouteBuilder<T>(
     transitionDuration: duration,
     reverseTransitionDuration: duration,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        builder(context),
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curvedAnimation = CurvedAnimation(
         parent: animation,
@@ -166,8 +161,7 @@ PageRouteBuilder<T> resultRevealRoute<T>({
   return PageRouteBuilder<T>(
     transitionDuration: duration,
     reverseTransitionDuration: duration,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        builder(context),
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curvedAnimation = CurvedAnimation(
         parent: animation,

@@ -71,8 +71,7 @@ class _StaggeredEntranceState extends State<StaggeredEntrance>
   Duration _calculateTotalDuration() {
     final animatedCount = widget.children.length.clamp(0, _kMaxStaggerItems);
     if (animatedCount == 0) return Duration.zero;
-    final totalMs =
-        widget.staggerDelay.inMilliseconds * animatedCount +
+    final totalMs = widget.staggerDelay.inMilliseconds * animatedCount +
         widget.itemDuration.inMilliseconds;
     return Duration(milliseconds: totalMs);
   }

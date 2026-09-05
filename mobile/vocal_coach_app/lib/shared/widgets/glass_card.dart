@@ -21,7 +21,7 @@ class GlassCard extends StatelessWidget {
     this.borderRadius = 24.0,
     this.borderOpacity = 0.12,
   })  : blurSigma = 0.0,
-        fillColor = const Color(0xFF181818),
+        fillColor = null,
         _isDisabled = false;
 
   /// Disabled variant that renders a flat opaque card (performance fallback).
@@ -51,8 +51,10 @@ class GlassCard extends StatelessWidget {
 
   Widget _buildMatteCard(BuildContext context) {
     final theme = Theme.of(context);
-    final resolvedFillColor =
-        fillColor ?? (theme.brightness == Brightness.dark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5));
+    final resolvedFillColor = fillColor ??
+        (theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainerHighest
+            : theme.colorScheme.surface);
     final radius = BorderRadius.circular(borderRadius);
 
     return Container(
@@ -61,7 +63,8 @@ class GlassCard extends StatelessWidget {
         borderRadius: radius,
         border: borderOpacity > 0
             ? Border.all(
-                color: Colors.white.withValues(alpha: borderOpacity),
+                color:
+                    theme.colorScheme.outline.withValues(alpha: borderOpacity),
                 width: 1,
               )
             : null,

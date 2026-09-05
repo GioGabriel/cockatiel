@@ -49,7 +49,10 @@ class AudioSnippetCleanupWorker:
         self.run_once()
       except Exception as exc:
         increment("audio_snippet_cleanup_worker_error_total")
-        logger.warning("audio_snippet_cleanup_worker_loop_error error=%s", exc)
+        logger.warning(
+          "audio_snippet_cleanup_worker_loop_error error_type=%s",
+          type(exc).__name__,
+        )
 
       interrupted = self._stop_event.wait(timeout=self._interval_seconds)
       if interrupted:

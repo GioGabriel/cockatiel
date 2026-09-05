@@ -21,6 +21,16 @@ def test_training_catalog_hierarchy(client, auth_headers):
   assert resonance["patterns_by_difficulty"]["beginner"]["pattern_type"] == "sustain"
 
   do_re_mi = next(item for item in categories if item["category_id"] == "do_re_mi")
+  basic_ladder = next(
+    item for item in do_re_mi["exercises"] if item["exercise_id"] == "do_re_mi_basic_ladder"
+  )
+  assert [stage["target_label"] for stage in basic_ladder["patterns_by_difficulty"]["beginner"]["stages"]] == [
+    "Do",
+    "Re",
+    "Mi",
+    "Fa",
+    "Sol",
+  ]
   interval_jumps = next(
     item for item in do_re_mi["exercises"] if item["exercise_id"] == "do_re_mi_interval_jumps"
   )
@@ -87,12 +97,12 @@ def test_training_session_stores_category_and_config(client, auth_headers):
   assert session_payload["category_id"] == "vocal_training"
   assert session_payload["exercise_id"] == "resonance_placement"
   assert session_payload["training_config"]["difficulty"] == "intermediate"
-  assert session_payload["training_config"]["duration_sec"] == 45
+  assert session_payload["training_config"]["duration_sec"] == 30
   assert session_payload["training_config"]["max_attempts"] == 3
   assert session_payload["exercise_spec"]["objective"]
   assert session_payload["exercise_spec"]["what_you_do"]
   assert session_payload["runtime_plan"]["pattern_type"] == "sustain"
-  assert session_payload["runtime_plan"]["total_duration_sec"] == 45
+  assert session_payload["runtime_plan"]["total_duration_sec"] == 30
   assert session_payload["runtime_plan"]["stages"][0]["target_label"] == "Do"
 
 

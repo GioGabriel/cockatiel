@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../../shared/models/session_models.dart';
+import '../../../../app/theme/app_theme_tokens.dart';
 
 /// A single recorded pitch sample.
 class PitchPoint {
@@ -11,9 +12,8 @@ class PitchPoint {
 
 /// Yousician-style scrolling pitch visualizer with rainbow note blocks.
 ///
-/// Shows target note blocks scrolling left (colored by pitch height),
-/// with the user's live pitch rendered as a glowing orange squiggly line.
-/// Also shows a vertical rainbow pitch scale on the left side.
+/// Shows target note blocks scrolling left with a restrained accent palette and
+/// the user's live pitch rendered as a high-contrast line.
 class KaraokePitchVisualizer extends StatefulWidget {
   const KaraokePitchVisualizer({
     super.key,
@@ -45,7 +45,9 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
   @override
   void initState() {
     super.initState();
-    _ticker = AnimationController(vsync: this, duration: const Duration(hours: 1))..repeat();
+    _ticker =
+        AnimationController(vsync: this, duration: const Duration(hours: 1))
+          ..repeat();
   }
 
   @override
@@ -58,6 +60,7 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
+    final tokens = theme.appTokens;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,33 +74,34 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: widget.isRunning ? const Color(0xFF1DB954) : primaryColor,
+                  color: widget.isRunning ? tokens.success : primaryColor,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 widget.isRunning ? 'REAL-TIME PITCH TRACKER' : 'SONG PITCH MAP',
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                 ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF242424),
+                  color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF333333),
+                    color: theme.colorScheme.outline,
                     width: 1,
                   ),
                 ),
                 child: Text(
                   '${widget.stages.length} TARGET NOTES',
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
@@ -110,10 +114,10 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF121212),
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF282828),
+                color: theme.colorScheme.outlineVariant,
                 width: 1,
               ),
             ),
@@ -131,6 +135,13 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
                     getTargetFrequency: widget.getTargetFrequency,
                     isRunning: widget.isRunning,
                     primaryColor: primaryColor,
+                    successColor: tokens.success,
+                    raisedSurfaceColor:
+                        theme.colorScheme.surfaceContainerHighest,
+                    outlineColor: theme.colorScheme.outline,
+                    outlineVariantColor: theme.colorScheme.outlineVariant,
+                    onSurfaceColor: theme.colorScheme.onSurface,
+                    onSurfaceVariantColor: theme.colorScheme.onSurfaceVariant,
                   ),
                   child: const SizedBox.expand(),
                 ),
@@ -143,9 +154,10 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
   }
 }
 
-/// Clean studio note color mapping.
+/// Keep note blocks within the active theme so color does not become a second
+/// competing visual language.
 Color _pitchColor(double norm, Color fallback) {
-  return Color.lerp(const Color(0xFF1DB954), const Color(0xFF40C0FF), norm.clamp(0.0, 1.0)) ?? fallback;
+  return fallback.withValues(alpha: 0.55 + (norm.clamp(0.0, 1.0) * 0.35));
 }
 
 class _PitchPainter extends CustomPainter {
@@ -157,6 +169,12 @@ class _PitchPainter extends CustomPainter {
   final double Function(String) getTargetFrequency;
   final bool isRunning;
   final Color primaryColor;
+  final Color successColor;
+  final Color raisedSurfaceColor;
+  final Color outlineColor;
+  final Color outlineVariantColor;
+  final Color onSurfaceColor;
+  final Color onSurfaceVariantColor;
 
   _PitchPainter({
     required this.stages,
@@ -167,6 +185,12 @@ class _PitchPainter extends CustomPainter {
     required this.getTargetFrequency,
     required this.isRunning,
     required this.primaryColor,
+    required this.successColor,
+    required this.raisedSurfaceColor,
+    required this.outlineColor,
+    required this.outlineVariantColor,
+    required this.onSurfaceColor,
+    required this.onSurfaceVariantColor,
   });
 
   static const double _windowSec = 8.5;
@@ -200,7 +224,8 @@ class _PitchPainter extends CustomPainter {
       if (hz <= 0) return size.height + 60;
       final midi = _hzToMidi(hz);
       final norm = (midi - loMidi) / midiRange;
-      return size.height - (norm * size.height).clamp(-60.0, size.height + 60.0);
+      return size.height -
+          (norm * size.height).clamp(-60.0, size.height + 60.0);
     }
 
     double hzToNorm(double hz) {
@@ -234,7 +259,8 @@ class _PitchPainter extends CustomPainter {
       final rectR = min(size.width, endX);
       if (rectR <= rectL) continue;
 
-      final rect = Rect.fromLTRB(rectL, cy - _blockHeight / 2, rectR, cy + _blockHeight / 2);
+      final rect = Rect.fromLTRB(
+          rectL, cy - _blockHeight / 2, rectR, cy + _blockHeight / 2);
       final rRect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
 
       final Color fill = isActive
@@ -250,7 +276,7 @@ class _PitchPainter extends CustomPainter {
           Offset(rect.left + 6, rect.top + 2),
           Offset(rect.right - 6, rect.top + 2),
           Paint()
-            ..color = Colors.white.withValues(alpha: isActive ? 0.9 : 0.3)
+            ..color = onSurfaceColor.withValues(alpha: isActive ? 0.9 : 0.3)
             ..strokeWidth = 2.0
             ..strokeCap = StrokeCap.round,
         );
@@ -272,25 +298,39 @@ class _PitchPainter extends CustomPainter {
     }
   }
 
-  void _drawPitchScale(Canvas canvas, Size size, double loMidi, double hiMidi, double midiRange) {
+  void _drawPitchScale(Canvas canvas, Size size, double loMidi, double hiMidi,
+      double midiRange) {
     final scaleRect = Rect.fromLTWH(0, 0, _scaleWidth, size.height);
     canvas.drawRect(
       scaleRect,
-      Paint()..color = const Color(0xFF181818),
+      Paint()..color = raisedSurfaceColor,
     );
 
     canvas.drawLine(
       const Offset(_scaleWidth - 1, 0),
       Offset(_scaleWidth - 1, size.height),
       Paint()
-        ..color = const Color(0xFF282828)
+        ..color = outlineVariantColor
         ..strokeWidth = 1.0,
     );
 
     const noteNames = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
     double? lastDrawnY;
     for (int m = loMidi.ceil(); m <= hiMidi.floor(); m++) {
-      final noteName = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][m % 12];
+      final noteName = [
+        'C',
+        'C#',
+        'D',
+        'D#',
+        'E',
+        'F',
+        'F#',
+        'G',
+        'G#',
+        'A',
+        'A#',
+        'B'
+      ][m % 12];
       if (!noteNames.contains(noteName)) continue;
       final norm = (m - loMidi) / midiRange;
       final y = size.height - norm * size.height;
@@ -302,29 +342,32 @@ class _PitchPainter extends CustomPainter {
         Offset(_scaleWidth - 5, y),
         Offset(_scaleWidth, y),
         Paint()
-          ..color = const Color(0xFF333333)
+          ..color = outlineColor
           ..strokeWidth = 1.5,
       );
 
       final span = TextSpan(
         text: noteName,
-        style: const TextStyle(
-          color: Colors.white70,
+        style: TextStyle(
+          color: onSurfaceVariantColor,
           fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
       );
-      final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
-      tp.paint(canvas, Offset((_scaleWidth - 6 - tp.width) / 2, y - tp.height / 2));
+      final tp = TextPainter(text: span, textDirection: TextDirection.ltr)
+        ..layout();
+      tp.paint(
+          canvas, Offset((_scaleWidth - 6 - tp.width) / 2, y - tp.height / 2));
     }
   }
 
-  void _drawGrid(Canvas canvas, Size size, double loMidi, double hiMidi, double midiRange, double offsetX) {
+  void _drawGrid(Canvas canvas, Size size, double loMidi, double hiMidi,
+      double midiRange, double offsetX) {
     final faint = Paint()
-      ..color = const Color(0xFF1F1F1F)
+      ..color = outlineVariantColor.withValues(alpha: 0.65)
       ..strokeWidth = 0.5;
     final mid = Paint()
-      ..color = const Color(0xFF2B2B2B)
+      ..color = outlineColor.withValues(alpha: 0.8)
       ..strokeWidth = 1.0;
 
     for (int m = loMidi.ceil(); m <= hiMidi.floor(); m++) {
@@ -344,22 +387,32 @@ class _PitchPainter extends CustomPainter {
       Offset(x, 0),
       Offset(x, size.height),
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.85)
+        ..color = onSurfaceColor.withValues(alpha: 0.85)
         ..strokeWidth = 2.0,
     );
-    canvas.drawCircle(Offset(x, 4), 3, Paint()..color = Colors.white);
-    canvas.drawCircle(Offset(x, size.height - 4), 3, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(x, 4), 3, Paint()..color = onSurfaceColor);
+    canvas.drawCircle(
+        Offset(x, size.height - 4), 3, Paint()..color = onSurfaceColor);
   }
 
-  void _drawPitchLine(Canvas canvas, Size size, double Function(double) hzToY, double Function(double) secToX) {
+  void _drawPitchLine(Canvas canvas, Size size, double Function(double) hzToY,
+      double Function(double) secToX) {
     final path = Path();
     bool started = false;
     double? prevSec;
 
     for (final pt in pitchHistory) {
-      if (pt.frequencyHz <= 0) { started = false; prevSec = null; continue; }
+      if (pt.frequencyHz <= 0) {
+        started = false;
+        prevSec = null;
+        continue;
+      }
       final x = secToX(pt.elapsedSec);
-      if (x < _scaleWidth - 4 || x > size.width + 4) { started = false; prevSec = null; continue; }
+      if (x < _scaleWidth - 4 || x > size.width + 4) {
+        started = false;
+        prevSec = null;
+        continue;
+      }
       final y = hzToY(pt.frequencyHz).clamp(4.0, size.height - 4.0);
 
       if (!started || (prevSec != null && pt.elapsedSec - prevSec > 0.15)) {
@@ -373,53 +426,69 @@ class _PitchPainter extends CustomPainter {
 
     if (!started) return;
 
-    canvas.drawPath(path, Paint()
-      ..color = const Color(0xFF1DB954)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round);
+    canvas.drawPath(
+        path,
+        Paint()
+          ..color = successColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.0
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round);
 
     final latest = pitchHistory.last;
     if (latest.frequencyHz > 0) {
       final lx = secToX(latest.elapsedSec);
       final ly = hzToY(latest.frequencyHz).clamp(4.0, size.height - 4.0);
-      canvas.drawCircle(Offset(lx, ly), 7, Paint()..color = const Color(0xFF1DB954));
-      canvas.drawCircle(Offset(lx, ly), 3, Paint()..color = Colors.white);
+      canvas.drawCircle(Offset(lx, ly), 7, Paint()..color = successColor);
+      canvas.drawCircle(Offset(lx, ly), 3, Paint()..color = onSurfaceColor);
     }
   }
 
-  void _drawLabel(Canvas canvas, String text, Rect rect, bool isActive, bool isPast) {
+  void _drawLabel(
+      Canvas canvas, String text, Rect rect, bool isActive, bool isPast) {
     final span = TextSpan(
       text: text,
       style: TextStyle(
-        color: isPast ? Colors.white24 : Colors.white,
+        color: isPast
+            ? onSurfaceVariantColor.withValues(alpha: 0.45)
+            : onSurfaceColor,
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.3,
       ),
     );
-    final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: span, textDirection: TextDirection.ltr)
+      ..layout();
     if (tp.width > rect.width - 6) return;
-    tp.paint(canvas, Offset(rect.left + (rect.width - tp.width) / 2, rect.top + (rect.height - tp.height) / 2));
+    tp.paint(
+        canvas,
+        Offset(rect.left + (rect.width - tp.width) / 2,
+            rect.top + (rect.height - tp.height) / 2));
   }
 
   void _drawPreviewHint(Canvas canvas, Size size) {
     final span = TextSpan(
       text: 'Tap "Start Guided Take" to sing',
-      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+      style: TextStyle(
+          color: onSurfaceVariantColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5),
     );
-    final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: span, textDirection: TextDirection.ltr)
+      ..layout();
     tp.paint(canvas, Offset((size.width - tp.width) / 2, size.height - 20));
   }
 
   void _drawEmptyHint(Canvas canvas, Size size) {
     final span = TextSpan(
       text: 'No notes loaded',
-      style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 12),
+      style: TextStyle(color: onSurfaceVariantColor, fontSize: 12),
     );
-    final tp = TextPainter(text: span, textDirection: TextDirection.ltr)..layout();
-    tp.paint(canvas, Offset((size.width - tp.width) / 2, (size.height - tp.height) / 2));
+    final tp = TextPainter(text: span, textDirection: TextDirection.ltr)
+      ..layout();
+    tp.paint(canvas,
+        Offset((size.width - tp.width) / 2, (size.height - tp.height) / 2));
   }
 
   static double _hzToMidi(double hz) {

@@ -14,3 +14,10 @@ def test_auth_me_requires_authorization_header(client):
   assert response.status_code == 401
   payload = response.json()
   assert payload["error"]["code"] == "AUTH_MISSING"
+
+
+def test_health_does_not_echo_runtime_environment(client):
+  response = client.get("/health")
+
+  assert response.status_code == 200
+  assert response.json() == {"status": "ok"}

@@ -32,6 +32,58 @@ class TestUpdatePreferences:
     assert data["vocal_preferences"]["vocal_range"] == "tenor"
     assert data["vocal_preferences"]["preferred_categories"] == ["vocal_training", "breathing"]
 
+  def test_voice_calibration_is_persisted_and_returned(self, client: TestClient, auth_headers: dict) -> None:
+    client.get("/v1/auth/me", headers=auth_headers)
+    payload = {
+      "vocal_range": "tenor",
+      "preferred_categories": ["vocal_training"],
+      "training_goal": "pitch_improvement",
+      "voice_calibration": {
+        "voice_type": "tenor",
+        "confidence": 0.82,
+        "average_frequency_hz": 196.0,
+        "lowest_frequency_hz": 130.8,
+        "highest_frequency_hz": 392.0,
+        "sample_count": 96,
+        "calibrated_at_ms": 1760000000000,
+      },
+    }
+
+    update_response = client.put(
+      "/v1/profile/preferences",
+      headers=auth_headers,
+      json=payload,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["vocal_preferences"]["voice_calibration"] == payload["voice_calibration"]
+
+    profile_response = client.get("/v1/profile", headers=auth_headers)
+    assert profile_response.status_code == 200
+    assert profile_response.json()["vocal_preferences"]["voice_calibration"]["voice_type"] == "tenor"
+
+  def test_invalid_voice_calibration_range_is_rejected(
+    self,
+    client: TestClient,
+    auth_headers: dict,
+  ) -> None:
+    client.get("/v1/auth/me", headers=auth_headers)
+    payload = {
+      "vocal_range": "tenor",
+      "preferred_categories": ["vocal_training"],
+      "training_goal": "pitch_improvement",
+      "voice_calibration": {
+        "voice_type": "tenor",
+        "confidence": 0.82,
+        "average_frequency_hz": 196.0,
+        "lowest_frequency_hz": 392.0,
+        "highest_frequency_hz": 130.8,
+        "sample_count": 96,
+        "calibrated_at_ms": 1760000000000,
+      },
+    }
+    response = client.put("/v1/profile/preferences", headers=auth_headers, json=payload)
+    assert response.status_code == 422
+
   def test_invalid_vocal_range_returns_422(self, client: TestClient, auth_headers: dict) -> None:
     client.get("/v1/auth/me", headers=auth_headers)
     payload = {

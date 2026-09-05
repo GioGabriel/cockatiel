@@ -47,7 +47,8 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
 
       // We need the KaraokeDrill object to pass to KaraokeSingingPage.
       // For now we will mock it or fetch it, but let's assume we can fetch it:
-      final drillDetails = await widget.apiClient.fetchKaraokeDrill(drillId: _selectedExercise);
+      final drillDetails =
+          await widget.apiClient.fetchKaraokeDrill(drillId: _selectedExercise);
 
       if (!mounted) {
         return;

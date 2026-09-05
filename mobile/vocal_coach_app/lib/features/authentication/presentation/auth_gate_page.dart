@@ -10,6 +10,7 @@ import '../../../shared/models/session_models.dart';
 import '../../ai_feedback_display/presentation/feedback_page.dart';
 import '../../onboarding/presentation/onboarding_page.dart';
 import 'authentication_page.dart';
+import 'voice_profile_setup_page.dart';
 
 class AuthGatePage extends StatefulWidget {
   const AuthGatePage({
@@ -30,6 +31,7 @@ class _AuthGatePageState extends State<AuthGatePage> {
   StreamSubscription<String>? _notificationTapSub;
   bool _showOnboarding = false;
   bool _onboardingChecked = false;
+  String? _voiceSetupDismissedForUid;
 
   @override
   void initState() {
@@ -111,6 +113,22 @@ class _AuthGatePageState extends State<AuthGatePage> {
               return OnboardingPage(onComplete: _onOnboardingComplete);
             }
             if (widget.appState.isAuthenticated) {
+              final profile = widget.appState.currentUser;
+              final shouldShowVoiceSetup = profile != null &&
+                  profile.vocalPreferences == null &&
+                  _voiceSetupDismissedForUid != profile.uid;
+              if (shouldShowVoiceSetup) {
+                return VoiceProfileSetupPage(
+                  appState: widget.appState,
+                  apiClient: widget.apiClient,
+                  onFinished: () {
+                    if (!mounted) return;
+                    setState(() {
+                      _voiceSetupDismissedForUid = profile.uid;
+                    });
+                  },
+                );
+              }
               return MainShellPage(
                 appState: widget.appState,
                 apiClient: widget.apiClient,
@@ -168,15 +186,8 @@ class _BootstrappingPageState extends State<_BootstrappingPage>
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFE8F8FB), Color(0xFFF4F7FB)],
-          ),
-        ),
+      body: ColoredBox(
+        color: theme.scaffoldBackgroundColor,
         child: FadeTransition(
           opacity: _fadeIn,
           child: ScaleTransition(
@@ -184,22 +195,43 @@ class _BootstrappingPageState extends State<_BootstrappingPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  ),
-                  child: Icon(
-                    Icons.music_note_rounded,
-                    size: 44,
-                    color: theme.colorScheme.primary,
+                Semantics(
+                  label: 'Cockatiel bird, microphone, and waveform',
+                  child: Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      border: Border.all(
+                        color:
+                            theme.colorScheme.primary.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          Icons.pets_rounded,
+                          size: 46,
+                          color: theme.colorScheme.primary,
+                        ),
+                        Positioned(
+                          right: 12,
+                          bottom: 12,
+                          child: Icon(
+                            Icons.mic_rounded,
+                            size: 22,
+                            color: theme.colorScheme.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Vocal Coach',
+                  'Cockatiel',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: theme.colorScheme.onSurface,
@@ -207,7 +239,7 @@ class _BootstrappingPageState extends State<_BootstrappingPage>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Your AI-powered singing companion',
+                  'Voice practice, made clear',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

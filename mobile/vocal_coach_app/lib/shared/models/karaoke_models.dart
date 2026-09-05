@@ -18,10 +18,10 @@ class MelodyNote {
   }
 
   Map<String, dynamic> toJson() => {
-    'note': note,
-    'start_beat': startBeat,
-    'duration_beats': durationBeats,
-  };
+        'note': note,
+        'start_beat': startBeat,
+        'duration_beats': durationBeats,
+      };
 }
 
 class KaraokeDrill {
@@ -67,8 +67,7 @@ class KaraokeDrill {
       tempoBpm: json['tempo_bpm'] as int,
       vocalRange: Map<String, String>.from(json['vocal_range'] as Map),
       objective: json['objective'] as String,
-      performanceTips:
-          List<String>.from(json['performance_tips'] as List),
+      performanceTips: List<String>.from(json['performance_tips'] as List),
       melodyReference: (json['melody_reference'] as List)
           .map(
             (e) => MelodyNote.fromJson(e as Map<String, dynamic>),
@@ -82,22 +81,21 @@ class KaraokeDrill {
   }
 
   Map<String, dynamic> toJson() => {
-    'drill_id': drillId,
-    'title': title,
-    'style_category': styleCategory,
-    'difficulty': difficulty,
-    'duration_sec': durationSec,
-    'tempo_bpm': tempoBpm,
-    'vocal_range': vocalRange,
-    'objective': objective,
-    'performance_tips': performanceTips,
-    'melody_reference':
-        melodyReference.map((e) => e.toJson()).toList(),
-    'instrumental_url': instrumentalUrl,
-    'pitch_map_url': pitchMapUrl,
-    'artist_name': artistName,
-    'cover_url': coverUrl,
-  };
+        'drill_id': drillId,
+        'title': title,
+        'style_category': styleCategory,
+        'difficulty': difficulty,
+        'duration_sec': durationSec,
+        'tempo_bpm': tempoBpm,
+        'vocal_range': vocalRange,
+        'objective': objective,
+        'performance_tips': performanceTips,
+        'melody_reference': melodyReference.map((e) => e.toJson()).toList(),
+        'instrumental_url': instrumentalUrl,
+        'pitch_map_url': pitchMapUrl,
+        'artist_name': artistName,
+        'cover_url': coverUrl,
+      };
 }
 
 class KaraokeCategory {
@@ -147,8 +145,7 @@ class KaraokeCatalog {
       description: json['description'] as String,
       categories: (json['categories'] as List)
           .map(
-            (e) =>
-                KaraokeCategory.fromJson(e as Map<String, dynamic>),
+            (e) => KaraokeCategory.fromJson(e as Map<String, dynamic>),
           )
           .toList(),
     );

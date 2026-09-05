@@ -81,7 +81,7 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
           }
         },
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _phase = _CalibrationPhase.error;
@@ -241,9 +241,17 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
           ),
           const SizedBox(height: 12),
           Text(
-            'We\'ll detect whether you\'re a soprano, alto, '
-            'tenor, or bass and set up your training accordingly.',
+            'We\'ll estimate a comfortable starting range for practice. '
+            'This is not a diagnosis, identity label, or gender determination.',
             style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Only the numeric result is saved; raw microphone audio is not recorded or uploaded.',
+            style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
@@ -288,8 +296,7 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
               barSpacing: 2.5,
               maxBarHeight: 80.0,
               minBarHeight: 4.0,
-              glowEnabled: true,
-              glowIntensity: 0.8,
+              glowEnabled: false,
               style: WaveformStyle.mirrored,
             ),
           ),
@@ -323,8 +330,7 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
           const SizedBox(height: 24),
           LinearProgressIndicator(
             value: 1.0 -
-                (_secondsRemaining / _calibrationDurationSec)
-                    .clamp(0.0, 1.0),
+                (_secondsRemaining / _calibrationDurationSec).clamp(0.0, 1.0),
             minHeight: 6,
           ),
         ],
@@ -381,7 +387,7 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
           ),
           const SizedBox(height: 24),
           Text(
-            'You\'re a',
+            'Estimated starting range',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -396,13 +402,21 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
           ),
           const SizedBox(height: 12),
           Text(
-            'Range: ${result.rangeDescription}',
+            '${result.label} estimate · ${result.rangeDescription}',
             style: theme.textTheme.bodyLarge,
           ),
           const SizedBox(height: 8),
           Text(
             'Confidence: ${(result.confidence * 100).toStringAsFixed(0)}%',
             style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Use this as a starting point. Your comfort and your manual choice always take priority.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
@@ -428,8 +442,7 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
                   const SizedBox(height: 12),
                   _ResultRow(
                     label: 'Avg frequency',
-                    value:
-                        '${result.averageFrequencyHz.toStringAsFixed(1)} Hz',
+                    value: '${result.averageFrequencyHz.toStringAsFixed(1)} Hz',
                     icon: Icons.graphic_eq_rounded,
                     theme: theme,
                   ),

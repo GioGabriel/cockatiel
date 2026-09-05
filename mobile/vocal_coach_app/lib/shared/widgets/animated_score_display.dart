@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-/// Gold color for personal best glow accent.
-const _kGoldColor = Color(0xFFE1B261);
+import '../../app/theme/app_theme_tokens.dart';
 
-/// Score display that chains count-up → pulse → optional gold glow.
+/// Score display that chains count-up → pulse → optional personal-best highlight.
 ///
 /// Uses [TickerProviderStateMixin] to manage multiple [AnimationController]s:
 /// - Controller 1: count-up from 0 to [score] over [countUpDuration]
 /// - Controller 2: pulse scale 1.0→1.08→1.0 over [pulseDuration]
-/// - Controller 3 (if [isPersonalBest]): gold glow fade-out over [glowDuration]
+/// - Controller 3 (if [isPersonalBest]): a restrained highlight fade-out over
+///   [glowDuration]
 class AnimatedScoreDisplay extends StatefulWidget {
   const AnimatedScoreDisplay({
     super.key,
@@ -89,7 +89,7 @@ class _AnimatedScoreDisplayState extends State<AnimatedScoreDisplay>
       ),
     ]).animate(_pulseController);
 
-    // When pulse starts, trigger glow if applicable.
+    // When pulse starts, trigger the personal-best highlight if applicable.
     _pulseController.addStatusListener(_onPulseStatus);
   }
 
@@ -98,7 +98,7 @@ class _AnimatedScoreDisplayState extends State<AnimatedScoreDisplay>
       vsync: this,
       duration: widget.glowDuration,
     );
-    // Glow: fade in quickly then fade out.
+    // Highlight: fade in quickly then fade out.
     _glowAnimation = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween<double>(begin: 0.0, end: 1.0)
@@ -150,24 +150,21 @@ class _AnimatedScoreDisplayState extends State<AnimatedScoreDisplay>
         if (_glowAnimation != null) _glowAnimation!,
       ]),
       builder: (context, child) {
-        final glowOpacity = _glowAnimation?.value ?? 0.0;
+        final highlightOpacity = _glowAnimation?.value ?? 0.0;
+        final theme = Theme.of(context);
 
         return Transform.scale(
           scale: _pulseAnimation.value,
           child: Container(
-            decoration: widget.isPersonalBest && glowOpacity > 0
+            decoration: widget.isPersonalBest && highlightOpacity > 0
                 ? BoxDecoration(
                     shape: BoxShape.rectangle,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _kGoldColor.withValues(
-                          alpha: glowOpacity * 0.6,
-                        ),
-                        blurRadius: 20,
-                        spreadRadius: 4,
+                    border: Border.all(
+                      color: theme.appTokens.warning.withValues(
+                        alpha: highlightOpacity * 0.7,
                       ),
-                    ],
+                    ),
                   )
                 : null,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

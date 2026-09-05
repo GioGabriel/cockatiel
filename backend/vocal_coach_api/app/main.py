@@ -1,10 +1,13 @@
+import asyncio
 import logging
+import re
+from secrets import compare_digest
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from time import perf_counter
 from uuid import uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,11 +62,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+  CORSMiddleware,
+  allow_origins=settings.cors_allowed_origins,
+  allow_origin_regex=(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$" if settings.cors_allow_localhost else None),
+  allow_credentials=bool(settings.cors_allowed_origins or settings.cors_allow_localhost),
+  allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+  allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
 
 app.include_router(api_router, prefix=settings.api_prefix)
@@ -73,11 +77,18 @@ app.include_router(api_router, prefix=settings.api_prefix)
 
 @app.middleware("http")
 async def request_context_middleware(request: Request, call_next):
-  trace_id = request.headers.get("x-request-id", str(uuid4()))
+  requested_trace_id = request.headers.get("x-request-id", "")
+  trace_id = (
+    requested_trace_id
+    if len(requested_trace_id) <= 64 and re.fullmatch(r"[A-Za-z0-9._:-]+", requested_trace_id or "")
+    else str(uuid4())
+  )
   request.state.trace_id = trace_id
   start = perf_counter()
+  request_timeout_s = getattr(settings, "api_request_timeout_s", 30.0)
   try:
-    response = await call_next(request)
+    async with asyncio.timeout(request_timeout_s):
+      response = await call_next(request)
     duration_ms = (perf_counter() - start) * 1000
     response.headers["x-request-id"] = trace_id
     observe("api_latency_ms", duration_ms)
@@ -90,6 +101,21 @@ async def request_context_middleware(request: Request, call_next):
       response.status_code,
       duration_ms,
     )
+    return response
+  except TimeoutError:
+    increment("api_requests_failed_total")
+    logger.warning(
+      "request_timeout trace_id=%s method=%s path=%s timeout_s=%.2f",
+      trace_id,
+      request.method,
+      request.url.path,
+      request_timeout_s,
+    )
+    response = JSONResponse(
+      status_code=504,
+      content=error_envelope("REQUEST_TIMEOUT", "The request took too long. Please try again.", trace_id),
+    )
+    response.headers["x-request-id"] = trace_id
     return response
   except Exception:
     increment("api_requests_failed_total")
@@ -108,15 +134,31 @@ async def api_error_handler(request: Request, exc: ApiError):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
   trace_id = getattr(request.state, "trace_id", str(uuid4()))
+  safe_errors = []
+  for error in exc.errors():
+    safe_errors.append(
+      {
+        "loc": [str(part) for part in error.get("loc", ())],
+        "msg": str(error.get("msg") or "Invalid request field."),
+        "type": str(error.get("type") or "validation_error"),
+      }
+    )
   return JSONResponse(
     status_code=422,
-    content=error_envelope("VALIDATION_ERROR", "Request validation failed.", trace_id, {"errors": exc.errors()}),
+    content=error_envelope("VALIDATION_ERROR", "Request validation failed.", trace_id, {"errors": safe_errors}),
   )
 
 
 @app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, _: Exception):
+async def unhandled_exception_handler(request: Request, exc: Exception):
   trace_id = getattr(request.state, "trace_id", str(uuid4()))
+  logger.error(
+    "unhandled_request trace_id=%s method=%s path=%s error_type=%s",
+    trace_id,
+    request.method,
+    request.url.path,
+    type(exc).__name__,
+  )
   return JSONResponse(
     status_code=500,
     content=error_envelope("INTERNAL_ERROR", "Unexpected server error.", trace_id),
@@ -125,9 +167,14 @@ async def unhandled_exception_handler(request: Request, _: Exception):
 
 @app.get("/health")
 def health() -> dict[str, str]:
-  return {"status": "ok", "env": settings.app_env}
+  return {"status": "ok"}
 
 
 @app.get("/metrics")
-def metrics() -> dict[str, object]:
+def metrics(x_metrics_token: str | None = Header(default=None)) -> dict[str, object]:
+  configured_token = settings.metrics_access_token
+  is_production = settings.app_env.strip().lower() in {"prod", "production", "staging"}
+  if is_production or configured_token:
+    if not configured_token or not x_metrics_token or not compare_digest(x_metrics_token, configured_token):
+      raise ApiError(code="METRICS_NOT_FOUND", message="Metrics endpoint not found.", status_code=404)
   return snapshot()

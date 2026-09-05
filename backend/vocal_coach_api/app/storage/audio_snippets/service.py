@@ -44,7 +44,10 @@ def get_audio_snippet_storage():
       logger.info("audio_snippet_storage backend=firestore")
       return FirestoreAudioSnippetStorage(build_firestore_client())
     except Exception as exc:
-      logger.warning("audio_snippet_storage firestore init failed, falling back to local: %s", exc)
+      logger.warning(
+        "audio_snippet_storage firestore init failed, falling back to local error_type=%s",
+        type(exc).__name__,
+      )
 
   if backend in {"local", "filesystem", "fs"}:
     logger.info("audio_snippet_storage backend=local root=%s", settings.audio_snippet_local_dir)

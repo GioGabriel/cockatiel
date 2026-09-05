@@ -49,5 +49,9 @@ class FirestoreAudioSnippetStorage:
         self._db.collection("audio_snippet_data").document(doc_id).delete()
         logger.info("deleted_snippet_from_firestore doc_id=%s", doc_id)
     except Exception as exc:
-      logger.warning("failed_to_delete_firestore_snippet path=%s error=%s", storage_path, exc)
+      logger.warning(
+        "failed_to_delete_firestore_snippet path=%s error_type=%s",
+        storage_path,
+        type(exc).__name__,
+      )
       return

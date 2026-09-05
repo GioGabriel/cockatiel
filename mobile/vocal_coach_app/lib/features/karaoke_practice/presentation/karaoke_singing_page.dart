@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -12,6 +11,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/karaoke_models.dart';
 import '../../../shared/models/session_models.dart';
+import '../../../shared/widgets/audio_waveform_visualizer.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../vocal_training/presentation/widgets/karaoke_pitch_visualizer.dart';
 import 'widgets/lyric_scroller.dart';
@@ -23,12 +23,14 @@ class KaraokeSingingPage extends StatefulWidget {
     required this.appState,
     required this.drill,
     required this.sessionId,
+    this.contentClient,
   });
 
   final ApiClient apiClient;
   final AppState appState;
   final KaraokeDrill drill;
   final String sessionId;
+  final KaraokeContentClient? contentClient;
 
   @override
   State<KaraokeSingingPage> createState() => _KaraokeSingingPageState();
@@ -37,19 +39,30 @@ class KaraokeSingingPage extends StatefulWidget {
 class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   final AudioPlayer _player = AudioPlayer();
   late final LiveAudioAnalyzer _analyzer;
+  late final KaraokeContentClient _contentClient;
+  late final bool _ownsContentClient;
   StreamSubscription<LiveAudioFrame>? _audioSub;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<PlayerState>? _playerStateSub;
+  Timer? _micOnlyTimer;
+  final Stopwatch _micOnlyStopwatch = Stopwatch();
 
   bool _isLoading = true;
   bool _isPlaying = false;
   bool _isFinishing = false;
   String? _error;
+  List<String> _contentNotices = const [];
+  bool _hasInstrumentalAudio = false;
 
   List<LyricLine> _lyrics = [];
   List<TrainingRuntimeStage> _stages = [];
-  
+
   final List<PitchPoint> _pitchHistory = [];
-  
+
   Duration _currentPosition = Duration.zero;
+  double _liveAmplitude = 0;
+  double? _liveCentsError;
+  String _liveCoachCue = 'Press start when you are ready.';
 
   // Metrics Window
   int _windowFrameCount = 0;
@@ -68,75 +81,74 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       minFrequencyHz: 80,
       maxFrequencyHz: 800,
     );
+    _contentClient = widget.contentClient ?? KaraokeContentClient();
+    _ownsContentClient = widget.contentClient == null;
     _initializeKaraoke();
   }
 
   Future<void> _initializeKaraoke() async {
     try {
-      // 1. Fetch from LRCLIB using the song title and artist name
-      try {
-        final query = '${widget.drill.title} ${widget.drill.artistName}'.trim();
-        final url = Uri.parse('https://lrclib.net/api/search?q=${Uri.encodeComponent(query)}');
-        final response = await http.get(url, headers: {
-          'User-Agent': 'Cockatiel Vocal Coach (vocalcoach@example.com)'
-        });
-        
-        if (response.statusCode == 200) {
-          final List<dynamic> results = json.decode(response.body);
-          // Find the first result that has syncedLyrics
-          final match = results.firstWhere(
-            (r) => r['syncedLyrics'] != null && r['syncedLyrics'].toString().isNotEmpty, 
-            orElse: () => null
-          );
-          
-          if (match != null) {
-            _lyrics = _parseLrc(match['syncedLyrics']);
-          }
-        }
-      } catch (e) {
-        debugPrint("Failed to fetch lyrics: $e");
+      final notices = <String>[];
+
+      final syncedLyrics = await _contentClient.fetchSyncedLyrics(
+        title: widget.drill.title,
+        artist: widget.drill.artistName,
+      );
+      if (syncedLyrics != null) {
+        _lyrics = _parseLrc(syncedLyrics);
+      }
+      if (_lyrics.isEmpty) {
+        notices.add(
+            'Synchronized lyrics are unavailable. You can still follow the pitch guide.');
       }
 
-      // 2. Download Pitch Map (.json)
       if (widget.drill.pitchMapUrl.isNotEmpty) {
-        try {
-          final pitchResponse = await http.get(Uri.parse(widget.drill.pitchMapUrl));
-          if (pitchResponse.statusCode == 200) {
-            final decoded = json.decode(pitchResponse.body);
-            
-            if (decoded is List) {
-              _stages = _parsePitchMapList(decoded);
-            } else if (decoded is Map<String, dynamic>) {
-              _stages = _parsePitchMap(decoded);
-            } else {
-               _stages = [];
-            }
-          }
-        } catch (e) {
-          debugPrint("Failed to parse pitch map JSON (likely a dead link returning HTML): $e");
-          _stages = [];
+        final decoded =
+            await _contentClient.fetchPitchMap(widget.drill.pitchMapUrl);
+        if (decoded is List) {
+          _stages = _parsePitchMapList(decoded);
+        } else if (decoded is Map<String, dynamic>) {
+          _stages = _parsePitchMap(decoded);
         }
       }
-
-      // 3. Load Audio
-      if (widget.drill.instrumentalUrl.isNotEmpty) {
-        await _player.setUrl(widget.drill.instrumentalUrl);
+      if (_stages.isEmpty) {
+        notices.add(
+            'A pitch guide is unavailable for this song. Live microphone feedback is still active.');
       }
-      
-      _player.positionStream.listen((pos) {
+
+      if (widget.drill.instrumentalUrl.isNotEmpty) {
+        try {
+          await _player.setUrl(widget.drill.instrumentalUrl);
+          _hasInstrumentalAudio = true;
+        } catch (_) {
+          notices.add(
+              'Instrumental audio could not be loaded. Mic-only practice is available.');
+        }
+      } else {
+        notices.add(
+            'Instrumental audio is unavailable. Mic-only practice is available.');
+      }
+
+      _positionSub = _player.positionStream.listen((pos) {
         if (mounted) setState(() => _currentPosition = pos);
       });
-      
-      _player.playerStateStream.listen((state) {
+
+      _playerStateSub = _player.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed) {
           _finishSession();
         }
       });
 
-      setState(() => _isLoading = false);
-    } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = "Failed to load karaoke assets: $e";
+        _contentNotices = notices;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error =
+            'We could not load this song right now. Please return and try another song.';
         _isLoading = false;
       });
     }
@@ -144,30 +156,35 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 
   List<TrainingRuntimeStage> _parsePitchMapList(List<dynamic> jsonList) {
     final List<TrainingRuntimeStage> stages = [];
-    
+
     for (int i = 0; i < jsonList.length; i++) {
       final item = jsonList[i];
       if (item is! Map) continue;
-      
-      final timeSec = (item['time'] as num).toDouble();
-      final freq = (item['pitch'] as num).toDouble();
-      
+
+      final timeValue = item['time'];
+      final pitchValue = item['pitch'];
+      if (timeValue is! num || pitchValue is! num) continue;
+      final timeSec = timeValue.toDouble();
+      final freq = pitchValue.toDouble();
+
       if (freq <= 0) continue; // Skip silences
-      
+
       // Determine duration (diff to next frame, or default to 0.05s)
       double durationSec = 0.05;
       if (i < jsonList.length - 1) {
-         final nextItem = jsonList[i + 1];
-         if (nextItem is Map) {
-            final nextTimeSec = (nextItem['time'] as num).toDouble();
-            
-            // If the next note is the exact same pitch and continuous, we could merge them.
-            // For now, just generate discrete tiny stages or rely on the visualizer to merge them.
-            // Actually, we should just emit the exact frame as a tiny 0.05s stage so the visualizer draws a continuous line!
-            durationSec = (nextTimeSec - timeSec).clamp(0.01, 0.5);
-         }
+        final nextItem = jsonList[i + 1];
+        if (nextItem is Map) {
+          final nextTimeValue = nextItem['time'];
+          if (nextTimeValue is! num) continue;
+          final nextTimeSec = nextTimeValue.toDouble();
+
+          // If the next note is the exact same pitch and continuous, we could merge them.
+          // For now, just generate discrete tiny stages or rely on the visualizer to merge them.
+          // Actually, we should just emit the exact frame as a tiny 0.05s stage so the visualizer draws a continuous line!
+          durationSec = (nextTimeSec - timeSec).clamp(0.01, 0.5);
+        }
       }
-      
+
       stages.add(TrainingRuntimeStage(
         stageId: 'pitch_$i',
         title: freq.toStringAsFixed(1),
@@ -184,28 +201,35 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   List<TrainingRuntimeStage> _parsePitchMap(Map<String, dynamic> jsonMap) {
     final List<TrainingRuntimeStage> stages = [];
     int index = 0;
-    
+
     final keys = jsonMap.keys.toList()..sort();
-    
+
     for (int i = 0; i < keys.length; i++) {
       final key = keys[i];
-      final freq = (jsonMap[key] as num).toDouble();
-      
+      final frequencyValue = jsonMap[key];
+      if (frequencyValue is! num) continue;
+      final freq = frequencyValue.toDouble();
+
       final parts = key.split(':');
       if (parts.length != 2) continue;
-      final min = int.parse(parts[0]);
-      final startSecDouble = min * 60.0 + double.parse(parts[1]);
-      
+      final min = int.tryParse(parts[0]);
+      final seconds = double.tryParse(parts[1]);
+      if (min == null || seconds == null) continue;
+      final startSecDouble = min * 60.0 + seconds;
+
       double endSecDouble = startSecDouble + 0.1;
       if (i < keys.length - 1) {
-         final nextParts = keys[i+1].split(':');
-         if (nextParts.length == 2) {
-            final nextMin = int.parse(nextParts[0]);
-            final nextStartSec = nextMin * 60.0 + double.parse(nextParts[1]);
+        final nextParts = keys[i + 1].split(':');
+        if (nextParts.length == 2) {
+          final nextMin = int.tryParse(nextParts[0]);
+          final nextSeconds = double.tryParse(nextParts[1]);
+          if (nextMin != null && nextSeconds != null) {
+            final nextStartSec = nextMin * 60.0 + nextSeconds;
             if (nextStartSec - startSecDouble <= 0.5) {
-                endSecDouble = nextStartSec;
+              endSecDouble = nextStartSec;
             }
-         }
+          }
+        }
       }
 
       stages.add(TrainingRuntimeStage(
@@ -225,7 +249,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   List<LyricLine> _parseLrc(String lrc) {
     final List<LyricLine> lines = [];
     final regex = RegExp(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)');
-    
+
     for (var line in lrc.split('\n')) {
       final match = regex.firstMatch(line);
       if (match != null) {
@@ -233,7 +257,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
         final sec = int.parse(match.group(2)!);
         final ms = int.parse(match.group(3)!.padRight(3, '0'));
         final text = match.group(4)!.trim();
-        
+
         final duration = Duration(minutes: min, seconds: sec, milliseconds: ms);
         lines.add(LyricLine(time: duration, text: text));
       }
@@ -244,6 +268,25 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   double _centsDifference(double frequencyHz, double targetHz) {
     if (frequencyHz <= 0 || targetHz <= 0) return 0;
     return 1200 * (log(frequencyHz / targetHz) / ln2);
+  }
+
+  void _startMicOnlyClock() {
+    _micOnlyTimer?.cancel();
+    _micOnlyStopwatch
+      ..reset()
+      ..start();
+    _micOnlyTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (!mounted || !_micOnlyStopwatch.isRunning) return;
+      setState(() {
+        _currentPosition = _micOnlyStopwatch.elapsed;
+      });
+    });
+  }
+
+  void _stopMicOnlyClock() {
+    _micOnlyTimer?.cancel();
+    _micOnlyTimer = null;
+    _micOnlyStopwatch.stop();
   }
 
   TrainingRuntimeStage? _currentStage(double elapsedSec) {
@@ -258,26 +301,34 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   TrainingAttemptMetricSummary _buildAttemptMetricSummary() {
     final frameCount = max(_windowFrameCount, 1);
     final voicedFrameCount = max(_windowVoicedFrameCount, 1);
-    
+
     final avgAbsCents = _windowAbsCentsTotal / voicedFrameCount;
     final avgLoudnessDb = _windowLoudnessTotal / frameCount;
     final onPitchRatio = _windowOnPitchFrameCount / voicedFrameCount;
     final voicedRatio = _windowVoicedFrameCount / frameCount;
-    
+
     final avgPitchDelta = _windowPitchTransitions > 0
         ? _windowPitchDeltaTotal / _windowPitchTransitions
         : 0;
 
-    final pitchAccuracy = (avgAbsCents <= 50.0 ? 100.0 : (100.0 - (avgAbsCents - 50.0)))
-        .clamp(0, 100)
-        .toDouble() * voicedRatio;
-        
-    final timingAccuracy = (40 + (onPitchRatio * 60)).clamp(0, 100).toDouble() * voicedRatio;
+    final pitchAccuracy =
+        (avgAbsCents <= 50.0 ? 100.0 : (100.0 - (avgAbsCents - 50.0)))
+                .clamp(0, 100)
+                .toDouble() *
+            voicedRatio;
+
+    final timingAccuracy =
+        (40 + (onPitchRatio * 60)).clamp(0, 100).toDouble() * voicedRatio;
     final loudnessPenalty = (avgLoudnessDb + 24).abs() * 2.2;
-    final breathControl = ((100 - loudnessPenalty) * voicedRatio).clamp(0, 100).toDouble();
-    final pitchStability = ((100 - (avgPitchDelta * 1.5)) * voicedRatio).clamp(0, 100).toDouble();
-    final vibratoConsistency = (55 + (voicedRatio * 45) - (avgPitchDelta * 0.6)).clamp(0, 100).toDouble();
-    final noteTransitionSmoothness = ((100 - (avgPitchDelta * 1.2)) * voicedRatio).clamp(0, 100).toDouble();
+    final breathControl =
+        ((100 - loudnessPenalty) * voicedRatio).clamp(0, 100).toDouble();
+    final pitchStability =
+        ((100 - (avgPitchDelta * 1.5)) * voicedRatio).clamp(0, 100).toDouble();
+    final vibratoConsistency = (55 + (voicedRatio * 45) - (avgPitchDelta * 0.6))
+        .clamp(0, 100)
+        .toDouble();
+    final noteTransitionSmoothness =
+        ((100 - (avgPitchDelta * 1.2)) * voicedRatio).clamp(0, 100).toDouble();
 
     return TrainingAttemptMetricSummary.voice(
       sampleCount: frameCount,
@@ -291,8 +342,16 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   }
 
   Future<void> _startSinging() async {
-    setState(() => _isPlaying = true);
-    
+    if (_isPlaying || _isFinishing) return;
+    _stopMicOnlyClock();
+    _currentPosition = Duration.zero;
+    _pitchHistory.clear();
+    setState(() {
+      _isPlaying = true;
+      _liveCoachCue = 'Listening for your voice...';
+      _liveCentsError = null;
+    });
+
     _windowFrameCount = 0;
     _windowVoicedFrameCount = 0;
     _windowOnPitchFrameCount = 0;
@@ -301,55 +360,108 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     _windowLoudnessTotal = 0;
     _windowPitchDeltaTotal = 0;
     _windowPreviousFrequencyHz = null;
-    
-    await _analyzer.start();
+
+    try {
+      await _analyzer.start();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isPlaying = false;
+        _error =
+            'Microphone access is unavailable. Check permission and try again.';
+      });
+      return;
+    }
     _audioSub = _analyzer.frames.listen((frame) {
       final elapsed = _currentPosition.inMilliseconds / 1000.0;
-      
-      setState(() {
-        if (frame.voiced && frame.frequencyHz != null) {
-          _pitchHistory.add(PitchPoint(elapsed, frame.frequencyHz!));
-          if (_pitchHistory.length > 250) _pitchHistory.removeAt(0);
-        }
-      });
-      
+      final currentStage = _currentStage(elapsed);
+      double? centsError;
+      if (frame.voiced && frame.frequencyHz != null && currentStage != null) {
+        final targetHz = double.tryParse(currentStage.targetLabel) ?? 261.63;
+        centsError = _centsDifference(frame.frequencyHz!, targetHz);
+      }
+      final normalizedAmplitude =
+          ((frame.loudnessDb + 60) / 60).clamp(0.0, 1.0);
+      final cue = !frame.voiced
+          ? 'Sing into the microphone'
+          : currentStage == null
+              ? 'Keep singing—your live pitch is being tracked'
+              : centsError == null
+                  ? 'Keep singing—your live pitch is being tracked'
+                  : centsError.abs() <= 50
+                      ? 'On target—keep it steady'
+                      : centsError < 0
+                          ? 'A little higher'
+                          : 'A little lower';
+
+      if (mounted) {
+        setState(() {
+          _liveAmplitude = normalizedAmplitude;
+          _liveCentsError = centsError;
+          _liveCoachCue = cue;
+
+          if (frame.voiced && frame.frequencyHz != null) {
+            _pitchHistory.add(PitchPoint(elapsed, frame.frequencyHz!));
+            if (_pitchHistory.length > 250) _pitchHistory.removeAt(0);
+          }
+        });
+      }
+
       _windowFrameCount++;
       _windowLoudnessTotal += frame.loudnessDb;
-      
+
       if (!frame.voiced || frame.frequencyHz == null) return;
-      
+
       _windowVoicedFrameCount++;
       final freq = frame.frequencyHz!;
-      
-      final currentStage = _currentStage(elapsed);
       if (currentStage != null) {
-          final targetHz = double.tryParse(currentStage.targetLabel) ?? 261.63;
-          final centsError = _centsDifference(freq, targetHz);
-          final absCents = centsError.abs();
-          
-          _windowAbsCentsTotal += absCents;
-          if (absCents <= 50) { 
-              _windowOnPitchFrameCount++;
-          }
+        final absCents = centsError?.abs() ?? 0;
+        _windowAbsCentsTotal += absCents;
+        if (absCents <= 50) {
+          _windowOnPitchFrameCount++;
+        }
       }
-      
+
       if (_windowPreviousFrequencyHz != null) {
         _windowPitchDeltaTotal += (freq - _windowPreviousFrequencyHz!).abs();
         _windowPitchTransitions++;
       }
       _windowPreviousFrequencyHz = freq;
     });
-    
-    await _player.play();
+
+    if (!_hasInstrumentalAudio) {
+      _startMicOnlyClock();
+    }
+
+    if (_hasInstrumentalAudio) {
+      try {
+        await _player.play();
+      } catch (_) {
+        if (mounted) {
+          setState(() {
+            _hasInstrumentalAudio = false;
+            _contentNotices = [
+              ..._contentNotices,
+              'Instrumental audio stopped unexpectedly. Mic-only practice is still active.',
+            ];
+          });
+          _startMicOnlyClock();
+        }
+      }
+    }
   }
-  
+
   Future<void> _finishSession() async {
     if (_isFinishing) return;
     _isFinishing = true;
 
+    _stopMicOnlyClock();
     await _player.stop();
+    await _audioSub?.cancel();
+    _audioSub = null;
     await _analyzer.stop();
-    
+
+    if (!mounted) return;
     setState(() {
       _isPlaying = false;
       _isLoading = true;
@@ -357,8 +469,9 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 
     try {
       final summary = _buildAttemptMetricSummary();
-      final totalSec = (_currentPosition.inMilliseconds / 1000.0).clamp(10, 600).toInt();
-      
+      final totalSec =
+          (_currentPosition.inMilliseconds / 1000.0).clamp(10, 600).toInt();
+
       await widget.apiClient.saveTrainingAttempt(
         sessionId: widget.sessionId,
         attemptIndex: 1,
@@ -366,10 +479,10 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
         durationSec: totalSec,
         metricSummary: summary,
       );
-      
+
       await widget.apiClient.finalizeSession(sessionId: widget.sessionId);
       await widget.appState.refreshAIJobs();
-      
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -380,10 +493,12 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
           ),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit score: $e')),
+          const SnackBar(
+            content: Text('Could not save this session. Please try again.'),
+          ),
         );
         Navigator.pop(context);
       }
@@ -392,86 +507,111 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 
   @override
   void dispose() {
+    _stopMicOnlyClock();
     _player.dispose();
     _analyzer.dispose();
     _audioSub?.cancel();
+    _positionSub?.cancel();
+    _playerStateSub?.cancel();
+    if (_ownsContentClient) _contentClient.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: theme.colorScheme.primary),
+        ),
+      );
     }
-    
+
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Error')),
-        body: Center(child: Text(_error!)),
+        body: Center(
+          child: Text(
+            _error!,
+            style: theme.textTheme.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.colorScheme.surface,
       body: Container(
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: theme.colorScheme.surface,
           image: widget.drill.coverUrl.isNotEmpty
               ? DecorationImage(
                   image: NetworkImage(widget.drill.coverUrl),
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
-                    Colors.black.withValues(alpha: 0.3),
+                    theme.colorScheme.scrim.withValues(alpha: 0.3),
                     BlendMode.darken,
                   ),
                 )
               : null,
         ),
         child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.6),
-                Colors.black.withValues(alpha: 0.85),
-                Colors.black,
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
+          color: theme.colorScheme.scrim.withValues(alpha: 0.82),
           child: SafeArea(
             child: Stack(
               children: [
                 // Pitch Visualizer Background Layer
                 Positioned(
-                  top: 50, left: 0, right: 0, height: 200,
+                  top: 50,
+                  left: 0,
+                  right: 0,
+                  height: 200,
                   child: KaraokePitchVisualizer(
                     stages: _stages,
                     currentElapsedSec: _currentPosition.inMilliseconds / 1000.0,
                     pitchHistory: _pitchHistory,
                     minHz: 80,
                     maxHz: 800,
-                    getTargetFrequency: (label) => double.tryParse(label) ?? 261.63,
+                    getTargetFrequency: (label) =>
+                        double.tryParse(label) ?? 261.63,
                     isRunning: _isPlaying,
                   ),
                 ),
-                
+
+                Positioned(
+                  top: 258,
+                  left: 16,
+                  right: 16,
+                  child: _buildLiveCoachCard(),
+                ),
+
                 // Lyrics Scroller Layer
                 Positioned.fill(
-                  top: 250,
+                  top: 338,
                   child: LyricScroller(
                     lyrics: _lyrics,
                     currentPosition: _currentPosition,
+                    emptyMessage:
+                        'Lyrics are unavailable for this song yet. Follow the pitch guide or practice by ear.',
                   ),
                 ),
-                
+
+                if (_contentNotices.isNotEmpty)
+                  Positioned(
+                    top: 8,
+                    left: 16,
+                    right: 16,
+                    child: _buildContentNotice(),
+                  ),
+
                 // Bottom Controls
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 60.0),
-                    child: _isPlaying 
+                    child: _isPlaying
                         ? _buildPlayingControls()
                         : _buildStartControls(),
                   ),
@@ -484,18 +624,90 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     );
   }
 
-  Widget _buildStartControls() {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFE94057).withValues(alpha: 0.4),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-        borderRadius: BorderRadius.circular(40),
+  Widget _buildLiveCoachCard() {
+    final cents = _liveCentsError;
+    final theme = Theme.of(context);
+    return Semantics(
+      liveRegion: true,
+      label: 'Live coaching status: $_liveCoachCue',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            AudioWaveformVisualizer(
+              amplitude: _liveAmplitude,
+              isActive: _isPlaying,
+              barCount: 16,
+              barWidth: 2.5,
+              barSpacing: 2,
+              maxBarHeight: 32,
+              minBarHeight: 3,
+              glowEnabled: false,
+              activeColor: theme.colorScheme.primary,
+              style: WaveformStyle.mirrored,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _liveCoachCue,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    cents == null
+                        ? 'Local microphone feedback'
+                        : '${cents.abs().round()} cents from the target',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildContentNotice() {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Text(
+        _contentNotices.first,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStartControls() {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(40)),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -504,25 +716,25 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
           child: Ink(
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
             decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
               borderRadius: BorderRadius.circular(40),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE94057), Color(0xFFF27121)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.mic_rounded, color: Colors.white, size: 26),
-                SizedBox(width: 12),
+              children: [
+                Icon(
+                  Icons.mic_rounded,
+                  color: theme.colorScheme.onPrimary,
+                  size: 26,
+                ),
+                const SizedBox(width: 12),
                 Text(
-                  'START SINGING',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.5,
+                  _hasInstrumentalAudio
+                      ? 'START SINGING'
+                      : 'START MIC PRACTICE',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onPrimary,
+                    letterSpacing: 1.1,
                   ),
                 ),
               ],
@@ -534,42 +746,37 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   }
 
   Widget _buildPlayingControls() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _finishSession,
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _finishSession,
+        borderRadius: BorderRadius.circular(30),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(30),
-            child: Ink(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 1,
+            border: Border.all(
+              color: theme.colorScheme.outline,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.stop_rounded, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'FINISH',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.stop_rounded, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'FINISH',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
         ),
       ),
@@ -581,4 +788,56 @@ class LyricLine {
   final Duration time;
   final String text;
   LyricLine({required this.time, required this.text});
+}
+
+/// Testable boundary for optional third-party song content.
+class KaraokeContentClient {
+  KaraokeContentClient({http.Client? httpClient})
+      : _httpClient = httpClient ?? http.Client(),
+        _ownsClient = httpClient == null;
+
+  final http.Client _httpClient;
+  final bool _ownsClient;
+
+  Future<String?> fetchSyncedLyrics({
+    required String title,
+    required String artist,
+  }) async {
+    try {
+      final query = '$title $artist'.trim();
+      final response = await _httpClient.get(
+        Uri.parse(
+          'https://lrclib.net/api/search?q=${Uri.encodeComponent(query)}',
+        ),
+        headers: const {'User-Agent': 'Cockatiel Vocal Coach'},
+      ).timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) return null;
+      final decoded = json.decode(response.body);
+      if (decoded is! List) return null;
+      for (final item in decoded) {
+        if (item is! Map) continue;
+        final lyrics = item['syncedLyrics'];
+        if (lyrics is String && lyrics.trim().isNotEmpty) return lyrics;
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  Future<dynamic> fetchPitchMap(String url) async {
+    try {
+      final response = await _httpClient
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) return null;
+      return json.decode(response.body);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void dispose() {
+    if (_ownsClient) _httpClient.close();
+  }
 }

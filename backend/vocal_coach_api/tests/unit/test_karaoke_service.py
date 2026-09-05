@@ -1,14 +1,18 @@
 """Unit tests for the karaoke catalog and service module."""
+from dataclasses import replace
 import os
+
+import pytest
 
 os.environ["AUTH_BYPASS"] = "true"
 os.environ["FIRESTORE_ENABLED"] = "false"
-os.environ["OLLAMA_ENABLED"] = "false"
+os.environ["OPENROUTER_ENABLED"] = "false"
 os.environ["AUDIO_SNIPPET_STORAGE_BACKEND"] = "local"
 os.environ["AUDIO_SNIPPET_LOCAL_DIR"] = "/tmp/vocal-coach-audio-test"
 os.environ["AUDIO_SNIPPET_RETENTION_DAYS"] = "30"
 
 from app.modules.karaoke.service import get_karaoke_catalog, get_drill_by_id, get_catalog_preview
+from app.modules.karaoke import catalog as karaoke_catalog
 
 
 class TestKaraokeCatalogStructure:
@@ -25,6 +29,14 @@ class TestKaraokeCatalogStructure:
     catalog = get_karaoke_catalog()
     for cat in catalog["categories"]:
       assert len(cat["drills"]) >= 1, f"Category {cat['category_id']} has no drills"
+
+  def test_local_catalog_is_explicitly_metadata_only(self) -> None:
+    catalog = get_karaoke_catalog()
+    assert "AI evaluation" not in catalog["description"]
+    for category in catalog["categories"]:
+      for drill in category["drills"]:
+        assert drill["instrumental_url"] == ""
+        assert drill["cover_url"] == ""
 
 
 class TestKaraokeDrillMetadata:
@@ -84,6 +96,22 @@ class TestGetDrillById:
 
   def test_returns_none_for_unknown_id(self) -> None:
     assert get_drill_by_id("nonexistent") is None
+
+  def test_production_firestore_failure_does_not_return_demo_content(self, monkeypatch) -> None:
+    production_settings = replace(
+      karaoke_catalog.settings,
+      app_env="production",
+      firestore_enabled=True,
+    )
+    monkeypatch.setattr(karaoke_catalog, "settings", production_settings)
+
+    def unavailable_firestore():
+      raise RuntimeError("firestore unavailable")
+
+    monkeypatch.setattr(karaoke_catalog, "build_firestore_client", unavailable_firestore)
+
+    with pytest.raises(RuntimeError, match="Karaoke catalog unavailable in production"):
+      karaoke_catalog.get_catalog()
 
 
 class TestCatalogPreview:

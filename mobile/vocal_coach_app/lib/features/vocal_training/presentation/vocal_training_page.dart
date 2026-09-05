@@ -337,8 +337,7 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
                                   categoryTitle: category.title,
                                   exercise: exercise,
                                   recommendation: item,
-                                  progress:
-                                      _progressByExercise[exercise.id],
+                                  progress: _progressByExercise[exercise.id],
                                   apiClient: widget.apiClient,
                                   appState: widget.appState,
                                 ),
@@ -363,13 +362,11 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
                         category: category,
                         completedExercises: category.exercises
                             .where((exercise) =>
-                                _progressByExercise
-                                    .containsKey(exercise.id))
+                                _progressByExercise.containsKey(exercise.id))
                             .length,
                         recommendedCount: category.exercises
-                            .where((exercise) =>
-                                _recommendationByExercise
-                                    .containsKey(exercise.id))
+                            .where((exercise) => _recommendationByExercise
+                                .containsKey(exercise.id))
                             .length,
                         onTap: () {
                           Navigator.of(context).push(
@@ -469,10 +466,10 @@ class _HeroPanel extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFF282828),
+          color: theme.colorScheme.outlineVariant,
         ),
       ),
       child: Padding(
@@ -484,7 +481,8 @@ class _HeroPanel extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+                border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -669,7 +667,8 @@ class _RecommendationCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                  border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                 ),
                 child: Icon(Icons.auto_awesome_rounded,
                     color: theme.colorScheme.primary),
@@ -896,8 +895,7 @@ class _ExerciseCategoryPage extends StatelessWidget {
                           categoryTitle: category.title,
                           exercise: exercise,
                           progress: progressByExercise[exercise.id],
-                          recommendation:
-                              recommendationByExercise[exercise.id],
+                          recommendation: recommendationByExercise[exercise.id],
                           apiClient: apiClient,
                           appState: appState,
                         ),
@@ -1141,5 +1139,3 @@ class _CoachIntroStep extends StatelessWidget {
     );
   }
 }
-
-

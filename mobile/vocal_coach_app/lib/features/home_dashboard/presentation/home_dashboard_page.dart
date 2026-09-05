@@ -123,7 +123,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
             icon: const Icon(Icons.history_rounded),
             tooltip: 'Practice History',
           ),
-          // AI Queue badge
+          // Feedback queue badge
           AnimatedBuilder(
             animation: widget.appState,
             builder: (_, __) {
@@ -143,7 +143,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
                       );
                     },
                     icon: const Icon(Icons.auto_awesome_rounded),
-                    tooltip: 'AI Analysis',
+                    tooltip: 'Feedback processing',
                   ),
                   if (pending > 0)
                     Positioned(
@@ -188,7 +188,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
             // Welcome greeting
             _buildWelcomeSection(user, theme),
             const SizedBox(height: 16),
-            
+
             // Recent Activity Shortcut
             _buildRecentActivityShortcut(theme),
             const SizedBox(height: 24),
@@ -274,13 +274,13 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Recent Activity Logs',
+                      'Activity Summary',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
-                      'Review past scores and AI feedback',
+                      'Review practice scores and coaching feedback',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -416,7 +416,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
     );
   }
 
-
   void _switchToTab(int index) {
     // Find the nearest NavigationBar ancestor and switch tabs.
     // The MainShellPage uses IndexedStack, so we need to communicate
@@ -550,5 +549,3 @@ class _StatTile extends StatelessWidget {
     );
   }
 }
-
-

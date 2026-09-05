@@ -1,0 +1,61 @@
+name: Cockatiel quality gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests and static checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/vocal_coach_api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/vocal_coach_api/requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+      - name: Compile Python sources
+        run: python -m compileall -q app tests
+      - name: Ruff
+        run: ruff check app tests
+      - name: Tests with coverage
+        run: pytest --cov=app --cov-report=term-missing
+
+  flutter:
+    name: Flutter analysis and tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/vocal_coach_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - name: Install packages
+        run: flutter pub get
+      - name: Formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Static analysis
+        run: flutter analyze
+      - name: Tests
+        run: flutter test --coverage
+      - name: Web release build
+        run: flutter build web --release
+      - name: Android release build
+        run: flutter build apk --release

@@ -4,7 +4,11 @@ import 'package:vocal_coach_app/shared/models/user_models.dart';
 void main() {
   group('UserProfile', () {
     test('fromJson parses correctly', () {
-      final json = {'uid': '123', 'email': 'test@example.com', 'name': 'John Doe'};
+      final json = {
+        'uid': '123',
+        'email': 'test@example.com',
+        'name': 'John Doe'
+      };
       final profile = UserProfile.fromJson(json);
       expect(profile.uid, '123');
       expect(profile.email, 'test@example.com');
@@ -50,19 +54,27 @@ void main() {
 
   group('TrainingGoal', () {
     test('trainingGoalFromString', () {
-      expect(trainingGoalFromString('pitch_improvement'), TrainingGoal.pitchImprovement);
-      expect(trainingGoalFromString('breath_control'), TrainingGoal.breathControl);
+      expect(trainingGoalFromString('pitch_improvement'),
+          TrainingGoal.pitchImprovement);
+      expect(
+          trainingGoalFromString('breath_control'), TrainingGoal.breathControl);
       expect(trainingGoalFromString('tone_quality'), TrainingGoal.toneQuality);
-      expect(trainingGoalFromString('range_extension'), TrainingGoal.rangeExtension);
-      expect(trainingGoalFromString('unknown'), TrainingGoal.generalSkillBuilding);
+      expect(trainingGoalFromString('range_extension'),
+          TrainingGoal.rangeExtension);
+      expect(
+          trainingGoalFromString('unknown'), TrainingGoal.generalSkillBuilding);
     });
 
     test('trainingGoalToString', () {
-      expect(trainingGoalToString(TrainingGoal.pitchImprovement), 'pitch_improvement');
-      expect(trainingGoalToString(TrainingGoal.breathControl), 'breath_control');
+      expect(trainingGoalToString(TrainingGoal.pitchImprovement),
+          'pitch_improvement');
+      expect(
+          trainingGoalToString(TrainingGoal.breathControl), 'breath_control');
       expect(trainingGoalToString(TrainingGoal.toneQuality), 'tone_quality');
-      expect(trainingGoalToString(TrainingGoal.rangeExtension), 'range_extension');
-      expect(trainingGoalToString(TrainingGoal.generalSkillBuilding), 'general_skill_building');
+      expect(
+          trainingGoalToString(TrainingGoal.rangeExtension), 'range_extension');
+      expect(trainingGoalToString(TrainingGoal.generalSkillBuilding),
+          'general_skill_building');
     });
   });
 
@@ -88,6 +100,27 @@ void main() {
       );
       expect(prefs.toJson(), sampleJson);
     });
+
+    test('round-trips optional voice calibration metadata', () {
+      final json = {
+        ...sampleJson,
+        'voice_calibration': {
+          'voice_type': 'tenor',
+          'confidence': 0.82,
+          'average_frequency_hz': 196.0,
+          'lowest_frequency_hz': 130.8,
+          'highest_frequency_hz': 392.0,
+          'sample_count': 96,
+          'calibrated_at_ms': 1760000000000,
+        },
+      };
+      final prefs = VocalPreferences.fromJson(json);
+
+      expect(prefs.voiceCalibration?.voiceType, VocalRange.tenor);
+      expect(prefs.voiceCalibration?.confidence, 0.82);
+      expect(prefs.voiceCalibration?.sampleCount, 96);
+      expect(prefs.toJson(), json);
+    });
   });
 
   group('VocalPreferencesUpdate', () {
@@ -107,6 +140,30 @@ void main() {
     test('toJson with no fields', () {
       const update = VocalPreferencesUpdate();
       expect(update.toJson(), {});
+    });
+
+    test('toJson includes optional voice calibration metadata', () {
+      const update = VocalPreferencesUpdate(
+        voiceCalibration: VoiceCalibration(
+          voiceType: VocalRange.alto,
+          confidence: 0.74,
+          averageFrequencyHz: 277.2,
+          lowestFrequencyHz: 174.6,
+          highestFrequencyHz: 523.3,
+          sampleCount: 64,
+          calibratedAtMs: 1760000000000,
+        ),
+      );
+
+      expect(update.toJson()['voice_calibration'], {
+        'voice_type': 'alto',
+        'confidence': 0.74,
+        'average_frequency_hz': 277.2,
+        'lowest_frequency_hz': 174.6,
+        'highest_frequency_hz': 523.3,
+        'sample_count': 64,
+        'calibrated_at_ms': 1760000000000,
+      });
     });
   });
 

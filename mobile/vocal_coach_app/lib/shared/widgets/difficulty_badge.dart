@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import '../../app/theme/app_theme_tokens.dart';
 
 class DifficultyBadge extends StatelessWidget {
   const DifficultyBadge({
@@ -18,15 +19,15 @@ class DifficultyBadge extends StatelessWidget {
     switch (difficulty.toLowerCase()) {
       case 'beginner':
         label = 'Beginner';
-        color = const Color(0xFF34D399); // theme.colorScheme.success
+        color = theme.appTokens.success;
         break;
       case 'intermediate':
         label = 'Intermediate';
-        color = const Color(0xFFFBBF24); // theme.colorScheme.warn
+        color = theme.appTokens.warning;
         break;
       case 'advanced':
         label = 'Advanced';
-        color = const Color(0xFFF87171); // theme.colorScheme.danger
+        color = theme.appTokens.danger;
         break;
       default:
         label = difficulty.isNotEmpty
@@ -35,21 +36,23 @@ class DifficultyBadge extends StatelessWidget {
         color = theme.colorScheme.onSurfaceVariant;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
+    return Semantics(
+      label: 'Difficulty: $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withValues(alpha: 0.3),
+          ),
         ),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+        child: Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

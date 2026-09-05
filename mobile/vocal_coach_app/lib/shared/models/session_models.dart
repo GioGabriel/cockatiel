@@ -80,6 +80,7 @@ class CoachingFeedback {
     required this.improvements,
     required this.nextExercises,
     required this.modelUsed,
+    this.summary,
     this.promptVersion,
     this.latencyMs,
   });
@@ -89,6 +90,7 @@ class CoachingFeedback {
   final List<String> strengths;
   final List<String> improvements;
   final List<String> nextExercises;
+  final String? summary;
   final String modelUsed;
   final String? promptVersion;
   final int? latencyMs;
@@ -100,6 +102,7 @@ class CoachingFeedback {
       strengths: (json['strengths'] as List<dynamic>).cast<String>(),
       improvements: (json['improvements'] as List<dynamic>).cast<String>(),
       nextExercises: (json['next_exercises'] as List<dynamic>).cast<String>(),
+      summary: json['summary'] as String?,
       modelUsed: json['model_used'] as String,
       promptVersion: json['prompt_version'] as String?,
       latencyMs: (json['latency_ms'] as num?)?.toInt(),
@@ -154,7 +157,7 @@ class TrainingSessionConfig {
       key: (json['key'] as String?) ?? 'C',
       octave: (json['octave'] as num?)?.toInt() ?? 4,
       targetPattern: json['target_pattern'] as String?,
-      durationSec: (json['duration_sec'] as num?)?.toInt() ?? 30,
+      durationSec: (json['duration_sec'] as num?)?.toInt() ?? 20,
       maxAttempts: (json['max_attempts'] as num?)?.toInt() ?? 3,
     );
   }
@@ -574,7 +577,9 @@ class SessionDetailsResponse {
           ?.map(
               (item) => TrainingAttempt.fromJson(item as Map<String, dynamic>))
           .toList(),
-      createdAt: (json['created_at'] as num?)?.toInt() ?? (json['saved_at'] as num?)?.toInt() ?? (json['updated_at'] as num?)?.toInt(),
+      createdAt: (json['created_at'] as num?)?.toInt() ??
+          (json['saved_at'] as num?)?.toInt() ??
+          (json['updated_at'] as num?)?.toInt(),
       completedAt: (json['completed_at'] as num?)?.toInt(),
     );
   }

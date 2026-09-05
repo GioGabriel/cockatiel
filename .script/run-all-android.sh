@@ -13,14 +13,10 @@ export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}"
 export PATH="${PATH}:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/emulator:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin"
 
 BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8000}"
-OLLAMA_URL="${OLLAMA_URL:-http://127.0.0.1:11434}"
 EMULATOR_NAME="${EMULATOR_NAME:-Pixel_6a}"
 DEVICE_ID="${DEVICE_ID:-}"
 BACKEND_START_SCRIPT="${BACKEND_START_SCRIPT:-scripts/run_backend_async.sh}"
-OLLAMA_START_MODE="${OLLAMA_START_MODE:-serve}"
-OLLAMA_LOG_FILE="${OLLAMA_LOG_FILE:-${ROOT_DIR}/.script/ollama-serve.log}"
 
-START_OLLAMA="${START_OLLAMA:-true}"
 START_BACKEND="${START_BACKEND:-true}"
 START_EMULATOR="${START_EMULATOR:-true}"
 RUN_FLUTTER="${RUN_FLUTTER:-true}"
@@ -28,8 +24,6 @@ FLUTTER_EXTRA_ARGS="${FLUTTER_EXTRA_ARGS:-}"
 
 BACKEND_PID=""
 BACKEND_STARTED="false"
-OLLAMA_PID=""
-OLLAMA_STARTED="false"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -71,11 +65,6 @@ cleanup() {
       kill "$BACKEND_PID" >/dev/null 2>&1 || true
     fi
   fi
-  if [[ "$OLLAMA_STARTED" == "true" && -n "$OLLAMA_PID" ]]; then
-    if kill -0 "$OLLAMA_PID" >/dev/null 2>&1; then
-      kill "$OLLAMA_PID" >/dev/null 2>&1 || true
-    fi
-  fi
 }
 
 trap cleanup EXIT INT TERM
@@ -83,24 +72,6 @@ trap cleanup EXIT INT TERM
 require_cmd curl
 require_cmd flutter
 require_cmd adb
-
-if [[ "$START_OLLAMA" == "true" ]]; then
-  if curl -fsS "${OLLAMA_URL%/}/api/tags" >/dev/null 2>&1; then
-    echo "Ollama already running at ${OLLAMA_URL}."
-  elif [[ "$OLLAMA_START_MODE" == "service" ]]; then
-    require_cmd brew
-    echo "Starting Ollama service (brew)..."
-    brew services start ollama >/dev/null
-    wait_for_url "${OLLAMA_URL%/}/api/tags" 60
-  else
-    require_cmd ollama
-    echo "Starting Ollama via 'ollama serve'..."
-    ollama serve >"$OLLAMA_LOG_FILE" 2>&1 &
-    OLLAMA_PID="$!"
-    OLLAMA_STARTED="true"
-    wait_for_url "${OLLAMA_URL%/}/api/tags" 60
-  fi
-fi
 
 if [[ "$START_EMULATOR" == "true" ]]; then
   echo "Launching Android emulator: ${EMULATOR_NAME}"
@@ -128,7 +99,9 @@ if [[ "$START_BACKEND" == "true" ]]; then
     echo "Starting backend..."
     (
       cd "$BACKEND_DIR"
-      bash "$BACKEND_START_SCRIPT"
+      # This helper is explicitly local-only. Production still hard-disables
+      # bypass in app/core/config.py even if the variable is inherited.
+      AUTH_BYPASS="${AUTH_BYPASS:-true}" bash "$BACKEND_START_SCRIPT"
     ) &
     BACKEND_PID="$!"
     BACKEND_STARTED="true"

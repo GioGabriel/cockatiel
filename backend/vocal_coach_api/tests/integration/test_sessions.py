@@ -80,6 +80,19 @@ def test_sessions_rejects_metric_session_id_mismatch(client, auth_headers):
   assert response.json()["error"]["code"] == "SESSION_ID_MISMATCH"
 
 
+def test_sessions_are_scoped_to_authenticated_user(client, auth_headers):
+  session_id = _create_session(client, auth_headers)
+
+  other_user_headers = {"Authorization": "Bearer dev_other-user"}
+  response = client.get(
+    f"/v1/sessions/{session_id}",
+    headers=other_user_headers,
+  )
+
+  assert response.status_code == 404
+  assert response.json()["error"]["code"] == "SESSION_NOT_FOUND"
+
+
 def test_sessions_finalize_rejects_completed_session(client, auth_headers):
   session_id = _create_session(client, auth_headers)
 

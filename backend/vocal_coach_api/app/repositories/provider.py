@@ -12,6 +12,10 @@ from app.repositories.memory.users_repository import InMemoryUserRepository
 logger = logging.getLogger("vocal-coach-api.repositories")
 
 
+def _is_production() -> bool:
+  return settings.app_env.strip().lower() in {"prod", "production", "staging"}
+
+
 @dataclass(frozen=True)
 class RepositoryBundle:
   users: UserRepository
@@ -23,6 +27,9 @@ class RepositoryBundle:
 
 @lru_cache(maxsize=1)
 def get_repository_bundle() -> RepositoryBundle:
+  if _is_production() and not settings.firestore_enabled:
+    raise RuntimeError("Persistent storage is required in production.")
+
   if settings.firestore_enabled:
     try:
       from app.repositories.firestore.client import build_firestore_client
@@ -40,7 +47,10 @@ def get_repository_bundle() -> RepositoryBundle:
         backend="firestore",
       )
     except Exception as exc:  # pragma: no cover - network/credentials/optional pkg
-      logger.warning("Falling back to in-memory repository: %s", exc)
+      if _is_production():
+        logger.error("Persistent repository unavailable error_type=%s", type(exc).__name__)
+        raise RuntimeError("Persistent storage is unavailable in production.") from exc
+      logger.warning("Falling back to in-memory repository error_type=%s", type(exc).__name__)
 
   return RepositoryBundle(
     users=InMemoryUserRepository(),

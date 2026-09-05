@@ -24,8 +24,7 @@ void main() {
       expect(find.text('Start your first vocal training!'), findsOneWidget);
     });
 
-    testWidgets('renders CTA button when ctaLabel is provided',
-        (tester) async {
+    testWidgets('renders CTA button when ctaLabel is provided', (tester) async {
       var tapped = false;
 
       await tester.pumpWidget(
@@ -96,8 +95,7 @@ void main() {
       expect(find.byIcon(Icons.inbox_outlined), findsOneWidget);
     });
 
-    testWidgets('renders customAnimation widget when provided',
-        (tester) async {
+    testWidgets('renders customAnimation widget when provided', (tester) async {
       await tester.pumpWidget(
         buildApp(
           EmptyStateView(

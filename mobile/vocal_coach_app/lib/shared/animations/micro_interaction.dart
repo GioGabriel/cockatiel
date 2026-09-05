@@ -74,8 +74,7 @@ class _PressableState extends State<Pressable>
       child: AnimatedBuilder(
         animation: _animation,
         builder: (context, child) {
-          final scale =
-              1.0 - (1.0 - widget.scaleDown) * _animation.value;
+          final scale = 1.0 - (1.0 - widget.scaleDown) * _animation.value;
           return Transform.scale(
             scale: scale,
             child: child,
@@ -167,8 +166,7 @@ class _PressableCardState extends State<PressableCard>
       child: AnimatedBuilder(
         animation: _animation,
         builder: (context, child) {
-          final scale =
-              1.0 - (1.0 - widget.scaleDown) * _animation.value;
+          final scale = 1.0 - (1.0 - widget.scaleDown) * _animation.value;
           final elevation = widget.baseElevation +
               (widget.pressedElevation - widget.baseElevation) *
                   _animation.value;
@@ -177,8 +175,7 @@ class _PressableCardState extends State<PressableCard>
             child: Card(
               elevation: elevation,
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(widget.borderRadius),
+                borderRadius: BorderRadius.circular(widget.borderRadius),
               ),
               child: child,
             ),

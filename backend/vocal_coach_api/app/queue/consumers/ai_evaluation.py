@@ -11,6 +11,17 @@ from app.queue.tasks.ai_evaluation_queue import dequeue, requeue, size
 logger = logging.getLogger("vocal-coach-api.ai-queue-consumer")
 
 
+def _safe_failure_message(exc: Exception) -> str:
+  """Return a stable, non-sensitive message for persisted job state."""
+  if isinstance(exc, TimeoutError):
+    return "The coaching review timed out. Please try again."
+  if isinstance(exc, ValueError):
+    return "The coaching review returned an invalid response. Please try again."
+  if isinstance(exc, (ConnectionError, OSError)):
+    return "The coaching review service was unavailable. Please try again."
+  return "The coaching review could not be completed. Please try again."
+
+
 def process_next_ai_evaluation_job() -> bool:
   job = dequeue()
   if not job:
@@ -70,22 +81,23 @@ def process_next_ai_evaluation_job() -> bool:
     )
     return True
   except Exception as exc:
+    safe_error = _safe_failure_message(exc)
     if attempt + 1 >= max_attempts:
       try:
-        mark_failed(session_id=session_id, user_id=user_id, reason=str(exc))
+        mark_failed(session_id=session_id, user_id=user_id, reason=safe_error)
       except Exception:
         pass
       increment("ai_queue_job_failed_total")
       logger.warning(
-        "ai_queue_job_failed session_id=%s user_id=%s attempt=%s error=%s",
+        "ai_queue_job_failed session_id=%s user_id=%s attempt=%s error_type=%s",
         session_id,
         user_id,
         attempt,
-        exc,
+        type(exc).__name__,
       )
       return True
 
-    requeue(job, error=str(exc))
+    requeue(job, error=safe_error)
     upsert_ai_job(
       session_id=session_id,
       user_id=user_id,
@@ -94,16 +106,16 @@ def process_next_ai_evaluation_job() -> bool:
         "attempt": attempt + 1,
         "max_attempts": max_attempts,
         "updated_at": int(time() * 1000),
-        "last_error": str(exc),
+        "last_error": safe_error,
       },
     )
     increment("ai_queue_job_retried_total")
     observe("ai_queue_depth", float(size()))
     logger.warning(
-      "ai_queue_job_retried session_id=%s user_id=%s next_attempt=%s error=%s",
+      "ai_queue_job_retried session_id=%s user_id=%s next_attempt=%s error_type=%s",
       session_id,
       user_id,
       attempt + 1,
-      exc,
+      type(exc).__name__,
     )
     return True

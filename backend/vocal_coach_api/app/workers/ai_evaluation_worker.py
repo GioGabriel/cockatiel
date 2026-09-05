@@ -36,7 +36,7 @@ class AIEvaluationWorker:
         processed = process_next_ai_evaluation_job()
       except Exception as exc:
         increment("ai_queue_worker_error_total")
-        logger.warning("ai_worker_loop_error error=%s", exc)
+        logger.warning("ai_worker_loop_error error_type=%s", type(exc).__name__)
         processed = False
 
       if not processed:

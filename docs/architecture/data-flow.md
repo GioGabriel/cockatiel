@@ -16,7 +16,7 @@ This document describes how audio data is processed from the user's microphone t
 ## 3. Storage & AI Evaluation (Server)
 - The FastAPI backend ingests the frames and stores them in Firebase Firestore under the user's session document.
 - When the user finishes the session, the app calls `POST /session/{session_id}/finalize`.
-- A background worker on the backend uses OpenRouter (e.g., Claude/Gemini) to evaluate the aggregated metrics and generate a `CoachingFeedback` object (strengths, improvements, next exercises).
+- A background worker on the backend runs the deterministic Coaching Logic Engine against aggregated metrics and may use OpenRouter only for a bounded natural-language summary. The resulting `CoachingFeedback` object remains complete when OpenRouter is disabled or unavailable.
 
 ## 4. Feedback Delivery (Server -> Client)
 - The mobile app periodically polls for the completed feedback or retrieves it on the post-session screen.

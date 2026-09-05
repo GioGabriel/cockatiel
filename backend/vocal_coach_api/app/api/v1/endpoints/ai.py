@@ -16,6 +16,8 @@ def get_ai_health(_: dict = Depends(get_current_user)) -> AIHealthOut:
       status="disabled",
       detail="OpenRouter is disabled by configuration.",
       openrouter_enabled=False,
+      configured=False,
+      reachability="disabled",
       ai_async_enabled=settings.ai_async_enabled,
       openrouter_model=settings.openrouter_model,
       openrouter_timeout_s=settings.openrouter_timeout_s,
@@ -23,16 +25,34 @@ def get_ai_health(_: dict = Depends(get_current_user)) -> AIHealthOut:
       latency_ms=None,
     )
 
-  # Note: A real ping to OpenRouter could be added here. For now, if enabled, we assume it's reachable.
+  configured = bool(settings.openrouter_api_keys)
+  if not configured:
+    return AIHealthOut(
+      status="degraded",
+      detail="OpenRouter is enabled but no API key is configured. Deterministic coaching remains available.",
+      openrouter_enabled=True,
+      configured=False,
+      reachability="unconfigured",
+      ai_async_enabled=settings.ai_async_enabled,
+      openrouter_model=settings.openrouter_model,
+      openrouter_timeout_s=settings.openrouter_timeout_s,
+      reachable=False,
+      latency_ms=None,
+    )
+
+  # Configuration is intentionally distinct from reachability. This endpoint does not
+  # send a provider request, so it must never claim that a key is reachable.
   return AIHealthOut(
-    status="ok",
-    detail="OpenRouter is enabled.",
+    status="configured",
+    detail="OpenRouter credentials are configured; provider reachability has not been probed.",
     openrouter_enabled=True,
+    configured=True,
+    reachability="unknown",
     ai_async_enabled=settings.ai_async_enabled,
     openrouter_model=settings.openrouter_model,
     openrouter_timeout_s=settings.openrouter_timeout_s,
-    reachable=True,
-    latency_ms=0,
+    reachable=False,
+    latency_ms=None,
   )
 
 

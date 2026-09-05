@@ -233,13 +233,13 @@ class VoiceTypeClassifier {
     int sampleCount,
   ) {
     // Sample count factor: ramps up from 0.5 at min to 1.0 at 100+ samples.
-    final sampleFactor =
-        (sampleCount / 100.0).clamp(0.5, 1.0);
+    final sampleFactor = (sampleCount / 100.0).clamp(0.5, 1.0);
 
     // Range consistency: narrower range = more confident.
     // Typical comfortable range is about 1 octave (factor of 2).
     final rangeRatio = highHz / lowHz.clamp(1.0, double.infinity);
-    final rangeFactor = rangeRatio <= 2.5 ? 1.0 : (3.5 - rangeRatio).clamp(0.3, 1.0);
+    final rangeFactor =
+        rangeRatio <= 2.5 ? 1.0 : (3.5 - rangeRatio).clamp(0.3, 1.0);
 
     // Distance from boundary: further from ambiguous zones = more confident.
     final medianMidi = _frequencyToMidi(medianHz);
@@ -302,8 +302,18 @@ String _frequencyToNoteName(double hz) {
   if (hz <= 0) return '?';
   final midi = _frequencyToMidi(hz).round();
   const noteNames = [
-    'C', 'C#', 'D', 'D#', 'E', 'F',
-    'F#', 'G', 'G#', 'A', 'A#', 'B',
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B',
   ];
   final note = noteNames[midi % 12];
   final octave = (midi ~/ 12) - 1;

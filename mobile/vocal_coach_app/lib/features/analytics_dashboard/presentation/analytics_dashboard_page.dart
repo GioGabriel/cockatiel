@@ -9,6 +9,7 @@ import 'package:vocal_coach_app/shared/widgets/glass_card.dart';
 import 'package:vocal_coach_app/shared/widgets/shimmer_skeleton.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../app/theme/app_theme_tokens.dart';
 import '../../../shared/models/analytics_models.dart';
 import '../../../shared/models/training_models.dart';
 
@@ -23,7 +24,11 @@ class AnalyticsDashboardPage extends StatefulWidget {
 
 class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   static const _rangeOptions = ['7d', '30d', '90d'];
-  static const _rangeLabels = {'7d': 'Weekly', '30d': 'Monthly', '90d': '90 Days'};
+  static const _rangeLabels = {
+    '7d': 'Weekly',
+    '30d': 'Monthly',
+    '90d': '90 Days'
+  };
 
   bool _isLoading = true;
   String? _error;
@@ -69,9 +74,12 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         _trends = results[1] as AnalyticsTrends;
         _trainingProgress = results[2] as TrainingProgress;
       });
-    } catch (e) {
+    } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _error = e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Could not load analytics. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -139,8 +147,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.cloud_off_rounded, size: 48,
-              color: theme.colorScheme.onSurfaceVariant),
+          Icon(Icons.cloud_off_rounded,
+              size: 48, color: theme.colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
           const Text('Could not load analytics.'),
           const SizedBox(height: 12),
@@ -178,8 +186,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         const SizedBox(height: 24),
 
         // ─── TRAINING PROGRESS ───────────────────────────────────
-        if (_trainingProgress != null &&
-            _trainingProgress!.items.isNotEmpty)
+        if (_trainingProgress != null && _trainingProgress!.items.isNotEmpty)
           _buildTrainingProgress(theme),
       ],
     );
@@ -202,7 +209,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
             title: 'Day Streak',
             value: dashboard.streakDays.toString(),
             icon: Icons.local_fire_department_rounded,
-            iconColor: const Color(0xFFFF6B35),
+            iconColor: theme.appTokens.warning,
             subtitle: dashboard.streakDays > 0 ? 'Keep it up!' : null,
           ),
         ),
@@ -212,7 +219,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
             title: 'Avg Score',
             value: dashboard.avgScore7d.toStringAsFixed(1),
             icon: Icons.star_rounded,
-            iconColor: const Color(0xFFE1B261),
+            iconColor: theme.colorScheme.secondary,
           ),
         ),
       ],
@@ -236,24 +243,16 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? theme.colorScheme.surface : Colors.transparent,
+                  color: isSelected
+                      ? theme.colorScheme.surface
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
                 ),
                 child: Text(
                   _rangeLabels[range] ?? range,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
@@ -273,9 +272,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     final scores = points.map((p) => p.avgScore).toList();
 
     return GlassCard.dark(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+        child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -326,9 +325,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
 
   Widget _buildMetricsBreakdown(ThemeData theme, AnalyticsRange range) {
     return GlassCard.dark(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+        child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Performance Metrics', style: theme.textTheme.titleMedium),
@@ -336,7 +335,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
           _MetricRow(
             label: 'Pitch Accuracy',
             value: range.avgPitchAccuracy,
-            color: const Color(0xFF6C63FF),
+            color: theme.colorScheme.secondary,
           ),
           const SizedBox(height: 14),
           _MetricRow(
@@ -348,7 +347,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
           _MetricRow(
             label: 'Breath Control',
             value: range.avgBreathControl,
-            color: const Color(0xFF4CAF50),
+            color: theme.appTokens.success,
           ),
           if (range.primaryMetrics.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -358,7 +357,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               _MetricRow(
                 label: metric.label,
                 value: metric.avgValue,
-                color: const Color(0xFFFF6B35),
+                color: theme.appTokens.info,
               ),
               const SizedBox(height: 14),
             ],
@@ -377,11 +376,11 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         Text('Exercise Progress', style: theme.textTheme.titleMedium),
         const SizedBox(height: 12),
         ...items.map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: GlassCard.dark(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: GlassCard.dark(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
                   Expanded(
                     child: Column(
@@ -466,9 +465,9 @@ class _KpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassCard.dark(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: iconColor, size: 22),
@@ -490,9 +489,9 @@ class _KpiCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               subtitle!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF4CAF50),
+                color: theme.appTokens.success,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -512,9 +511,11 @@ class _ChangeIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (previous <= 0) return const SizedBox.shrink();
+    final theme = Theme.of(context);
     final change = ((current - previous) / previous * 100);
     final isPositive = change >= 0;
-    final color = isPositive ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+    final tokens = theme.appTokens;
+    final color = isPositive ? tokens.success : tokens.danger;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -526,7 +527,9 @@ class _ChangeIndicator extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isPositive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+            isPositive
+                ? Icons.arrow_upward_rounded
+                : Icons.arrow_downward_rounded,
             size: 14,
             color: color,
           ),
@@ -614,8 +617,8 @@ class _SparklinePainter extends CustomPainter {
     final points = <Offset>[];
     for (var i = 0; i < values.length; i++) {
       final x = (i / (values.length - 1)) * size.width;
-      final y = size.height -
-          ((values[i] - minVal) / effectiveRange) * size.height;
+      final y =
+          size.height - ((values[i] - minVal) / effectiveRange) * size.height;
       points.add(Offset(x, y));
     }
 

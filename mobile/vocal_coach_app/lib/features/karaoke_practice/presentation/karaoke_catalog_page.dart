@@ -58,7 +58,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
       ]);
       final catalog = results[0] as KaraokeCatalog;
       final progress = results[1] as TrainingProgress;
-      
+
       final Map<String, TrainingExerciseProgress> progressMap = {};
       for (final item in progress.items) {
         progressMap[item.exerciseId] = item;
@@ -191,7 +191,8 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
           child: TextField(
             controller: _searchController,
-            onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+            onChanged: (val) =>
+                setState(() => _searchQuery = val.toLowerCase()),
             decoration: InputDecoration(
               hintText: 'Search Song or Artist',
               prefixIcon: const Icon(Icons.search),
@@ -214,7 +215,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
             ),
           ),
         ),
-        
+
         // Filter Chips
         SizedBox(
           height: 60,
@@ -240,7 +241,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
             },
           ),
         ),
-        
+
         // Grid View
         Expanded(
           child: Builder(
@@ -248,23 +249,49 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
               final filteredDrills = selectedCategory.drills.where((drill) {
                 if (_searchQuery.isEmpty) return true;
                 final q = _searchQuery.toLowerCase();
-                return drill.title.toLowerCase().contains(q) || 
-                       drill.artistName.toLowerCase().contains(q);
+                return drill.title.toLowerCase().contains(q) ||
+                    drill.artistName.toLowerCase().contains(q);
               }).toList();
-              
-              return GridView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.70, // Taller to fit image
-                ),
-                itemCount: filteredDrills.length,
-                itemBuilder: (context, index) {
-                  final drill = filteredDrills[index];
-                  final progress = _progressByDrill[drill.drillId];
-                  return _buildDrillCard(drill, progress, theme);
+
+              if (filteredDrills.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      _searchQuery.isEmpty
+                          ? 'No songs are available in this category yet.'
+                          : 'No songs match your search. Try another title or artist.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.maxWidth >= 1100
+                      ? 4
+                      : constraints.maxWidth >= 720
+                          ? 3
+                          : 2;
+                  return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: crossAxisCount >= 3 ? 0.82 : 0.70,
+                    ),
+                    itemCount: filteredDrills.length,
+                    itemBuilder: (context, index) {
+                      final drill = filteredDrills[index];
+                      final progress = _progressByDrill[drill.drillId];
+                      return _buildDrillCard(drill, progress, theme);
+                    },
+                  );
                 },
               );
             },
@@ -274,127 +301,172 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     );
   }
 
-  Widget _buildDrillCard(KaraokeDrill drill, TrainingExerciseProgress? progress, ThemeData theme) {
+  Widget _buildDrillCard(
+      KaraokeDrill drill, TrainingExerciseProgress? progress, ThemeData theme) {
     final durationLabel = formatDuration(drill.durationSec);
     final formattedTitle = formatSnakeCaseTitle(drill.title);
+    final formattedStyle = formatSnakeCaseTitle(drill.styleCategory);
+    final vocalLow = drill.vocalRange['low'] ?? drill.vocalRange['min'] ?? '';
+    final vocalHigh = drill.vocalRange['high'] ?? drill.vocalRange['max'] ?? '';
+    final vocalRangeLabel = vocalLow.isNotEmpty && vocalHigh.isNotEmpty
+        ? '$vocalLow–$vocalHigh'
+        : '';
 
-    return Pressable(
-      onTap: () => _onDrillTap(drill),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Cover Image Header
-            Expanded(
-              flex: 3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  drill.coverUrl.isNotEmpty
-                      ? Image.network(drill.coverUrl, fit: BoxFit.cover)
-                      : Container(color: theme.colorScheme.surfaceContainerHighest),
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.black54, Colors.transparent, Colors.black87],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: DifficultyBadge(difficulty: drill.difficulty),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Icon(
-                      Icons.play_circle_fill_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 28,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Text Content
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Semantics(
+      button: true,
+      label: 'Practice $formattedTitle by ${drill.artistName}',
+      child: Pressable(
+        onTap: () => _onDrillTap(drill),
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Cover Image Header
+              Expanded(
+                flex: 3,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Hero(
-                      tag: 'karaoke_song_title_${drill.drillId}',
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Text(
-                          formattedTitle,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      drill.artistName,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Spacer(),
-                    if (progress != null && progress.sessionsCompleted > 0) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Best: ${progress.bestScore.toInt()}%',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
+                    drill.coverUrl.isNotEmpty
+                        ? Image.network(
+                            drill.coverUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              child: Icon(
+                                Icons.music_note_rounded,
+                                color: theme.colorScheme.onSurfaceVariant,
+                                size: 36,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${progress.sessionsCompleted} Takes',
-                            style: theme.textTheme.labelSmall?.copyWith(
+                            semanticLabel: '$formattedTitle cover art',
+                          )
+                        : Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: Icon(
+                              Icons.music_note_rounded,
                               color: theme.colorScheme.onSurfaceVariant,
+                              size: 36,
                             ),
                           ),
-                        ],
+                    ColoredBox(
+                      color: theme.colorScheme.scrim.withValues(alpha: 0.22),
+                    ),
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: DifficultyBadge(difficulty: drill.difficulty),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Icon(
+                        Icons.play_circle_fill_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 28,
                       ),
-                      const SizedBox(height: 8),
-                    ],
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.timer_outlined,
-                          size: 14,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          durationLabel,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+              // Text Content
+              Expanded(
+                flex: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Hero(
+                        tag: 'karaoke_song_title_${drill.drillId}',
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Text(
+                            formattedTitle,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        drill.artistName,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        vocalRangeLabel.isEmpty
+                            ? formattedStyle
+                            : '$formattedStyle · $vocalRangeLabel',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Spacer(),
+                      if (progress != null &&
+                          progress.sessionsCompleted > 0) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Best: ${progress.bestScore.toInt()}%',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '${progress.sessionsCompleted} Takes',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.timer_outlined,
+                            size: 14,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            durationLabel,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Practice',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../auth/auth_token_provider.dart';
@@ -13,16 +13,25 @@ import '../../shared/models/karaoke_models.dart';
 import '../../shared/models/user_models.dart';
 
 class ApiException implements Exception {
-  ApiException({
+  const ApiException({
     required this.statusCode,
-    required this.body,
+    required this.code,
+    required this.message,
+    this.traceId,
+    this.validationPaths = const <String>[],
+    this.validationErrorTypes = const <String>[],
   });
 
   final int statusCode;
-  final String body;
+  final String code;
+  final String message;
+  final String? traceId;
+  final List<String> validationPaths;
+  final List<String> validationErrorTypes;
 
   @override
-  String toString() => 'ApiException(statusCode: $statusCode, body: $body)';
+  String toString() =>
+      'ApiException(statusCode: $statusCode, code: $code, traceId: $traceId)';
 }
 
 class ApiClient {
@@ -32,17 +41,29 @@ class ApiClient {
     http.Client? httpClient,
   })  : _config = config,
         _tokenProvider = tokenProvider,
-        _httpClient = httpClient ?? http.Client();
+        _httpClient = _TimeoutClient(
+          httpClient ?? http.Client(),
+          timeout: const Duration(seconds: 30),
+        );
 
   final AppConfig _config;
   final AuthTokenProvider _tokenProvider;
   final http.Client _httpClient;
 
+  Uri _apiUri(String path, {Map<String, String>? queryParameters}) {
+    final normalizedPrefix = _config.apiPrefix.startsWith('/')
+        ? _config.apiPrefix
+        : '/${_config.apiPrefix}';
+    return Uri.parse('${_config.apiBaseUrl}$normalizedPrefix/$path').replace(
+      queryParameters: queryParameters,
+    );
+  }
+
   Future<Map<String, String>> _headers() async {
     final token = await _tokenProvider.getToken();
     return {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
+      if (token.trim().isNotEmpty) 'Authorization': 'Bearer ${token.trim()}',
     };
   }
 
@@ -67,7 +88,7 @@ class ApiClient {
       if (trainingConfig != null) 'training_config': trainingConfig,
     };
     final response = await _httpClient.post(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions'),
+      _apiUri('sessions'),
       headers: await _headers(),
       body: jsonEncode(payload),
     );
@@ -82,7 +103,7 @@ class ApiClient {
   }) async {
     final payload = {'metrics': metrics.map((item) => item.toJson()).toList()};
     final response = await _httpClient.post(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions/$sessionId/metrics'),
+      _apiUri('sessions/$sessionId/metrics'),
       headers: await _headers(),
       body: jsonEncode(payload),
     );
@@ -93,7 +114,7 @@ class ApiClient {
 
   Future<FinalizeResponse> finalizeSession({required String sessionId}) async {
     final response = await _httpClient.post(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions/$sessionId/finalize'),
+      _apiUri('sessions/$sessionId/finalize'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -116,7 +137,7 @@ class ApiClient {
     };
 
     final response = await _httpClient.post(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions/$sessionId/attempts'),
+      _apiUri('sessions/$sessionId/attempts'),
       headers: await _headers(),
       body: jsonEncode(payload),
     );
@@ -129,7 +150,7 @@ class ApiClient {
   Future<SessionDetailsResponse> fetchSession(
       {required String sessionId}) async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions/$sessionId'),
+      _apiUri('sessions/$sessionId'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -139,7 +160,7 @@ class ApiClient {
 
   Future<List<SessionDetailsResponse>> listSessions() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions'),
+      _apiUri('sessions'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -152,7 +173,7 @@ class ApiClient {
 
   Future<List<AIJob>> fetchAIJobs() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/ai/jobs'),
+      _apiUri('ai/jobs'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -164,7 +185,7 @@ class ApiClient {
 
   Future<AIJob> fetchAIJob({required String jobId}) async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/ai/jobs/$jobId'),
+      _apiUri('ai/jobs/$jobId'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -173,7 +194,7 @@ class ApiClient {
 
   Future<CoachingFeedback> fetchFeedback({required String sessionId}) async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions/$sessionId/feedback'),
+      _apiUri('sessions/$sessionId/feedback'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -183,7 +204,7 @@ class ApiClient {
 
   Future<UserProfile> fetchCurrentUser() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/auth/me'),
+      _apiUri('auth/me'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -193,7 +214,7 @@ class ApiClient {
 
   Future<AnalyticsDashboard> fetchAnalyticsDashboard() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/analytics/dashboard'),
+      _apiUri('analytics/dashboard'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -202,9 +223,7 @@ class ApiClient {
   }
 
   Future<AnalyticsTrends> fetchAnalyticsTrends({String range = '30d'}) async {
-    final uri = Uri.parse('${_config.apiBaseUrl}/v1/analytics/trends').replace(
-      queryParameters: {'range': range},
-    );
+    final uri = _apiUri('analytics/trends', queryParameters: {'range': range});
     final response = await _httpClient.get(
       uri,
       headers: await _headers(),
@@ -216,7 +235,7 @@ class ApiClient {
 
   Future<TrainingCatalog> fetchTrainingCatalog() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/training/catalog'),
+      _apiUri('training/catalog'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -227,7 +246,7 @@ class ApiClient {
 
   Future<TrainingProgress> fetchTrainingProgress() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/training/progress'),
+      _apiUri('training/progress'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -238,7 +257,7 @@ class ApiClient {
 
   Future<TrainingRecommendations> fetchTrainingRecommendations() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/training/recommendations'),
+      _apiUri('training/recommendations'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -265,7 +284,7 @@ class ApiClient {
       if (recordedAtMs != null) 'recorded_at_ms': recordedAtMs,
     };
     final response = await _httpClient.post(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions/$sessionId/audio-snippets'),
+      _apiUri('sessions/$sessionId/audio-snippets'),
       headers: await _headers(),
       body: jsonEncode(payload),
     );
@@ -277,7 +296,7 @@ class ApiClient {
   Future<AudioSnippetList> fetchAudioSnippets(
       {required String sessionId}) async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/sessions/$sessionId/audio-snippets'),
+      _apiUri('sessions/$sessionId/audio-snippets'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -287,7 +306,7 @@ class ApiClient {
 
   Future<KaraokeCatalog> fetchKaraokeCatalog() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/karaoke/catalog'),
+      _apiUri('karaoke/catalog'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -298,7 +317,7 @@ class ApiClient {
 
   Future<TrainingProgress> fetchKaraokeProgress() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/karaoke/progress'),
+      _apiUri('karaoke/progress'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -309,7 +328,7 @@ class ApiClient {
 
   Future<KaraokeDrill> fetchKaraokeDrill({required String drillId}) async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/karaoke/catalog/$drillId'),
+      _apiUri('karaoke/catalog/$drillId'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -320,7 +339,7 @@ class ApiClient {
 
   Future<UserProfileFull> fetchFullProfile() async {
     final response = await _httpClient.get(
-      Uri.parse('${_config.apiBaseUrl}/v1/profile'),
+      _apiUri('profile'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -333,11 +352,26 @@ class ApiClient {
     VocalPreferencesUpdate prefs,
   ) async {
     final response = await _httpClient.put(
-      Uri.parse('${_config.apiBaseUrl}/v1/profile/preferences'),
+      _apiUri('profile/preferences'),
       headers: await _headers(),
       body: jsonEncode(prefs.toJson()),
     );
-    _throwIfError(response);
+    try {
+      _throwIfError(response);
+    } on ApiException catch (error) {
+      if (_isUnsupportedVoiceCalibration(error, prefs)) {
+        throw ApiException(
+          statusCode: error.statusCode,
+          code: 'PROFILE_CONTRACT_OUTDATED',
+          message:
+              'Voice setup finished, but this server is missing the save feature. Start the current local API or ask the administrator to update Cockatiel, then try again.',
+          traceId: error.traceId,
+          validationPaths: error.validationPaths,
+          validationErrorTypes: error.validationErrorTypes,
+        );
+      }
+      rethrow;
+    }
     return UserProfileFull.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
@@ -345,7 +379,7 @@ class ApiClient {
 
   Future<UserProfileFull> upgradeToPremium() async {
     final response = await _httpClient.post(
-      Uri.parse('${_config.apiBaseUrl}/v1/profile/tier/upgrade'),
+      _apiUri('profile/tier/upgrade'),
       headers: await _headers(),
     );
     _throwIfError(response);
@@ -356,8 +390,136 @@ class ApiClient {
 
   static void _throwIfError(http.Response response) {
     if (response.statusCode < 200 || response.statusCode > 299) {
-      debugPrint('API Error ${response.statusCode}: ${response.body}');
-      throw ApiException(statusCode: response.statusCode, body: response.body);
+      var code = 'HTTP_${response.statusCode}';
+      var message = _fallbackMessage(response.statusCode);
+      String? traceId;
+      var validationPaths = const <String>[];
+      var validationErrorTypes = const <String>[];
+
+      try {
+        final decoded = jsonDecode(response.body);
+        final error = decoded is Map<String, dynamic> ? decoded['error'] : null;
+        if (error is Map<String, dynamic>) {
+          final parsedCode = error['code'];
+          final parsedMessage = error['message'];
+          final parsedTraceId = error['trace_id'];
+          if (parsedCode is String && parsedCode.trim().isNotEmpty) {
+            code = parsedCode.trim();
+          }
+          if (parsedMessage is String && parsedMessage.trim().isNotEmpty) {
+            message = _limit(parsedMessage.trim(), 240);
+          }
+          if (parsedTraceId is String && parsedTraceId.trim().isNotEmpty) {
+            traceId = _limit(parsedTraceId.trim(), 64);
+          }
+
+          final details = error['details'];
+          if (details is Map<String, dynamic>) {
+            final errors = details['errors'];
+            if (errors is List<dynamic>) {
+              final paths = <String>{};
+              final types = <String>{};
+              for (final item in errors) {
+                if (item is! Map<String, dynamic>) continue;
+                final location = item['loc'];
+                if (location is List<dynamic>) {
+                  final path = location
+                      .whereType<String>()
+                      .map((part) => part.trim())
+                      .where((part) => part.isNotEmpty)
+                      .join('.');
+                  if (path.isNotEmpty) paths.add(_limit(path, 120));
+                }
+                final type = item['type'];
+                if (type is String && type.trim().isNotEmpty) {
+                  types.add(_limit(type.trim(), 80));
+                }
+              }
+              validationPaths = List.unmodifiable(paths);
+              validationErrorTypes = List.unmodifiable(types);
+            }
+          }
+        }
+      } on FormatException {
+        // Keep the safe status-derived message for non-JSON responses.
+      }
+
+      throw ApiException(
+        statusCode: response.statusCode,
+        code: code,
+        message: message,
+        traceId: traceId,
+        validationPaths: validationPaths,
+        validationErrorTypes: validationErrorTypes,
+      );
     }
   }
+
+  static String _fallbackMessage(int statusCode) {
+    switch (statusCode) {
+      case 401:
+        return 'Your session has expired. Please sign in again.';
+      case 403:
+        return 'You do not have permission to do that.';
+      case 404:
+        return 'The requested resource was not found.';
+      case 408:
+      case 504:
+        return 'The request took too long. Please try again.';
+      case 429:
+        return 'Too many requests. Please wait a moment and try again.';
+      default:
+        return 'The server could not complete that request. Please try again.';
+    }
+  }
+
+  static String _limit(String value, int maxLength) {
+    return value.length <= maxLength ? value : value.substring(0, maxLength);
+  }
+
+  static bool _isUnsupportedVoiceCalibration(
+    ApiException error,
+    VocalPreferencesUpdate prefs,
+  ) {
+    if (prefs.voiceCalibration == null ||
+        error.statusCode != 422 ||
+        error.code != 'VALIDATION_ERROR' ||
+        !error.validationErrorTypes.contains('extra_forbidden')) {
+      return false;
+    }
+    return error.validationPaths.any(
+      (path) =>
+          path == 'voice_calibration' || path.endsWith('.voice_calibration'),
+    );
+  }
+}
+
+class _TimeoutClient extends http.BaseClient {
+  _TimeoutClient(this._inner, {required this.timeout});
+
+  final http.Client _inner;
+  final Duration timeout;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    try {
+      return await _inner.send(request).timeout(timeout);
+    } on TimeoutException {
+      throw const ApiException(
+        statusCode: 0,
+        code: 'NETWORK_TIMEOUT',
+        message: 'The request took too long. Please try again.',
+      );
+    } on http.ClientException {
+      throw const ApiException(
+        statusCode: 0,
+        code: 'NETWORK_ERROR',
+        message:
+            'Unable to reach the server. Check your connection and try again.',
+      );
+    }
+  }
+
+  @override
+  void close() => _inner.close();
 }

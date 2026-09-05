@@ -18,15 +18,15 @@ class CoachingLogicEngine:
     # General Fallbacks
     if not strengths:
       if overall_score >= 85:
-        strengths.append("Exceptional overall performance consistency")
+        strengths.append("Very consistent overall performance")
       elif overall_score >= 70:
-        strengths.append("Solid effort with good foundational technique")
+        strengths.append("A solid effort with good foundations")
       else:
         strengths.append("Great dedication to practicing and completing the exercise")
 
     if not improvements:
       if overall_score < 95:
-        improvements.append("Continue refining micro-dynamics and emotional expression")
+        improvements.append("Keep refining small changes in volume and expression")
       else:
         improvements.append("Ready for advanced stylistic challenges")
 
@@ -36,7 +36,7 @@ class CoachingLogicEngine:
       elif is_breathing:
         next_exercises.append("Extended breath hold ladder")
       else:
-        next_exercises.append("Advanced vocal agility and melisma drill")
+        next_exercises.append("Vocal agility and note-connection drill")
 
     # Limit to top 3 most important points to avoid overwhelming the user
     return strengths[:3], improvements[:3], next_exercises[:3]
@@ -60,7 +60,7 @@ class CoachingLogicEngine:
     else:
       parts.append("Your acoustic metrics were outstanding across the board with no major technical flaws detected.")
       
-    parts.append("Keep practicing consistently to build muscular memory and vocal agility!")
+    parts.append("Short, regular practice will help these skills feel more natural.")
     return " ".join(parts)
 
   @staticmethod
@@ -74,48 +74,48 @@ class CoachingLogicEngine:
 
     # Pitch Logic
     if pitch_accuracy >= 90:
-      strengths.append("Flawless pitch accuracy and pinpoint intonation")
+      strengths.append("Pitch stayed very close to each target")
     elif pitch_accuracy >= 80:
-      strengths.append("Good general pitch accuracy, mostly centered")
+      strengths.append("Most notes were centered close to the target")
     elif pitch_accuracy < 70:
-      improvements.append("Pitch center drifts frequently; notes are often flat or sharp")
-      next_exercises.append("Slow interval matching drill with drone accompaniment")
+      improvements.append("Several notes drifted above or below the target")
+      next_exercises.append("Slow note-matching drill with a steady reference tone")
     
     if pitch_stability >= 85:
-      strengths.append("Excellent pitch stability on sustained notes")
+      strengths.append("Held notes stayed steady")
     elif pitch_stability < 75:
-      improvements.append("Wavering pitch on long held notes")
-      next_exercises.append("Straight-tone sustain exercises")
+      improvements.append("Held notes wavered a little")
+      next_exercises.append("Short, steady-note holds")
 
     # Timing / Rhythm Logic
     if timing_accuracy >= 90:
-      strengths.append("Impeccable rhythmic alignment and deep pocket groove")
+      strengths.append("Your notes lined up very closely with the beat")
     elif timing_accuracy >= 80:
-      strengths.append("Solid timing and rhythm lock")
+      strengths.append("Good timing and rhythm")
     elif timing_accuracy < 70:
-      improvements.append("Rushing or dragging phrases out of time")
-      next_exercises.append("Subdivision and metronome sync drills")
+      improvements.append("Some phrases rushed or fell behind the beat")
+      next_exercises.append("Beat-counting and metronome practice")
 
     # Breath Control Logic
     if breath_control >= 85:
-      strengths.append("Strong diaphragmatic breath support through phrases")
+      strengths.append("Breath support stayed steady through the phrases")
     elif breath_control < 70:
-      improvements.append("Running out of air before the end of phrases")
-      next_exercises.append("Fricative (hissing) breath pacing ladder")
+      improvements.append("You ran out of air before some phrases ended")
+      next_exercises.append("Gentle 'sss' breath-pacing ladder")
 
     # Vibrato Logic
     if vibrato_consistency >= 85:
-      strengths.append("Beautiful, even, and controlled vibrato rate")
+      strengths.append("Vibrato sounded even and controlled")
     elif vibrato_consistency > 0 and vibrato_consistency < 60: # Assuming 0 might mean no vibrato attempted
-      improvements.append("Vibrato is uneven or forced (tremolo/wobble)")
-      next_exercises.append("Vibrato oscillation speed control drill")
+      improvements.append("Vibrato was uneven or felt forced")
+      next_exercises.append("Gentle vibrato-control drill")
 
     # Transition Smoothness (Legato)
     if transition_smoothness >= 85:
-      strengths.append("Seamless and fluid legato note transitions")
+      strengths.append("Transitions between notes were smooth")
     elif transition_smoothness < 70:
-      improvements.append("Clunky or scooped transitions between intervals")
-      next_exercises.append("Glissando and portamento smoothing exercises")
+      improvements.append("Some note changes sounded abrupt or slid into place")
+      next_exercises.append("Connected note-transition practice")
 
   @staticmethod
   def _evaluate_breathing(metrics: dict[str, Any], strengths: list[str], improvements: list[str], next_exercises: list[str]) -> None:
@@ -125,21 +125,21 @@ class CoachingLogicEngine:
     interruption_count = metrics.get("interruption_count", 0)
 
     if phase_completion >= 90:
-      strengths.append("Fully completed inhale, suspend, and exhale phases")
+      strengths.append("You completed each inhale, hold, and exhale phase")
     elif phase_completion < 75:
-      improvements.append("Prematurely releasing or failing to complete breath phases")
-      next_exercises.append("Beginner 4-4-4 box breathing")
+      improvements.append("Some breathing phases ended too early")
+      next_exercises.append("Beginner 4-4-4 breathing")
 
     if pace_adherence >= 90:
-      strengths.append("Perfect adherence to the rhythmic breathing pace")
+      strengths.append("Your breathing pace matched the exercise")
     elif pace_adherence < 75:
-      improvements.append("Inhaling or exhaling too quickly for the designated pace")
-      next_exercises.append("Slow-paced metronome breathing")
+      improvements.append("Some inhales or exhales were too fast")
+      next_exercises.append("Slow metronome breathing")
 
     if cycle_consistency >= 85:
-      strengths.append("Highly consistent breath volume across multiple cycles")
+      strengths.append("Breath volume stayed consistent across cycles")
     elif cycle_consistency < 70:
-      improvements.append("Inconsistent breath volumes (shallow breaths mixed with deep)")
+      improvements.append("Breaths varied between shallow and deep")
 
     if interruption_count == 0:
       strengths.append("Uninterrupted, focused breathing cycles")

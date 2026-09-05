@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/session_models.dart';
+import '../../../shared/utils/vocal_utils.dart';
 import 'feedback_page.dart';
 
 class AnalysisQueuePage extends StatelessWidget {
@@ -19,7 +21,7 @@ class AnalysisQueuePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Analysis Queue'),
+        title: const Text('Feedback Processing'),
         actions: [
           IconButton(
             onPressed: appState.refreshAIJobs,
@@ -33,8 +35,8 @@ class AnalysisQueuePage extends StatelessWidget {
           final jobs = appState.aiJobs;
           if (jobs.isEmpty) {
             return const Center(
-              child:
-                  Text('No analysis jobs yet. Start a session to queue one.'),
+              child: Text(
+                  'No feedback is waiting. Finish a session to see your review here.'),
             );
           }
           return ListView.builder(
@@ -76,32 +78,41 @@ class _QueueJobCard extends StatelessWidget {
   }
 
   Future<void> _openFeedback(BuildContext context) async {
-    final session = await apiClient.fetchSession(sessionId: job.sessionId);
-    CoachingFeedback? feedback = session.feedback;
-    if (feedback == null && session.status == 'completed') {
-      feedback = await apiClient.fetchFeedback(sessionId: job.sessionId);
-    }
-    if (!context.mounted || feedback == null) {
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FeedbackPage(
-          result: FinalizeResponse(
-            sessionId: job.sessionId,
-            status: 'completed',
-            feedback: feedback,
+    try {
+      final session = await apiClient.fetchSession(sessionId: job.sessionId);
+      CoachingFeedback? feedback = session.feedback;
+      if (feedback == null && session.status == 'completed') {
+        feedback = await apiClient.fetchFeedback(sessionId: job.sessionId);
+      }
+      if (!context.mounted || feedback == null) {
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FeedbackPage(
+            result: FinalizeResponse(
+              sessionId: job.sessionId,
+              status: 'completed',
+              feedback: feedback,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Feedback is not available yet. Please try again.'),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = switch (job.state) {
-      'completed' => Colors.green,
+      'completed' => theme.appTokens.success,
       'failed' => theme.colorScheme.error,
       'processing' => theme.colorScheme.primary,
       _ => theme.colorScheme.secondary,
@@ -118,7 +129,7 @@ class _QueueJobCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    job.exerciseType,
+                    formatSnakeCaseTitle(job.exerciseType),
                     style: theme.textTheme.titleMedium,
                   ),
                 ),

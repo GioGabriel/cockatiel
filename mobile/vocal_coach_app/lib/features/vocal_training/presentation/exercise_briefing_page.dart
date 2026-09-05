@@ -35,9 +35,9 @@ class ExerciseBriefingPage extends StatefulWidget {
 
 class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
   static const _durationsByDifficulty = {
-    'beginner': 30,
-    'intermediate': 45,
-    'advanced': 60,
+    'beginner': 20,
+    'intermediate': 30,
+    'advanced': 45,
   };
   static const _keyOptions = [
     'C',
@@ -80,7 +80,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
   void initState() {
     super.initState();
     _selectedDifficulty = widget.exercise.difficulty.toLowerCase();
-    
+
     final prefs = widget.appState.currentUser?.vocalPreferences;
     if (prefs != null) {
       final rangeStr = prefs.vocalRange.name.toLowerCase();
@@ -93,7 +93,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
         }
       }
     }
-    
+
     _loadExercisePreview();
   }
 
@@ -141,7 +141,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
   String get _sessionNoun => _isBreathingExercise ? 'cycle' : 'take';
 
   int get _selectedDurationSec =>
-      _durationsByDifficulty[_selectedDifficulty] ?? 30;
+      _durationsByDifficulty[_selectedDifficulty] ?? 20;
 
   String get _exerciseName => _catalogExercise?.name ?? widget.exercise.name;
 
@@ -286,7 +286,8 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
           builder: (_) => TrainingSessionPage(
             apiClient: widget.apiClient,
             appState: widget.appState,
-            mode: _catalogExercise?.exerciseMode ?? widget.exercise.exerciseMode,
+            mode:
+                _catalogExercise?.exerciseMode ?? widget.exercise.exerciseMode,
             exerciseType: widget.exercise.id,
             sessionId: session.sessionId,
             initialKey: _selectedKey,
@@ -295,7 +296,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
           ),
         ),
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = 'Failed to start session. Please try again.';
@@ -312,7 +313,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(title: Text(_exerciseName)),
       body: SafeArea(
@@ -357,6 +358,72 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        Text('What you\'ll do',
+                            style: theme.textTheme.titleSmall),
+                        const SizedBox(height: 6),
+                        Text(
+                          _whatYouDo,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text('What the feedback means',
+                            style: theme.textTheme.titleSmall),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Pitch accuracy = matching the target note. Timing = singing at the right moment. '
+                          'Breath support = keeping airflow steady. We show detailed numbers after the session.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text('Your session flow',
+                            style: theme.textTheme.titleSmall),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Prepare → understand the goal → practice with live guidance → review your result → see what to practice next.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                        if (_focusMetrics.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final metric in _focusMetrics)
+                                Chip(
+                                  label: Text(metric),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                            ],
+                          ),
+                        ],
+                        if (_instructions.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          Text('Step by step',
+                              style: theme.textTheme.titleSmall),
+                          const SizedBox(height: 6),
+                          for (var index = 0;
+                              index < _instructions.length;
+                              index++)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                '${index + 1}. ${_instructions[index]}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                        ],
                         const SizedBox(height: 24),
                         Text('Difficulty', style: theme.textTheme.titleSmall),
                         const SizedBox(height: 8),
@@ -365,23 +432,28 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                           runSpacing: 8,
                           children: [
                             for (final option in const [
-                              ('beginner', 'Beginner', '30s'),
-                              ('intermediate', 'Intermediate', '45s'),
-                              ('advanced', 'Advanced', '60s'),
+                              ('beginner', 'Beginner', '20s'),
+                              ('intermediate', 'Intermediate', '30s'),
+                              ('advanced', 'Advanced', '45s'),
                             ])
                               ChoiceChip(
                                 label: Text('${option.$2} · ${option.$3}'),
                                 selected: _selectedDifficulty == option.$1,
-                                onSelected: _isStarting ? null : (selected) {
-                                  if (selected) setState(() => _selectedDifficulty = option.$1);
-                                },
+                                onSelected: _isStarting
+                                    ? null
+                                    : (selected) {
+                                        if (selected) {
+                                          setState(() =>
+                                              _selectedDifficulty = option.$1);
+                                        }
+                                      },
                               ),
                           ],
                         ),
-                        
                         if (_requiresMicrophone) ...[
                           const SizedBox(height: 24),
-                          Text('Vocal Range', style: theme.textTheme.titleSmall),
+                          Text('Vocal Range',
+                              style: theme.textTheme.titleSmall),
                           const SizedBox(height: 8),
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
@@ -392,15 +464,20 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                                   child: ChoiceChip(
                                     label: Text(range),
                                     selected: _selectedRange == range,
-                                    onSelected: _isStarting ? null : (selected) {
-                                      if (selected) {
-                                        setState(() {
-                                          _selectedRange = range;
-                                          _selectedKey = _vocalRanges[range]!['key'] as String;
-                                          _selectedOctave = _vocalRanges[range]!['octave'] as int;
-                                        });
-                                      }
-                                    },
+                                    onSelected: _isStarting
+                                        ? null
+                                        : (selected) {
+                                            if (selected) {
+                                              setState(() {
+                                                _selectedRange = range;
+                                                _selectedKey =
+                                                    _vocalRanges[range]!['key']
+                                                        as String;
+                                                _selectedOctave = _vocalRanges[
+                                                    range]!['octave'] as int;
+                                              });
+                                            }
+                                          },
                                   ),
                                 );
                               }).toList(),
@@ -412,18 +489,21 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                              color: theme.colorScheme.primaryContainer
+                                  .withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.auto_awesome, size: 20, color: theme.colorScheme.primary),
+                                Icon(Icons.auto_awesome,
+                                    size: 20, color: theme.colorScheme.primary),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     widget.recommendation!.reason,
                                     style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onPrimaryContainer,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
                                     ),
                                   ),
                                 ),
@@ -450,11 +530,11 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
               // Start button
               FilledButton.icon(
                 onPressed: _isStarting ? null : _beginSession,
-                icon: _isStarting 
+                icon: _isStarting
                     ? const SizedBox(
-                        width: 20, height: 20, 
-                        child: CircularProgressIndicator(strokeWidth: 2)
-                      )
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.play_arrow_rounded),
                 label: Text(
                   _isStarting ? 'Starting...' : 'Start Session',
@@ -468,5 +548,3 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
     );
   }
 }
-
-

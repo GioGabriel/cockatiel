@@ -5,33 +5,30 @@ This is the Flutter client for the Vocal Coach project.
 For full setup and backend instructions, see the repo root guide:
 - `../../README.md`
 
-Quick run (Android emulator):
+Quick run (Chrome, no emulator required):
 
-One command from repo root:
+1) Start the backend in another terminal:
 ```bash
-cd /Users/giogabrielsanchez/cockatiel-enhanced
-bash .script/run-all-android.sh
-```
-
-1) Start backend in another terminal:
-```bash
-cd /Users/giogabrielsanchez/cockatiel-enhanced/backend/vocal_coach_api
+cd /Users/giogabrielsanchez/Documents/ChatGPT/ccktiel/cockatiel/backend/vocal_coach_api
 bash scripts/run_backend.sh
 ```
 
-2) From this folder, run app:
+2) From this folder, run the browser client:
 ```bash
-flutter emulators --launch Pixel_6a
-flutter run -d emulator-5554
+flutter pub get
+flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000
 ```
+
+Android Studio and an emulator are not required to build the release APK, but
+the Android SDK, build-tools, platform-tools, and the project NDK must be
+installed and exposed through `ANDROID_SDK_ROOT`. Use a physical Android device
+for microphone/audio verification when available.
 
 Auth notes:
 - App now uses Firebase email/password auth (signup/login/forgot-password).
-- Default local token mode is dev-compatible (`USE_DEV_AUTH_TOKEN=true`) so backend `AUTH_BYPASS=true` works out of the box.
-- For strict backend token verification mode, run:
-```bash
-flutter run -d emulator-5554 --dart-define=USE_DEV_AUTH_TOKEN=false
-```
+- The client always uses Firebase ID tokens. For a local synthetic backend identity,
+  start the backend explicitly with `AUTH_BYPASS=true`; this is never enabled by
+  the mobile release build.
 
 Optional Firebase Auth emulator mode:
 ```bash

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/shell/main_shell_page.dart';
+import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
-import '../../../shared/animations/page_transitions.dart';
+import '../../../shared/widgets/contained_hero_image.dart';
 
 enum _AuthView { signIn, signUp, forgotPassword }
 
@@ -61,16 +61,6 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     if (!mounted) return;
     if (widget.appState.isAuthenticated) {
       setState(() => _showSuccess = true);
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        scaleWelcomeRoute(
-          builder: (_) => MainShellPage(
-            appState: widget.appState,
-            apiClient: widget.apiClient,
-          ),
-        ),
-      );
     }
   }
 
@@ -85,16 +75,6 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     if (!mounted) return;
     if (widget.appState.isAuthenticated) {
       setState(() => _showSuccess = true);
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        scaleWelcomeRoute(
-          builder: (_) => MainShellPage(
-            appState: widget.appState,
-            apiClient: widget.apiClient,
-          ),
-        ),
-      );
     }
   }
 
@@ -132,7 +112,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF09090F),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: AnimatedBuilder(
         animation: widget.appState,
         builder: (_, __) {
@@ -154,27 +134,25 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
   // ─── SIGN IN ──────────────────────────────────────────────────────────
 
   Widget _buildSignInLayout() {
+    final theme = Theme.of(context);
     return _FullScreenAuthLayout(
       key: const ValueKey('signIn'),
       topContent: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Welcome\nBack 👋',
-            style: TextStyle(
-              fontSize: 36,
+            style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w900,
-              color: Colors.white,
               height: 1.15,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Sign in to continue your vocal journey.',
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.white.withValues(alpha: 0.6),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -198,7 +176,8 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
               controller: _signInPasswordController,
               label: 'Password',
               obscure: _obscurePassword,
-              onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
+              onToggle: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
               validator: _validatePassword,
               onSubmit: (_) => _submitSignIn(),
             ),
@@ -209,14 +188,16 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
                 onPressed: widget.appState.isAuthenticating
                     ? null
                     : () {
-                        _resetEmailController.text = _signInEmailController.text;
+                        _resetEmailController.text =
+                            _signInEmailController.text;
                         _setView(_AuthView.forgotPassword);
                       },
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF00FF7F),
+                  foregroundColor: theme.colorScheme.primary,
                   padding: EdgeInsets.zero,
                 ),
-                child: const Text('Forgot Password?', style: TextStyle(fontWeight: FontWeight.w600)),
+                child: const Text('Forgot Password?',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
             const SizedBox(height: 24),
@@ -241,6 +222,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
   // ─── SIGN UP ──────────────────────────────────────────────────────────
 
   Widget _buildSignUpLayout() {
+    final theme = Theme.of(context);
     return _FullScreenAuthLayout(
       key: const ValueKey('signUp'),
       showBack: true,
@@ -249,21 +231,18 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Create an\nAccount ✨',
-            style: TextStyle(
-              fontSize: 36,
+            style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w900,
-              color: Colors.white,
               height: 1.15,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Start your vocal journey today.',
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.white.withValues(alpha: 0.6),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -275,8 +254,8 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
           children: [
             _buildField(
               controller: _signUpNameController,
-              label: 'Full Name',
-              hint: 'Your name',
+              label: 'Display name',
+              hint: 'What should we call you?',
               icon: Icons.person_outline_rounded,
               textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.next,
@@ -298,8 +277,16 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
               controller: _signUpPasswordController,
               label: 'Password',
               obscure: _obscurePassword,
-              onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
+              onToggle: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
               validator: _validatePassword,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Use at least 6 characters. A longer mix of words, numbers, and symbols is stronger.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             _buildPasswordField(
@@ -339,6 +326,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
   // ─── FORGOT PASSWORD ──────────────────────────────────────────────────
 
   Widget _buildForgotPasswordLayout() {
+    final theme = Theme.of(context);
     return _FullScreenAuthLayout(
       key: const ValueKey('forgotPassword'),
       showBack: true,
@@ -347,21 +335,18 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Reset\nPassword 🔑',
-            style: TextStyle(
-              fontSize: 36,
+            style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w900,
-              color: Colors.white,
               height: 1.15,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             "We'll send a reset link to your inbox.",
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.white.withValues(alpha: 0.6),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -384,10 +369,11 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
             const SizedBox(height: 28),
             _buildPrimaryButton(
               label: 'Send Reset Link',
-              isLoading: widget.appState.isAuthenticating,
+              isLoading: widget.appState.isSendingPasswordReset,
               onPressed: _submitPasswordReset,
             ),
-            _buildErrorNotice(),
+            if (widget.appState.authNotice != null) _buildResetConfirmation(),
+            _buildErrorNotice(includeNotice: false),
             const SizedBox(height: 32),
             _buildSwitchRow(
               prefix: 'Remember your password? ',
@@ -413,6 +399,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     String? Function(String?)? validator,
     void Function(String)? onSubmit,
   }) {
+    final theme = Theme.of(context);
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
@@ -420,37 +407,14 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
       textCapitalization: textCapitalization,
       validator: validator,
       onFieldSubmitted: onSubmit,
-      style: const TextStyle(color: Colors.white),
+      style: theme.textTheme.bodyLarge,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),
-        filled: true,
-        fillColor: const Color(0xFF1A1A2E),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF2A2A40), width: 1),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF2A2A40), width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF00FF7F), width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFF4D6D), width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFF4D6D), width: 1.5),
-        ),
-        labelStyle: const TextStyle(color: Color(0xFF888899)),
-        hintStyle: const TextStyle(color: Color(0xFF444455)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        prefixIconColor: const Color(0xFF888899),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        prefixIconColor: theme.colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -463,12 +427,13 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     String? Function(String?)? validator,
     void Function(String)? onSubmit,
   }) {
+    final theme = Theme.of(context);
     return TextFormField(
       controller: controller,
       obscureText: obscure,
       validator: validator,
       onFieldSubmitted: onSubmit,
-      style: const TextStyle(color: Colors.white),
+      style: theme.textTheme.bodyLarge,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
@@ -479,32 +444,10 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
           ),
           onPressed: onToggle,
         ),
-        filled: true,
-        fillColor: const Color(0xFF1A1A2E),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF2A2A40), width: 1),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF2A2A40), width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF00FF7F), width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFF4D6D), width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFF4D6D), width: 1.5),
-        ),
-        labelStyle: const TextStyle(color: Color(0xFF888899)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        prefixIconColor: const Color(0xFF888899),
-        suffixIconColor: const Color(0xFF888899),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        prefixIconColor: theme.colorScheme.onSurfaceVariant,
+        suffixIconColor: theme.colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -514,24 +457,23 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     required bool isLoading,
     required VoidCallback onPressed,
   }) {
+    final theme = Theme.of(context);
     return SizedBox(
       height: 56,
       child: FilledButton(
         onPressed: isLoading ? null : onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF00FF7F),
-          foregroundColor: const Color(0xFF09090F),
-          disabledBackgroundColor: const Color(0xFF00FF7F).withValues(alpha: 0.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
+          textStyle: theme.textTheme.titleMedium,
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: Color(0xFF09090F),
+                  color: theme.colorScheme.onPrimary,
                 ),
               )
             : Text(label),
@@ -544,65 +486,105 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     required String linkText,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           prefix,
-          style: const TextStyle(color: Color(0xFF888899), fontSize: 14),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         GestureDetector(
           onTap: onTap,
-          child: Text(
-            linkText,
-            style: const TextStyle(
-              color: Color(0xFF00FF7F),
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
-          ),
+          child: Text(linkText, style: theme.textTheme.labelLarge),
         ),
       ],
     );
   }
 
-  Widget _buildErrorNotice() {
-    if (widget.appState.authError == null && !_showSuccess) {
+  Widget _buildErrorNotice({bool includeNotice = true}) {
+    final theme = Theme.of(context);
+    final tokens = theme.appTokens;
+    final error = widget.appState.authError;
+    final notice = includeNotice ? widget.appState.authNotice : null;
+    if (error == null && notice == null && !_showSuccess) {
       return const SizedBox.shrink();
     }
+    final isSuccess = _showSuccess || notice != null;
+    final message = _showSuccess
+        ? 'Success! Your account is ready.'
+        : notice ?? error ?? 'Something went wrong. Please try again.';
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: _showSuccess
-              ? const Color(0xFF00FF7F).withValues(alpha: 0.1)
-              : const Color(0xFFFF4D6D).withValues(alpha: 0.1),
+          color: isSuccess
+              ? tokens.success.withValues(alpha: 0.12)
+              : tokens.danger.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _showSuccess
-                ? const Color(0xFF00FF7F).withValues(alpha: 0.4)
-                : const Color(0xFFFF4D6D).withValues(alpha: 0.4),
+            color: isSuccess
+                ? tokens.success.withValues(alpha: 0.45)
+                : tokens.danger.withValues(alpha: 0.45),
           ),
         ),
         child: Row(
           children: [
             Icon(
-              _showSuccess ? Icons.check_circle_outline : Icons.error_outline,
+              isSuccess ? Icons.check_circle_outline : Icons.error_outline,
               size: 16,
-              color: _showSuccess ? const Color(0xFF00FF7F) : const Color(0xFFFF4D6D),
+              color: isSuccess ? tokens.success : tokens.danger,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                _showSuccess ? 'Success! Signing you in...' : widget.appState.authError!,
+                message,
                 style: TextStyle(
                   fontSize: 13,
-                  color: _showSuccess ? const Color(0xFF00FF7F) : const Color(0xFFFF4D6D),
+                  color: isSuccess ? tokens.success : tokens.danger,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResetConfirmation() {
+    final theme = Theme.of(context);
+    final tokens = theme.appTokens;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Semantics(
+        liveRegion: true,
+        label: 'Password reset email sent',
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: tokens.success.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: tokens.success.withValues(alpha: 0.45)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.mark_email_read_outlined, color: tokens.success),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Check your inbox and spam folder for the reset link. When you are ready, return here to sign in.',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -627,89 +609,78 @@ class _FullScreenAuthLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // ① The 3D image covers the ENTIRE screen
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/auth_3d_elements.jpg',
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-          ),
-        ),
-
-        // ② A gradient that goes from mostly-transparent at top
-        //    to fully solid dark at the bottom 55% of the screen.
-        //    This kills the black-void problem: the bottom is always
-        //    the same #09090F as the scaffold, not "empty".
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.0, 0.30, 0.50, 1.0],
-                colors: [
-                  const Color(0xFF09090F).withValues(alpha: 0.15),
-                  const Color(0xFF09090F).withValues(alpha: 0.55),
-                  const Color(0xFF09090F).withValues(alpha: 0.92),
-                  const Color(0xFF09090F),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // ③ Back button overlay
-        if (showBack)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
-            left: 16,
-            child: IconButton(
-              onPressed: onBack,
-              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.black45,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-
-        // ④ All content sits in a Column that fills the screen.
-        //    topContent floats over the image in the upper portion.
-        //    bottomContent (the form) sits below, still on the
-        //    dark-gradient area — NO separate card, NO black gap.
-        SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Heading occupies the top ~45%
-              Expanded(
-                flex: 45,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 16, 28, 20),
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: topContent,
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 38,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(24),
+                  ),
+                  child: ColoredBox(
+                    color: theme.scaffoldBackgroundColor,
+                    child: Column(
+                      children: [
+                        const Expanded(
+                          child: ContainedHeroImage(
+                            assetPath: 'assets/images/auth_3d_elements.jpg',
+                            semanticLabel: 'Microphone and music notes',
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                        ColoredBox(
+                          color: theme.scaffoldBackgroundColor.withValues(
+                            alpha: 0.9,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(28, 16, 28, 20),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: topContent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-
-              // Form fills the remaining space and scrolls if needed
-              Expanded(
-                flex: 55,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-                  child: bottomContent,
-                ),
-              ),
-            ],
+                if (showBack)
+                  Positioned(
+                    top: 12,
+                    left: 16,
+                    child: IconButton(
+                      onPressed: onBack,
+                      tooltip: 'Back to sign in',
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      style: IconButton.styleFrom(
+                        backgroundColor: theme.colorScheme.surface,
+                        foregroundColor: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-      ],
+          Expanded(
+            flex: 62,
+            child: Material(
+              color: theme.scaffoldBackgroundColor,
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                child: bottomContent,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

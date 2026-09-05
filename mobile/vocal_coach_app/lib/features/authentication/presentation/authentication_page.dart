@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
-import '../../../shared/widgets/contained_hero_image.dart';
+import '../../../shared/widgets/full_bleed_image_background.dart';
 
 enum _AuthView { signIn, signUp, forgotPassword }
 
@@ -609,77 +609,52 @@ class _FullScreenAuthLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            flex: 38,
-            child: Stack(
-              fit: StackFit.expand,
+    return FullBleedImageBackground(
+      assetPath: 'assets/images/auth_3d_elements.jpg',
+      semanticLabel: 'Microphone and music notes',
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(24),
-                  ),
-                  child: ColoredBox(
-                    color: theme.scaffoldBackgroundColor,
-                    child: Column(
-                      children: [
-                        const Expanded(
-                          child: ContainedHeroImage(
-                            assetPath: 'assets/images/auth_3d_elements.jpg',
-                            semanticLabel: 'Microphone and music notes',
-                            borderRadius: BorderRadius.zero,
-                          ),
-                        ),
-                        ColoredBox(
-                          color: theme.scaffoldBackgroundColor.withValues(
-                            alpha: 0.9,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 16, 28, 20),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: topContent,
-                            ),
-                          ),
-                        ),
-                      ],
+                Expanded(
+                  flex: 45,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 16, 28, 20),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: topContent,
                     ),
                   ),
                 ),
-                if (showBack)
-                  Positioned(
-                    top: 12,
-                    left: 16,
-                    child: IconButton(
-                      onPressed: onBack,
-                      tooltip: 'Back to sign in',
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      style: IconButton.styleFrom(
-                        backgroundColor: theme.colorScheme.surface,
-                        foregroundColor: theme.colorScheme.onSurface,
-                      ),
-                    ),
+                Expanded(
+                  flex: 55,
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                    child: bottomContent,
                   ),
+                ),
               ],
             ),
-          ),
-          Expanded(
-            flex: 62,
-            child: Material(
-              color: theme.scaffoldBackgroundColor,
-              child: SingleChildScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-                child: bottomContent,
+            if (showBack)
+              Positioned(
+                top: 12,
+                left: 16,
+                child: IconButton(
+                  onPressed: onBack,
+                  tooltip: 'Back to sign in',
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black45,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

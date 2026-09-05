@@ -155,8 +155,14 @@ def update_vocal_preferences(user_id: str, preferences: dict[str, Any]) -> dict[
       status_code=404,
     )
 
-  updated = repository.update(user_id, {"vocal_preferences": preferences})
-  return updated  # type: ignore[return-value]
+  repository.update(user_id, {"vocal_preferences": preferences})
+
+  # Read the canonical profile after the write instead of returning the
+  # repository's raw update result. Firestore documents created before
+  # access_tier was introduced may omit that field, while UserProfileOut
+  # requires it. get_user_profile also applies the registered default for
+  # those legacy documents.
+  return get_user_profile(user_id)
 
 
 def upgrade_tier(user_id: str, target_tier: str = "premium") -> dict[str, Any]:
@@ -175,11 +181,11 @@ def upgrade_tier(user_id: str, target_tier: str = "premium") -> dict[str, Any]:
     )
 
   expires_at = int(time() * 1000) + (365 * 24 * 60 * 60 * 1000)
-  updated = repository.update(user_id, {
+  repository.update(user_id, {
     "access_tier": target_tier,
     "premium_expires_at": expires_at,
   })
-  return updated  # type: ignore[return-value]
+  return get_user_profile(user_id)
 
 
 def upgrade_to_premium(user_id: str) -> dict[str, Any]:
@@ -206,10 +212,10 @@ def downgrade_tier(user_id: str) -> dict[str, Any]:
       status_code=404,
     )
 
-  updated = repository.update(user_id, {
+  repository.update(user_id, {
     "access_tier": "registered",
   })
-  return updated  # type: ignore[return-value]
+  return get_user_profile(user_id)
 
 
 def get_access_tier(user_id: str) -> str:

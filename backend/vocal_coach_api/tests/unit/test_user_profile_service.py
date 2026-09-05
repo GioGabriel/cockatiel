@@ -54,6 +54,47 @@ class TestGetUserProfile:
 
 
 class TestUpdateVocalPreferences:
+  def test_returns_canonical_profile_when_legacy_repository_response_omits_access_tier(
+    self,
+    monkeypatch: pytest.MonkeyPatch,
+  ) -> None:
+    """Legacy Firestore profiles must still satisfy the profile response contract."""
+
+    class LegacyUserRepository:
+      def __init__(self) -> None:
+        self.user = {
+          "uid": "u1",
+          "email": "a@b.com",
+          "name": "Test",
+          "vocal_preferences": None,
+        }
+
+      def get(self, uid: str) -> dict | None:
+        return self.user if uid == "u1" else None
+
+      def update(self, uid: str, updates: dict) -> dict | None:
+        self.user.update(updates)
+        # Simulate a legacy Firestore document that has no access_tier field.
+        return {key: value for key, value in self.user.items() if key != "access_tier"}
+
+    repository = LegacyUserRepository()
+    monkeypatch.setattr(
+      "app.modules.users.service.get_user_repository",
+      lambda: repository,
+    )
+
+    result = update_vocal_preferences(
+      "u1",
+      {
+        "vocal_range": "tenor",
+        "preferred_categories": ["vocal_training"],
+        "training_goal": "pitch_improvement",
+      },
+    )
+
+    assert result["access_tier"] == "registered"
+    assert result["vocal_preferences"]["vocal_range"] == "tenor"
+
   def test_valid_preferences_are_persisted(self) -> None:
     _create_user("u1")
     prefs = {

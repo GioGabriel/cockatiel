@@ -18,13 +18,6 @@ void main() {
       ),
     );
 
-    final backgroundImage = tester.widget<Image>(
-      find.byKey(
-        const ValueKey(
-          'contained-hero-image-background-assets/images/onboarding_collage.jpg',
-        ),
-      ),
-    );
     final foregroundImage = tester.widget<Image>(
       find.byKey(
         const ValueKey(
@@ -33,12 +26,11 @@ void main() {
       ),
     );
 
-    expect(backgroundImage.fit, BoxFit.cover);
-    expect(backgroundImage.excludeFromSemantics, isTrue);
     expect(foregroundImage.fit, BoxFit.contain);
     expect(foregroundImage.width, double.infinity);
     expect(foregroundImage.height, double.infinity);
-    expect(find.byType(ImageFiltered), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.byType(ImageFiltered), findsNothing);
     expect(find.bySemanticsLabel('Singers practicing with microphones'),
         findsOneWidget);
   });

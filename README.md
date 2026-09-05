@@ -43,6 +43,11 @@ credentials; the backend refuses to silently use in-memory persistence in
 production. Keep `API_REQUEST_TIMEOUT_S` bounded. Do not print or commit
 credentials.
 
+The Render blueprint permits only the fixed local Chrome smoke-test origins
+`http://localhost:4173` and `http://127.0.0.1:4173`; this does not bypass
+Firebase authentication. Add the deployed frontend origin explicitly when a
+hosted web client is introduced.
+
 OpenRouter is optional. The canonical setting is `OPENROUTER_API_KEYS`; the
 legacy singular `OPENROUTER_API_KEY` is accepted only as a migration fallback.
 The backend never logs key values.

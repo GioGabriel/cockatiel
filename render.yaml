@@ -12,7 +12,8 @@ services:
       - key: APP_ENV
         value: "production"
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        # Explicit local Chrome smoke-test origins; Firebase auth is still required.
+        value: "http://localhost:4173,http://127.0.0.1:4173"
       - key: CORS_ALLOW_LOCALHOST
         value: "false"
       - key: API_REQUEST_TIMEOUT_S

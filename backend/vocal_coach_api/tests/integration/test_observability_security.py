@@ -44,6 +44,20 @@ def test_cors_configuration_never_combines_wildcard_origins_with_credentials():
   )
 
 
+def test_local_chrome_origin_can_complete_cors_preflight(client):
+  response = client.options(
+    "/health",
+    headers={
+      "Origin": "http://localhost:4173",
+      "Access-Control-Request-Method": "GET",
+    },
+  )
+
+  assert response.status_code == 200
+  assert response.headers["access-control-allow-origin"] == "http://localhost:4173"
+  assert "GET" in response.headers["access-control-allow-methods"]
+
+
 def test_request_timeout_returns_safe_traceable_504(monkeypatch):
   from app import main
 

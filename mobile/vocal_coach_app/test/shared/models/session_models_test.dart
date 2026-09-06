@@ -53,6 +53,17 @@ void main() {
         'model_used': 'gemini-pro',
         'prompt_version': 'v2',
         'latency_ms': 1200,
+        'detailed_improvements': [
+          {
+            'metric_key': 'pitch_accuracy',
+            'priority': 'high',
+            'finding': 'Pitch accuracy needs attention.',
+            'evidence': 'Only 42% of target frames were on target.',
+            'why_it_matters': 'This makes the melody harder to recognize.',
+            'action': 'Match one target note at a time.',
+            'practice_plan': 'Repeat the target for 10 seconds.',
+          },
+        ],
         'score_breakdown': {
           'metric_mode': 'voice',
           'focus_metrics': ['pitch_accuracy', 'timing_accuracy'],
@@ -67,6 +78,29 @@ void main() {
           'scoring_version': '2.0',
           'sample_count': 128,
           'evidence_quality': 'reliable',
+          'recording_evidence': {
+            'frame_count': 128,
+            'voiced_coverage_pct': 94.0,
+            'target_coverage_pct': 90.0,
+          },
+          'metric_details': {
+            'pitch_accuracy': {
+              'status': 'measured',
+              'reason': 'Some target notes were missed.',
+              'observed_frames': 115,
+              'coverage_pct': 90.0,
+            },
+          },
+          'segments': [
+            {
+              'segment_id': 'stage_2',
+              'label': 'Mi',
+              'start_ms': 1000,
+              'end_ms': 2000,
+              'score': 42.0,
+              'status': 'measured',
+            },
+          ],
         },
       };
 
@@ -82,9 +116,14 @@ void main() {
       expect(feedback.modelUsed, 'gemini-pro');
       expect(feedback.promptVersion, 'v2');
       expect(feedback.latencyMs, 1200);
+      expect(feedback.detailedImprovements, hasLength(1));
+      expect(feedback.detailedImprovements.first.metricKey, 'pitch_accuracy');
       expect(feedback.scoreBreakdown, isNotNull);
       expect(feedback.scoreBreakdown!.metricScores['pitch_accuracy'], 86.0);
       expect(feedback.scoreBreakdown!.evidenceQuality, 'reliable');
+      expect(feedback.scoreBreakdown!.metricDetails['pitch_accuracy']!.status,
+          'measured');
+      expect(feedback.scoreBreakdown!.segments.first.label, 'Mi');
     });
 
     test('fromJson parses correctly without optional fields', () {
@@ -102,6 +141,7 @@ void main() {
       expect(feedback.promptVersion, isNull);
       expect(feedback.latencyMs, isNull);
       expect(feedback.summary, isNull);
+      expect(feedback.detailedImprovements, isEmpty);
       expect(feedback.scoreBreakdown, isNull);
     });
 
@@ -165,6 +205,32 @@ void main() {
           session.feedbackForDisplay!.scoreBreakdown!
               .metricScores['pitch_accuracy'],
           7);
+    });
+  });
+
+  test('breathing metric summaries preserve phase evidence', () {
+    final summary = TrainingAttemptMetricSummary.breathing(
+      sampleCount: 30,
+      phaseCompletionRate: 75,
+      paceAdherence: 64,
+      cycleConsistency: 70,
+      completionRate: 82,
+      interruptionCount: 1,
+      evidence: {
+        'duration_ms': 30000,
+        'phase_count': 4,
+        'completed_phase_count': 3,
+        'interruption_count': 1,
+      },
+    );
+
+    final json = summary.toCreateJson();
+
+    expect(json['evidence'], {
+      'duration_ms': 30000,
+      'phase_count': 4,
+      'completed_phase_count': 3,
+      'interruption_count': 1,
     });
   });
 }

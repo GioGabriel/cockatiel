@@ -2,7 +2,7 @@
 
 ## Status
 
-Scoring version `2.0` is deterministic and reproducible. It is designed for
+Scoring version `2.1` is deterministic and reproducible. It is designed for
 coaching feedback and practice progress, not clinical diagnosis, audition
 certification, or a claim that a single recording measures a singer's complete
 ability.
@@ -16,9 +16,11 @@ ability.
 3. Frames below the confidence threshold are treated as missing voice evidence.
 4. `VocalMetricAccumulator` is the shared scorer for guided training and
    karaoke. It uses timestamps, target pitch, confidence, loudness consistency,
-   voiced coverage, pitch error, target transitions, and stream gaps.
+   voiced coverage, pitch error, target transitions, stream gaps, and per-target
+   segment evidence. It sends compact aggregates, not raw audio.
 5. The backend applies exercise-specific weights and thresholds. It is the
-   authority for the saved numeric score and selects the best valid attempt.
+   authority for the saved numeric score, explains metric status, and selects the
+   best valid attempt.
 
 The client does not use a language model to calculate a score. Google AI Studio,
 when configured, can only write the bounded natural-language summary.
@@ -34,6 +36,9 @@ remain available when it is disabled or unreachable.
   this is an engineering confidence label, not a statistical confidence
   interval.
 - Missing target-guide frames cannot create pitch or timing accuracy.
+- A target-comparison metric with no target frames is marked `not_measurable`.
+  Its zero is explained as missing comparison evidence, not presented as proof
+  that the singer failed.
 - Stream gaps are counted as missing evidence rather than silently ignored.
 - A clean sustained note scores highly only when it is both voiced and close to
   its target. Silence, low confidence, detuning, and incomplete coverage lower
@@ -56,6 +61,20 @@ remain available when it is disabled or unreachable.
 - **Note-transition smoothness:** settling time and landing accuracy after a
   material target-pitch change.
 
+Every saved score breakdown also includes recording evidence (duration, captured
+and voiced frames, target coverage, confidence, cents error, interruptions,
+stream gaps, transitions, and vibrato observations), metric-level status/reason,
+and target segments when the client supplied them. A segment lets the UI say
+which guided note or phrase needs work instead of only naming a whole-session
+average. A metric can be `measured`, `partial`, `not_measurable`, or
+`not_applicable`; those states are intentionally different from a numeric zero.
+
+The detailed coaching plan is generated from this contract. Each improvement
+must identify a metric, cite the deterministic evidence or its missing-signal
+reason, explain why it matters, and give a concrete action plus a short practice
+plan. Gemini may make that language friendlier, but it cannot invent metrics or
+replace the deterministic score.
+
 ## Calibration boundary
 
 The current implementation is materially stronger than an integer-lag average,
@@ -70,11 +89,12 @@ the project needs a consented, licensed evaluation set containing:
 - expert annotations for pitch center, onset/offset, breath phrasing, and
   transition quality.
 
-The calibration process should freeze a versioned fixture set, compare pitch
-error in cents and frame-level voiced/unvoiced decisions, measure test-retest
-reliability, report errors by device and voice group, and only then tune weights
-or thresholds. Until that exists, score trends within one user's device and
-exercise are more defensible than comparing users or making clinical claims.
+The calibration process should freeze a versioned golden fixture set, compare
+pitch error in cents and frame-level voiced/unvoiced decisions, verify target
+segment boundaries, measure test-retest reliability, report errors by device and
+voice group, and only then tune weights or thresholds. Until that exists, score
+trends within one user's device and exercise are more defensible than comparing
+users or making clinical claims.
 
 ## Research and implementation choices
 

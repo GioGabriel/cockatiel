@@ -28,6 +28,77 @@ class TrainingSessionConfigIn(BaseModel):
   duration_sec: int | None = Field(default=None, ge=10, le=300)
 
 
+class MetricSegmentEvidence(BaseModel):
+  """Compact, privacy-preserving evidence for one guided target window."""
+
+  model_config = ConfigDict(extra="forbid")
+
+  segment_id: str = Field(min_length=1, max_length=80)
+  label: str | None = Field(default=None, max_length=80)
+  start_ms: int = Field(default=0, ge=0)
+  end_ms: int = Field(default=0, ge=0)
+  frame_count: int = Field(default=0, ge=0)
+  voiced_frame_count: int = Field(default=0, ge=0)
+  target_frame_count: int = Field(default=0, ge=0)
+  voiced_coverage_pct: float = Field(default=0, ge=0, le=100)
+  target_coverage_pct: float = Field(default=0, ge=0, le=100)
+  on_target_rate_pct: float = Field(default=0, ge=0, le=100)
+  mean_confidence: float = Field(default=0, ge=0, le=1)
+  mean_abs_cents: float = Field(default=0, ge=0, le=1200)
+  p95_abs_cents: float = Field(default=0, ge=0, le=1200)
+  score: float = Field(default=0, ge=0, le=100)
+  status: Literal["measured", "partial", "not_measurable", "not_applicable"] = "measured"
+  reason: str | None = Field(default=None, max_length=280)
+
+
+class VoiceMetricEvidence(BaseModel):
+  """Frame and segment aggregates used to explain a voice score."""
+
+  model_config = ConfigDict(extra="forbid")
+
+  duration_ms: int = Field(default=0, ge=0)
+  frame_count: int = Field(default=0, ge=0)
+  voiced_frame_count: int = Field(default=0, ge=0)
+  target_window_frame_count: int = Field(default=0, ge=0)
+  target_frame_count: int = Field(default=0, ge=0)
+  low_confidence_frame_count: int = Field(default=0, ge=0)
+  no_target_frame_count: int = Field(default=0, ge=0)
+  dropped_frame_count: int = Field(default=0, ge=0)
+  stream_gap_count: int = Field(default=0, ge=0)
+  voiced_coverage_pct: float = Field(default=0, ge=0, le=100)
+  target_window_coverage_pct: float = Field(default=0, ge=0, le=100)
+  target_coverage_pct: float = Field(default=0, ge=0, le=100)
+  on_target_rate_pct: float = Field(default=0, ge=0, le=100)
+  mean_confidence: float = Field(default=0, ge=0, le=1)
+  confidence_stddev: float = Field(default=0, ge=0, le=1)
+  mean_loudness_db: float | None = Field(default=None, ge=-120, le=10)
+  loudness_stddev_db: float | None = Field(default=None, ge=0, le=120)
+  mean_abs_cents: float = Field(default=0, ge=0, le=1200)
+  p95_abs_cents: float = Field(default=0, ge=0, le=1200)
+  pitch_bias_cents: float = Field(default=0, ge=-1200, le=1200)
+  pitch_stddev_cents: float = Field(default=0, ge=0, le=1200)
+  longest_voiced_run_ms: int = Field(default=0, ge=0)
+  voiced_run_count: int = Field(default=0, ge=0)
+  interruption_count: int = Field(default=0, ge=0)
+  transition_count: int = Field(default=0, ge=0)
+  completed_transition_count: int = Field(default=0, ge=0)
+  failed_transition_count: int = Field(default=0, ge=0)
+  vibrato_detected: bool = False
+  vibrato_rate_hz: float | None = Field(default=None, ge=0, le=20)
+  vibrato_amplitude_cents: float | None = Field(default=None, ge=0, le=1200)
+  vibrato_regularity_pct: float | None = Field(default=None, ge=0, le=100)
+  segments: list[MetricSegmentEvidence] = Field(default_factory=list, max_length=64)
+
+
+class BreathingMetricEvidence(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  duration_ms: int = Field(default=0, ge=0)
+  phase_count: int = Field(default=0, ge=0)
+  completed_phase_count: int = Field(default=0, ge=0)
+  interruption_count: int = Field(default=0, ge=0)
+
+
 class VoiceTrainingAttemptMetricSummaryIn(BaseModel):
   model_config = ConfigDict(extra="forbid")
 
@@ -39,6 +110,7 @@ class VoiceTrainingAttemptMetricSummaryIn(BaseModel):
   pitch_stability: float = Field(ge=0, le=100)
   vibrato_consistency: float = Field(ge=0, le=100)
   note_transition_smoothness: float = Field(ge=0, le=100)
+  evidence: VoiceMetricEvidence | None = None
 
 
 class BreathingTrainingAttemptMetricSummaryIn(BaseModel):
@@ -51,6 +123,7 @@ class BreathingTrainingAttemptMetricSummaryIn(BaseModel):
   cycle_consistency: float = Field(ge=0, le=100)
   completion_rate: float = Field(ge=0, le=100)
   interruption_count: int = Field(default=0, ge=0, le=20)
+  evidence: BreathingMetricEvidence | None = None
 
 
 class TrainingAttemptCreateIn(BaseModel):
@@ -70,6 +143,7 @@ class VoiceTrainingAttemptMetricSummaryOut(BaseModel):
   vibrato_consistency: float = Field(ge=0, le=100)
   note_transition_smoothness: float = Field(ge=0, le=100)
   overall_score: float = Field(ge=0, le=100)
+  evidence: VoiceMetricEvidence | None = None
 
 
 class BreathingTrainingAttemptMetricSummaryOut(BaseModel):
@@ -81,6 +155,7 @@ class BreathingTrainingAttemptMetricSummaryOut(BaseModel):
   completion_rate: float = Field(ge=0, le=100)
   interruption_count: int = Field(ge=0, le=20)
   overall_score: float = Field(ge=0, le=100)
+  evidence: BreathingMetricEvidence | None = None
 
 
 class TrainingAttemptOut(BaseModel):
@@ -147,6 +222,18 @@ class AIJobOut(BaseModel):
     return public_ai_failure_message(value)
 
 
+class DetailedImprovement(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  metric_key: str = Field(min_length=1, max_length=80)
+  priority: Literal["high", "medium", "low"] = "medium"
+  finding: str = Field(min_length=1, max_length=280)
+  evidence: str = Field(min_length=1, max_length=320)
+  why_it_matters: str = Field(min_length=1, max_length=320)
+  action: str = Field(min_length=1, max_length=320)
+  practice_plan: str = Field(min_length=1, max_length=320)
+
+
 class CoachingFeedback(BaseModel):
   session_id: str
   overall_score: float = Field(ge=0, le=100)
@@ -158,6 +245,7 @@ class CoachingFeedback(BaseModel):
   prompt_version: str
   latency_ms: int = Field(ge=0)
   score_breakdown: dict[str, Any] | None = None
+  detailed_improvements: list[DetailedImprovement] = Field(default_factory=list, max_length=3)
 
 
 class SessionOut(BaseModel):

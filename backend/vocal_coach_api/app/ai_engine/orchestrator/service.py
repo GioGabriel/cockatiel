@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.api.v1.schemas import CoachingFeedback
+from app.api.v1.schemas import CoachingFeedback, DetailedImprovement
 from app.ai_engine.prompt_management.registry.service import resolve_feedback_prompts
 from app.ai_engine.providers.google_ai_client import GoogleAiStudioClient
 from app.ai_engine.schemas.feedback_payload import LlmFeedbackPayload
@@ -47,7 +47,7 @@ def generate_feedback(
   session_id: str,
   overall_score: float,
   exercise_type: str,
-  metric_summary: dict[str, float | int],
+  metric_summary: dict[str, Any],
   session_context: dict[str, Any] | None = None,
   score_breakdown: dict[str, Any] | None = None,
 ) -> CoachingFeedback:
@@ -71,6 +71,11 @@ def generate_feedback(
   prompt_version = settings.prompt_version
   model_latency_ms = 0
   summary = None
+  detailed_improvements = CoachingLogicEngine.build_detailed_improvements(
+    exercise_type=exercise_type,
+    metric_summary=metric_summary,
+    score_breakdown=score_breakdown,
+  )
   
   # 2. Google AI Studio conversational summary. This remains optional; the
   # deterministic engine above is authoritative and always produces feedback.
@@ -99,13 +104,29 @@ def generate_feedback(
       )
       payload, model_latency_ms = client.generate_json(system_prompt=system_prompt, user_prompt=user_prompt)
       validated_payload = LlmFeedbackPayload.model_validate(payload)
+      allowed_metric_keys = set((score_breakdown.get("metric_scores") or {}).keys())
+      provider_improvements = [
+        item.model_dump()
+        for item in validated_payload.detailed_improvements
+      ]
+      if any(item["metric_key"] not in allowed_metric_keys for item in provider_improvements):
+        raise ValueError("Google AI returned an improvement for an unknown metric.")
       summary = validated_payload.summary
+      detailed_improvements = provider_improvements
       model_used = f"google-ai-studio:{client.model}"
       
       increment("ai_feedback_success_total")
       increment(f"ai_feedback_success_prompt_{prompt_metric_suffix}_total")
       increment(f"ai_model_usage_google_ai_{_metric_name_for_model(client.model)}")
       observe("ai_feedback_latency_ms", model_latency_ms)
+      logger.info(
+        "google_ai_feedback_succeeded session_id=%s model=%s prompt_version=%s latency_ms=%s improvement_count=%s",
+        session_id,
+        client.model,
+        prompt_version,
+        model_latency_ms,
+        len(provider_improvements),
+      )
 
     except ValidationError as exc:
       logger.warning(
@@ -131,6 +152,12 @@ def generate_feedback(
       metric_summary=metric_summary,
       strengths=strengths,
       improvements=improvements,
+      score_breakdown=score_breakdown,
+    )
+    detailed_improvements = CoachingLogicEngine.build_detailed_improvements(
+      exercise_type=exercise_type,
+      metric_summary=metric_summary,
+      score_breakdown=score_breakdown,
     )
     if model_used == "coaching-logic-engine" and settings.google_ai_enabled and settings.google_api_keys:
       model_used = "coaching-logic-engine-fallback"
@@ -152,4 +179,8 @@ def generate_feedback(
     prompt_version=prompt_version,
     latency_ms=total_latency_ms,
     score_breakdown=score_breakdown,
+    detailed_improvements=[
+      DetailedImprovement.model_validate(item)
+      for item in detailed_improvements[:3]
+    ],
   )

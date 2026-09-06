@@ -80,3 +80,59 @@ def test_fallback_summary_explains_the_score_and_lowest_measured_area():
   assert "7/100" in summary
   assert "pitch accuracy" in summary.lower()
   assert "7/100" in summary.lower().split("pitch accuracy", 1)[1]
+
+
+def test_detailed_improvements_reference_the_measured_reason_and_action():
+  score_breakdown = {
+    "metric_mode": "voice",
+    "metric_scores": {
+      "pitch_accuracy": 0,
+      "timing_accuracy": 0,
+      "breath_control": 48,
+      "pitch_stability": 1,
+      "vibrato_consistency": 47,
+      "note_transition_smoothness": 0,
+    },
+    "metric_details": {
+      "pitch_accuracy": {
+        "status": "not_measurable",
+        "reason": "No target-note comparison frames were captured, so pitch accuracy cannot be judged from this take.",
+        "observed_frames": 0,
+        "coverage_pct": 0,
+      },
+      "breath_control": {
+        "status": "measured",
+        "reason": "Voice was present in about half of the captured frames.",
+        "observed_frames": 352,
+        "coverage_pct": 49.86,
+      },
+    },
+    "recording_evidence": {
+      "frame_count": 706,
+      "voiced_frame_count": 352,
+      "target_frame_count": 0,
+      "target_coverage_pct": 0,
+      "voiced_coverage_pct": 49.86,
+    },
+  }
+
+  improvements = CoachingLogicEngine.build_detailed_improvements(
+    exercise_type="warmup_pitch",
+    metric_summary={
+      "metric_mode": "voice",
+      "sample_count": 706,
+      "pitch_accuracy": 0,
+      "timing_accuracy": 0,
+      "breath_control": 48,
+      "pitch_stability": 1,
+      "vibrato_consistency": 47,
+      "note_transition_smoothness": 0,
+    },
+    score_breakdown=score_breakdown,
+  )
+
+  assert improvements
+  assert improvements[0]["metric_key"] == "pitch_accuracy"
+  assert "target-note" in improvements[0]["evidence"]
+  assert improvements[0]["action"]
+  assert improvements[0]["practice_plan"]

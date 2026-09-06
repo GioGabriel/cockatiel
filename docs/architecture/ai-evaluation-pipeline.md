@@ -5,14 +5,16 @@ Pipeline stages:
 2. Prompt registry resolves template version (`PROMPT_VERSION`) and renders system/user prompts.
    - `PROMPT_VERSION=ab` enables deterministic A/B prompt routing between `v1a` and `v1b` per session.
 3. The deterministic Coaching Logic Engine evaluates metrics and remains authoritative.
-4. If configured, Google AI Studio is used only for a bounded natural-language summary.
+4. If configured, Google AI Studio is used only for bounded natural-language coaching detail.
 5. The backend tries configured Gemini models/keys until a valid structured payload is produced.
-6. Google AI Studio receives the deterministic score breakdown, evidence quality,
-   sample count, strengths, and improvements so it can explain the result in
-   plain language. It is asked for `application/json` with a schema containing
-   one bounded `summary` string; Pydantic validates the returned payload before
-   it can replace the deterministic summary. It never receives raw audio and
-   cannot change the numeric score.
+6. Google AI Studio receives the deterministic score breakdown, recording
+   evidence, metric statuses/reasons, target segments, evidence quality, sample
+   count, strengths, and improvements so it can explain the result in plain
+   language. It is asked for `application/json` with a schema containing a
+   bounded `summary` and up to three structured `detailed_improvements`.
+   Pydantic validates every field and metric key before the payload can replace
+   the deterministic narrative. It never receives raw audio and cannot change
+   the numeric score.
 7. On any provider failure or malformed output, the orchestrator applies deterministic fallback feedback.
 8. Response metadata is persisted with `model_used`, `prompt_version`, and `latency_ms`.
 
@@ -34,6 +36,8 @@ Observability counters:
 - `ai_feedback_requests_total`
 - `ai_feedback_success_total`
 - `ai_feedback_success_prompt_<version>_total`
+- `google_ai_feedback_succeeded` structured log with model, prompt version,
+  latency, and improvement count
 - `ai_feedback_model_failure_total`
 - `ai_feedback_model_failure_reason_timeout_total`
 - `ai_feedback_model_failure_reason_http_error_total`

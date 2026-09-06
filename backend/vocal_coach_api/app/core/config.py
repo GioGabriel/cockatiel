@@ -138,7 +138,7 @@ class Settings:
   google_ai_timeout_s: int = _as_int("GOOGLE_AI_TIMEOUT_S", 20, minimum=1, maximum=60)
   google_ai_max_total_time_s: float = _as_float("GOOGLE_AI_MAX_TOTAL_TIME_S", 20.0, minimum=1.0, maximum=90.0)
   google_ai_temperature: float = _as_float("GOOGLE_AI_TEMPERATURE", 0.2, minimum=0.0, maximum=1.0)
-  google_ai_max_output_tokens: int = _as_int("GOOGLE_AI_MAX_OUTPUT_TOKENS", 256, minimum=32, maximum=1024)
+  google_ai_max_output_tokens: int = _as_int("GOOGLE_AI_MAX_OUTPUT_TOKENS", 768, minimum=32, maximum=1024)
 
 
 settings = Settings()

@@ -158,7 +158,7 @@ def append_metrics(session_id: str, user_id: str, metrics: list[CanonicalMetric]
   return repository.append_metrics(session_id, [metric.model_dump() for metric in metrics])
 
 
-def summarize_metrics(session_id: str) -> dict[str, float | int]:
+def summarize_metrics(session_id: str) -> dict[str, Any]:
   repository = get_session_repository()
   session = repository.get(session_id)
   if session and isinstance(session.get("attempts"), list):
@@ -311,7 +311,7 @@ def save_training_attempt(
   attempt_index: int,
   difficulty: str,
   duration_sec: int,
-  metric_summary: dict[str, float | int],
+  metric_summary: dict[str, Any],
 ) -> dict[str, Any]:
   session = get_session(session_id, user_id)
   if session.get("mode") not in ("training", "karaoke"):
@@ -347,7 +347,7 @@ def save_training_attempt(
     )
 
   required_fields = list(metric_fields_for_exercise(resolved_exercise_id))
-  summary: dict[str, float | int | str] = {
+  summary: dict[str, Any] = {
     "metric_mode": expected_metric_mode,
   }
   for field in required_fields:
@@ -360,6 +360,9 @@ def save_training_attempt(
       status_code=422,
     )
   summary["sample_count"] = max(sample_count, 1)
+  if metric_summary.get("evidence") is not None:
+    evidence = metric_summary["evidence"]
+    summary["evidence"] = evidence.model_dump() if hasattr(evidence, "model_dump") else dict(evidence)
   if expected_metric_mode == "breathing":
     summary["interruption_count"] = max(0, int(metric_summary.get("interruption_count") or 0))
   scoring = score_training_attempt(

@@ -81,6 +81,27 @@ _METRIC_LABELS = {
   "completion_rate": "routine completion",
 }
 
+_TARGET_COMPARISON_METRICS = {
+  "pitch_accuracy",
+  "timing_accuracy",
+  "pitch_stability",
+  "vibrato_consistency",
+  "note_transition_smoothness",
+}
+
+_METRIC_DETAIL_ACTIONS = {
+  "pitch_accuracy": "Match one target note at a time with the guide, then repeat the phrase slowly.",
+  "timing_accuracy": "Wait for the target window, count the beat, and repeat the same phrase without rushing.",
+  "breath_control": "Take a relaxed breath before the phrase and keep the airflow steady until it ends.",
+  "pitch_stability": "Hold a comfortable note for a few seconds and keep the sound even instead of pushing for volume.",
+  "vibrato_consistency": "Make the sustained note steady first, then add a gentle, natural vibrato.",
+  "note_transition_smoothness": "Slow the two-note change down and connect the next target without sliding past it.",
+  "phase_completion_rate": "Follow every inhale, hold, and exhale to the final count before starting the next phase.",
+  "pace_adherence": "Let the guide set the speed and keep each inhale or exhale relaxed rather than rushed.",
+  "cycle_consistency": "Repeat the same breathing pattern at a comfortable pace so each cycle feels similar.",
+  "completion_rate": "Use a shorter routine first, then complete the full sequence one calm phase at a time.",
+}
+
 
 def _safe_score(value: Any) -> float:
   try:
@@ -104,7 +125,109 @@ def _append_unique(items: list[str], value: str) -> None:
     items.append(value)
 
 
+def _metric_detail_for(
+  score_breakdown: dict[str, Any],
+  metric: str,
+  score: float,
+) -> dict[str, Any]:
+  details = score_breakdown.get("metric_details") or {}
+  detail = details.get(metric)
+  if isinstance(detail, dict):
+    return detail
+  return {
+    "status": "measured",
+    "reason": f"The deterministic scorer measured this area at {score:.0f}/100.",
+    "observed_frames": 0,
+    "coverage_pct": 0,
+  }
+
+
 class CoachingLogicEngine:
+  @staticmethod
+  def build_detailed_improvements(
+    *,
+    exercise_type: str,
+    metric_summary: dict[str, Any],
+    score_breakdown: dict[str, Any],
+  ) -> list[dict[str, str]]:
+    """Build a useful fallback plan from evidence, not generic encouragement."""
+    is_breathing = metric_summary.get("metric_mode") == "breathing"
+    guidance = _BREATHING_GUIDANCE if is_breathing else _VOICE_GUIDANCE
+    metric_scores = score_breakdown.get("metric_scores") or {}
+    metric_details = score_breakdown.get("metric_details") or {}
+    metric_keys = [field for field in guidance if field in metric_scores]
+    metric_keys.extend(
+      field for field in metric_scores
+      if field not in metric_keys and field in metric_details
+    )
+
+    def priority(field: str) -> tuple[int, float]:
+      detail = _metric_detail_for(score_breakdown, field, _safe_score(metric_scores.get(field)))
+      status = str(detail.get("status") or "measured")
+      if status == "not_measurable":
+        return (0, 0.0)
+      if status == "not_applicable":
+        return (3, 100.0)
+      return (1, _safe_score(metric_scores.get(field)))
+
+    ordered = sorted(metric_keys, key=priority)
+    improvements: list[dict[str, str]] = []
+    for field in ordered:
+      if len(improvements) >= 3:
+        break
+      score = _safe_score(metric_scores.get(field))
+      detail = _metric_detail_for(score_breakdown, field, score)
+      status = str(detail.get("status") or "measured")
+      if status == "not_applicable":
+        continue
+      reason = str(detail.get("reason") or "The scorer did not provide a detailed reason.")
+      label = _METRIC_LABELS.get(field, field.replace("_", " "))
+      metric_guidance = guidance.get(field, {})
+
+      if status == "not_measurable":
+        finding = f"{label.title()} was not measurable in this take."
+        action = (
+          "Make sure the guided target is visible and active, then sing after it starts."
+          if field in _TARGET_COMPARISON_METRICS
+          else "Check microphone access and record a complete guided cycle."
+        )
+        practice_plan = "Repeat one short guided target and confirm that the live target indicator is moving before judging the result."
+        why_it_matters = "A missing comparison signal cannot tell you whether the singing was accurate, so it should not be treated as a skill failure."
+        priority_label = "high"
+      else:
+        if score < 60:
+          priority_label = "high"
+        elif score < 80:
+          priority_label = "medium"
+        else:
+          priority_label = "low"
+        finding = metric_guidance.get("needs_work") or metric_guidance.get("developing") or f"{label.title()} can be refined."
+        action = _METRIC_DETAIL_ACTIONS.get(field, "Repeat the exercise slowly and focus on this measured area.")
+        practice_plan = metric_guidance.get("exercise") or action
+        why_it_matters = f"This area contributed {score:.0f}/100 to the measured take and is a useful next target for practice."
+
+      improvements.append({
+        "metric_key": field,
+        "priority": priority_label,
+        "finding": finding,
+        "evidence": reason,
+        "why_it_matters": why_it_matters,
+        "action": action,
+        "practice_plan": practice_plan,
+      })
+
+    if not improvements:
+      improvements.append({
+        "metric_key": "overall_score",
+        "priority": "medium",
+        "finding": "The take produced a baseline but no metric-specific improvement was available.",
+        "evidence": "The saved score did not include a detailed metric report.",
+        "why_it_matters": "A longer, guided recording will make the next review more specific.",
+        "action": "Record the exercise again with the microphone and target guide active.",
+        "practice_plan": "Use one short phrase and wait for the live target before singing.",
+      })
+    return improvements
+
   @staticmethod
   def evaluate(
     overall_score: float,
@@ -167,6 +290,7 @@ class CoachingLogicEngine:
     metric_summary: dict[str, Any],
     strengths: list[str],
     improvements: list[str],
+    score_breakdown: dict[str, Any] | None = None,
   ) -> str:
     score_int = int(round(_safe_score(overall_score)))
     mode_label = "Karaoke song performance" if "karaoke" in exercise_type.lower() else "Vocal Coach training session"
@@ -176,6 +300,15 @@ class CoachingLogicEngine:
 
     parts = [f"Your practice score was {score_int}/100 for this {mode_label}."]
     weakest_metric = CoachingLogicEngine._weakest_metric(metric_summary)
+    if score_breakdown:
+      detailed = score_breakdown.get("metric_details") or {}
+      not_measurable = [
+        detail for detail in detailed.values()
+        if isinstance(detail, dict) and detail.get("status") == "not_measurable"
+      ]
+      if not_measurable:
+        reason = str(not_measurable[0].get("reason") or "Some metrics were not measurable in this take.")
+        parts.append(reason)
     if weakest_metric is not None:
       weakest_field, weakest_score = weakest_metric
       parts.append(

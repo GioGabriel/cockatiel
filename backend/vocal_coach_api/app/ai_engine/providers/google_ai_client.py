@@ -137,8 +137,37 @@ class GoogleAiStudioClient:
               "type": "STRING",
               "description": "A concise, encouraging coaching summary.",
             },
+            "detailed_improvements": {
+              "type": "ARRAY",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": {
+                "type": "OBJECT",
+                "properties": {
+                  "metric_key": {"type": "STRING"},
+                  "priority": {
+                    "type": "STRING",
+                    "enum": ["high", "medium", "low"],
+                  },
+                  "finding": {"type": "STRING"},
+                  "evidence": {"type": "STRING"},
+                  "why_it_matters": {"type": "STRING"},
+                  "action": {"type": "STRING"},
+                  "practice_plan": {"type": "STRING"},
+                },
+                "required": [
+                  "metric_key",
+                  "priority",
+                  "finding",
+                  "evidence",
+                  "why_it_matters",
+                  "action",
+                  "practice_plan",
+                ],
+              },
+            },
           },
-          "required": ["summary"],
+          "required": ["summary", "detailed_improvements"],
         },
       },
     }

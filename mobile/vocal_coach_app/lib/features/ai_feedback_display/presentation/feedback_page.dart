@@ -136,6 +136,14 @@ class FeedbackPage extends StatelessWidget {
                     _ScoreBreakdownCard(breakdown: scoreBreakdown),
                     const SizedBox(height: 8),
                   ],
+                  if (feedback.detailedImprovements.isNotEmpty) ...[
+                    _DetailedImprovementsCard(
+                      improvements: feedback.detailedImprovements,
+                      aiGenerated:
+                          feedback.modelUsed.startsWith('google-ai-studio:'),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   const _TerminologyCard(),
                   const SizedBox(height: 8),
                   _FeedbackSection(
@@ -269,7 +277,7 @@ class _ScoreBreakdownCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${evidence.description} Based on ${breakdown.sampleCount} analyzed audio samples.',
+                          '${evidence.description} ${breakdown.metricMode == 'breathing' ? 'Based on ${breakdown.sampleCount} seconds of guided timing.' : 'Based on ${breakdown.sampleCount} analyzed audio samples.'}',
                           style:
                               theme.textTheme.bodySmall?.copyWith(height: 1.35),
                         ),
@@ -279,6 +287,10 @@ class _ScoreBreakdownCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (breakdown.recordingEvidence.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _RecordingEvidenceSummary(evidence: breakdown.recordingEvidence),
+            ],
             if (weakestKey != null &&
                 breakdown.evidenceQuality != 'insufficient') ...[
               const SizedBox(height: 12),
@@ -297,6 +309,10 @@ class _ScoreBreakdownCard extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
               ),
             ],
+            if (weakestKey == null && breakdown.metricDetails.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _MeasurementGapNotice(breakdown: breakdown),
+            ],
             if (metricKeys.isEmpty) ...[
               const SizedBox(height: 12),
               Text(
@@ -310,10 +326,15 @@ class _ScoreBreakdownCard extends StatelessWidget {
                     score: breakdown.metricScores[entry.value]!,
                     weightedContribution:
                         breakdown.weightedComponents[entry.value],
+                    detail: breakdown.metricDetails[entry.value],
                     isFirst: entry.key == 0,
                   ),
                 ),
             const SizedBox(height: 12),
+            if (breakdown.segments.isNotEmpty) ...[
+              _SegmentsEvidenceCard(segments: breakdown.segments),
+              const SizedBox(height: 8),
+            ],
             Text(
               'Scoring version ${breakdown.scoringVersion}',
               style: theme.textTheme.labelSmall,
@@ -338,9 +359,13 @@ class _ScoreBreakdownCard extends StatelessWidget {
         .where(breakdown.metricScores.containsKey)
         .toList(growable: false);
     final candidates = focusKeys.isEmpty ? metricKeys : focusKeys;
-    if (candidates.isEmpty) return null;
+    final measurableCandidates = candidates.where((key) {
+      final status = breakdown.metricDetails[key]?.status;
+      return status != 'not_measurable' && status != 'not_applicable';
+    }).toList(growable: false);
+    if (measurableCandidates.isEmpty) return null;
 
-    return candidates.reduce(
+    return measurableCandidates.reduce(
       (current, next) =>
           breakdown.metricScores[current]! <= breakdown.metricScores[next]!
               ? current
@@ -354,12 +379,14 @@ class _MetricScoreRow extends StatelessWidget {
     required this.metricKey,
     required this.score,
     required this.weightedContribution,
+    this.detail,
     required this.isFirst,
   });
 
   final String metricKey;
   final double score;
   final double? weightedContribution;
+  final FeedbackMetricDetail? detail;
   final bool isFirst;
 
   @override
@@ -395,6 +422,18 @@ class _MetricScoreRow extends StatelessWidget {
             _metricDescriptions[metricKey] ?? 'Measured part of this take.',
             style: theme.textTheme.bodySmall?.copyWith(height: 1.3),
           ),
+          if (detail != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              detail!.reason,
+              style: theme.textTheme.bodySmall?.copyWith(
+                height: 1.35,
+                color: detail!.status == 'not_measurable'
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
@@ -410,8 +449,12 @@ class _MetricScoreRow extends StatelessWidget {
           Row(
             children: [
               Text(
-                _scoreBand(safeScore),
-                style: theme.textTheme.labelSmall?.copyWith(color: color),
+                _scoreBand(safeScore, detail?.status),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: detail?.status == 'not_measurable'
+                      ? theme.colorScheme.onSurfaceVariant
+                      : color,
+                ),
               ),
               if (weightedContribution != null) ...[
                 const SizedBox(width: 8),
@@ -423,6 +466,274 @@ class _MetricScoreRow extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MeasurementGapNotice extends StatelessWidget {
+  const _MeasurementGapNotice({required this.breakdown});
+
+  final FeedbackScoreBreakdown breakdown;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = breakdown.metricDetails.values
+        .where((detail) => detail.status == 'not_measurable')
+        .toList(growable: false);
+    if (details.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.28),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Why some metrics show 0',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.error,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            details.first.reason,
+            style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecordingEvidenceSummary extends StatelessWidget {
+  const _RecordingEvidenceSummary({required this.evidence});
+
+  final Map<String, dynamic> evidence;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (evidence.containsKey('phase_count')) {
+      final phaseCount = _number(evidence['phase_count']).round();
+      final completedPhaseCount =
+          _number(evidence['completed_phase_count']).round();
+      final interruptions = _number(evidence['interruption_count']).round();
+      final interruptionLabel =
+          interruptions == 1 ? 'interruption' : 'interruptions';
+      return Text(
+        '$completedPhaseCount of $phaseCount guided phases completed • '
+        '$interruptions $interruptionLabel recorded',
+        style: theme.textTheme.labelSmall?.copyWith(height: 1.35),
+      );
+    }
+    final frameCount = _number(evidence['frame_count']).round();
+    final voicedCoverage = _number(evidence['voiced_coverage_pct']);
+    final targetCoverage = _number(evidence['target_coverage_pct']);
+    final interruptions = _number(evidence['interruption_count']).round();
+    final interruptionLabel =
+        interruptions == 1 ? 'interruption' : 'interruptions';
+    final gaps = _number(evidence['stream_gap_count']).round();
+    return Text(
+      '$frameCount captured frames • ${voicedCoverage.toStringAsFixed(0)}% voiced coverage • '
+      '${targetCoverage.toStringAsFixed(0)}% target comparison • '
+      '$interruptions $interruptionLabel${gaps == 0 ? '' : ' • $gaps stream gaps'}',
+      style: theme.textTheme.labelSmall?.copyWith(height: 1.35),
+    );
+  }
+}
+
+class _SegmentsEvidenceCard extends StatelessWidget {
+  const _SegmentsEvidenceCard({required this.segments});
+
+  final List<FeedbackSegmentEvidence> segments;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Where this happened', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 6),
+        ...segments.take(8).map(
+              (segment) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      segment.status == 'not_measurable'
+                          ? Icons.help_outline_rounded
+                          : Icons.music_note_rounded,
+                      size: 18,
+                      color: segment.status == 'not_measurable'
+                          ? theme.colorScheme.onSurfaceVariant
+                          : _scoreColor(theme, segment.score),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${segment.label ?? segment.segmentId}: ${_scoreText(segment.score)} — ${segment.reason}',
+                        style:
+                            theme.textTheme.bodySmall?.copyWith(height: 1.35),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+      ],
+    );
+  }
+}
+
+class _DetailedImprovementsCard extends StatelessWidget {
+  const _DetailedImprovementsCard({
+    required this.improvements,
+    required this.aiGenerated,
+  });
+
+  final List<DetailedImprovement> improvements;
+  final bool aiGenerated;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GlassCard.dark(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Detailed coaching plan', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              aiGenerated
+                  ? 'Gemini turned the measured evidence into these specific next actions.'
+                  : 'These actions were generated from the measured score evidence.',
+              style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+            ),
+            const SizedBox(height: 12),
+            ...improvements.asMap().entries.map(
+                  (entry) => Padding(
+                    padding: EdgeInsets.only(
+                      bottom: entry.key == improvements.length - 1 ? 0 : 12,
+                    ),
+                    child: _ImprovementPlan(
+                      index: entry.key + 1,
+                      improvement: entry.value,
+                    ),
+                  ),
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ImprovementPlan extends StatelessWidget {
+  const _ImprovementPlan({required this.index, required this.improvement});
+
+  final int index;
+  final DetailedImprovement improvement;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final priorityColor = improvement.priority == 'high'
+        ? theme.colorScheme.error
+        : improvement.priority == 'low'
+            ? theme.appTokens.success
+            : theme.appTokens.warning;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: priorityColor.withValues(alpha: 0.16),
+                child: Text(
+                  '$index',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: priorityColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _metricLabel(improvement.metricKey),
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              Text(
+                improvement.priority.toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: priorityColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(improvement.finding, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 6),
+          _PlanLine(label: 'Evidence', value: improvement.evidence),
+          _PlanLine(label: 'Why it matters', value: improvement.whyItMatters),
+          _PlanLine(label: 'Do this next', value: improvement.action),
+          _PlanLine(label: 'Practice plan', value: improvement.practicePlan),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanLine extends StatelessWidget {
+  const _PlanLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 5),
+      child: RichText(
+        text: TextSpan(
+          style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            TextSpan(text: value),
+          ],
+        ),
       ),
     );
   }
@@ -476,9 +787,16 @@ String _metricLabel(String metricKey) {
   return _metricLabels[metricKey] ?? formatSnakeCaseTitle(metricKey);
 }
 
+double _number(Object? value) {
+  return value is num ? value.toDouble() : 0;
+}
+
 String _scoreText(double score) => '${score.round()}/100';
 
-String _scoreBand(double score) {
+String _scoreBand(double score, [String? status]) {
+  if (status == 'not_measurable') return 'Not measurable';
+  if (status == 'not_applicable') return 'Not tested';
+  if (status == 'partial') return 'Partial evidence';
   if (score >= 85) return 'Strong';
   if (score >= 70) return 'Developing';
   return 'Focus here';

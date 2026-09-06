@@ -22,7 +22,18 @@ def _gemini_response(summary: str = "Keep going.") -> dict:
   return {
     "candidates": [{
       "content": {
-        "parts": [{"text": json.dumps({"summary": summary})}],
+        "parts": [{"text": json.dumps({
+          "summary": summary,
+          "detailed_improvements": [{
+            "metric_key": "pitch_accuracy",
+            "priority": "medium",
+            "finding": "Keep the target note centered.",
+            "evidence": "The score report measured pitch accuracy.",
+            "why_it_matters": "A centered pitch makes the phrase clearer.",
+            "action": "Match one note at a time.",
+            "practice_plan": "Repeat one short target three times.",
+          }],
+        })}],
       },
     }],
   }
@@ -49,7 +60,8 @@ def test_google_ai_client_parses_structured_json_and_uses_google_auth_header(mon
 
   payload, latency_ms = client.generate_json(system_prompt="system", user_prompt="user")
 
-  assert payload == {"summary": "Keep going."}
+  assert payload["summary"] == "Keep going."
+  assert payload["detailed_improvements"][0]["metric_key"] == "pitch_accuracy"
   assert client.model == "gemini-test-model"
   assert latency_ms >= 0
   request, timeout = requests[0]
@@ -59,7 +71,10 @@ def test_google_ai_client_parses_structured_json_and_uses_google_auth_header(mon
   assert timeout <= 5
   body = json.loads(request.data)
   assert body["generationConfig"]["responseMimeType"] == "application/json"
-  assert body["generationConfig"]["responseSchema"]["required"] == ["summary"]
+  assert body["generationConfig"]["responseSchema"]["required"] == [
+    "summary",
+    "detailed_improvements",
+  ]
 
 
 def test_google_ai_client_rotates_to_next_key_after_rate_limit(monkeypatch):
@@ -87,7 +102,8 @@ def test_google_ai_client_rotates_to_next_key_after_rate_limit(monkeypatch):
 
   payload, _ = client.generate_json(system_prompt="system", user_prompt="user")
 
-  assert payload == {"summary": "Second key worked."}
+  assert payload["summary"] == "Second key worked."
+  assert payload["detailed_improvements"]
   assert seen_keys == ["first-key", "first-key", "second-key"]
 
 

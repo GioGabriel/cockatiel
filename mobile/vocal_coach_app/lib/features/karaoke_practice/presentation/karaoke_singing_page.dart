@@ -361,6 +361,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
         VocalMetricFrame(
           timestampMs: frame.timestampMs,
           targetId: currentStage?.stageId,
+          targetLabel: currentStage?.targetLabel,
           targetFrequencyHz: targetHz,
           frequencyHz: frame.frequencyHz,
           loudnessDb: frame.loudnessDb,

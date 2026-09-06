@@ -81,6 +81,9 @@ class FeedbackScoreBreakdown {
     required this.scoringVersion,
     required this.sampleCount,
     required this.evidenceQuality,
+    this.recordingEvidence = const <String, dynamic>{},
+    this.metricDetails = const <String, FeedbackMetricDetail>{},
+    this.segments = const <FeedbackSegmentEvidence>[],
   });
 
   final String metricMode;
@@ -90,12 +93,18 @@ class FeedbackScoreBreakdown {
   final String scoringVersion;
   final int sampleCount;
   final String evidenceQuality;
+  final Map<String, dynamic> recordingEvidence;
+  final Map<String, FeedbackMetricDetail> metricDetails;
+  final List<FeedbackSegmentEvidence> segments;
 
   factory FeedbackScoreBreakdown.fromJson(Map<String, dynamic> json) {
     final rawMetricScores =
         json['metric_scores'] as Map<String, dynamic>? ?? const {};
     final rawWeightedComponents =
         json['weighted_components'] as Map<String, dynamic>? ?? const {};
+    final rawMetricDetails =
+        _mapFromJson(json['metric_details']) ?? const <String, dynamic>{};
+    final rawSegments = json['segments'] as List<dynamic>? ?? const <dynamic>[];
 
     return FeedbackScoreBreakdown(
       metricMode: (json['metric_mode'] as String?) ?? 'voice',
@@ -112,6 +121,24 @@ class FeedbackScoreBreakdown {
       scoringVersion: (json['scoring_version'] as String?) ?? 'unknown',
       sampleCount: (json['sample_count'] as num?)?.toInt() ?? 0,
       evidenceQuality: (json['evidence_quality'] as String?) ?? 'unknown',
+      recordingEvidence:
+          _mapFromJson(json['recording_evidence']) ?? const <String, dynamic>{},
+      metricDetails: rawMetricDetails.map(
+        (key, value) => MapEntry(
+          key,
+          FeedbackMetricDetail.fromJson(
+            value is Map ? Map<String, dynamic>.from(value) : const {},
+          ),
+        ),
+      ),
+      segments: rawSegments
+          .whereType<Map>()
+          .map(
+            (item) => FeedbackSegmentEvidence.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 
@@ -134,6 +161,9 @@ class FeedbackScoreBreakdown {
       scoringVersion: attemptBreakdown.scoringVersion,
       sampleCount: sampleCount,
       evidenceQuality: evidenceQuality,
+      recordingEvidence: attemptBreakdown.recordingEvidence,
+      metricDetails: attemptBreakdown.metricDetails,
+      segments: attemptBreakdown.segments,
     );
   }
 
@@ -141,6 +171,103 @@ class FeedbackScoreBreakdown {
     if (sampleCount < 16) return 'insufficient';
     if (sampleCount < 128) return 'limited';
     return 'reliable';
+  }
+}
+
+class FeedbackMetricDetail {
+  const FeedbackMetricDetail({
+    required this.status,
+    required this.reason,
+    required this.observedFrames,
+    required this.coveragePct,
+    this.action,
+  });
+
+  final String status;
+  final String reason;
+  final int observedFrames;
+  final double coveragePct;
+  final String? action;
+
+  factory FeedbackMetricDetail.fromJson(Map<String, dynamic> json) {
+    return FeedbackMetricDetail(
+      status: (json['status'] as String?) ?? 'measured',
+      reason: (json['reason'] as String?) ??
+          'Measured from the captured audio evidence.',
+      observedFrames: (json['observed_frames'] as num?)?.toInt() ?? 0,
+      coveragePct: (json['coverage_pct'] as num?)?.toDouble() ?? 0,
+      action: json['action'] as String?,
+    );
+  }
+}
+
+class FeedbackSegmentEvidence {
+  const FeedbackSegmentEvidence({
+    required this.segmentId,
+    required this.label,
+    required this.startMs,
+    required this.endMs,
+    required this.score,
+    required this.status,
+    required this.reason,
+  });
+
+  final String segmentId;
+  final String? label;
+  final int startMs;
+  final int endMs;
+  final double score;
+  final String status;
+  final String reason;
+
+  factory FeedbackSegmentEvidence.fromJson(Map<String, dynamic> json) {
+    return FeedbackSegmentEvidence(
+      segmentId: (json['segment_id'] as String?) ?? 'segment',
+      label: json['label'] as String?,
+      startMs: (json['start_ms'] as num?)?.toInt() ?? 0,
+      endMs: (json['end_ms'] as num?)?.toInt() ?? 0,
+      score: (json['score'] as num?)?.toDouble() ?? 0,
+      status: (json['status'] as String?) ?? 'measured',
+      reason:
+          (json['reason'] as String?) ?? 'Measured from this target window.',
+    );
+  }
+}
+
+class DetailedImprovement {
+  const DetailedImprovement({
+    required this.metricKey,
+    required this.priority,
+    required this.finding,
+    required this.evidence,
+    required this.whyItMatters,
+    required this.action,
+    required this.practicePlan,
+  });
+
+  final String metricKey;
+  final String priority;
+  final String finding;
+  final String evidence;
+  final String whyItMatters;
+  final String action;
+  final String practicePlan;
+
+  factory DetailedImprovement.fromJson(Map<String, dynamic> json) {
+    return DetailedImprovement(
+      metricKey: (json['metric_key'] as String?) ?? 'overall_score',
+      priority: (json['priority'] as String?) ?? 'medium',
+      finding:
+          (json['finding'] as String?) ?? 'A practice area was identified.',
+      evidence: (json['evidence'] as String?) ??
+          'The deterministic score report identified this area.',
+      whyItMatters: (json['why_it_matters'] as String?) ??
+          'This is a useful next target for practice.',
+      action: (json['action'] as String?) ??
+          'Repeat the exercise slowly and focus on this area.',
+      practicePlan: (json['practice_plan'] as String?) ??
+          'Repeat a short guided phrase and review the result.',
+    );
   }
 }
 
@@ -156,6 +283,7 @@ class CoachingFeedback {
     this.promptVersion,
     this.latencyMs,
     this.scoreBreakdown,
+    this.detailedImprovements = const <DetailedImprovement>[],
   });
 
   final String sessionId;
@@ -168,6 +296,7 @@ class CoachingFeedback {
   final String? promptVersion;
   final int? latencyMs;
   final FeedbackScoreBreakdown? scoreBreakdown;
+  final List<DetailedImprovement> detailedImprovements;
 
   factory CoachingFeedback.fromJson(Map<String, dynamic> json) {
     return CoachingFeedback(
@@ -185,6 +314,15 @@ class CoachingFeedback {
           : FeedbackScoreBreakdown.fromJson(
               json['score_breakdown'] as Map<String, dynamic>,
             ),
+      detailedImprovements:
+          (json['detailed_improvements'] as List<dynamic>? ?? const <dynamic>[])
+              .whereType<Map>()
+              .map(
+                (item) => DetailedImprovement.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(growable: false),
     );
   }
 
@@ -200,6 +338,7 @@ class CoachingFeedback {
       promptVersion: promptVersion,
       latencyMs: latencyMs,
       scoreBreakdown: scoreBreakdown ?? this.scoreBreakdown,
+      detailedImprovements: detailedImprovements,
     );
   }
 }
@@ -346,6 +485,7 @@ class TrainingAttemptMetricSummary {
     required double this.pitchStability,
     required double this.vibratoConsistency,
     required double this.noteTransitionSmoothness,
+    this.evidence,
     this.overallScore,
   })  : metricMode = 'voice',
         phaseCompletionRate = null,
@@ -361,6 +501,7 @@ class TrainingAttemptMetricSummary {
     required double this.cycleConsistency,
     required double this.completionRate,
     required int this.interruptionCount,
+    this.evidence,
     this.overallScore,
   })  : metricMode = 'breathing',
         pitchAccuracy = null,
@@ -383,6 +524,7 @@ class TrainingAttemptMetricSummary {
   final double? cycleConsistency;
   final double? completionRate;
   final int? interruptionCount;
+  final Map<String, dynamic>? evidence;
   final double? overallScore;
 
   Map<String, dynamic> toCreateJson() {
@@ -395,6 +537,7 @@ class TrainingAttemptMetricSummary {
         'cycle_consistency': cycleConsistency,
         'completion_rate': completionRate,
         'interruption_count': interruptionCount,
+        if (evidence != null) 'evidence': evidence,
       };
     }
     return {
@@ -406,6 +549,7 @@ class TrainingAttemptMetricSummary {
       'pitch_stability': pitchStability,
       'vibrato_consistency': vibratoConsistency,
       'note_transition_smoothness': noteTransitionSmoothness,
+      if (evidence != null) 'evidence': evidence,
     };
   }
 
@@ -420,6 +564,7 @@ class TrainingAttemptMetricSummary {
         cycleConsistency: (json['cycle_consistency'] as num).toDouble(),
         completionRate: (json['completion_rate'] as num).toDouble(),
         interruptionCount: (json['interruption_count'] as num?)?.toInt() ?? 0,
+        evidence: _mapFromJson(json['evidence']),
         overallScore: (json['overall_score'] as num?)?.toDouble(),
       );
     }
@@ -432,9 +577,20 @@ class TrainingAttemptMetricSummary {
       vibratoConsistency: (json['vibrato_consistency'] as num).toDouble(),
       noteTransitionSmoothness:
           (json['note_transition_smoothness'] as num).toDouble(),
+      evidence: _mapFromJson(json['evidence']),
       overallScore: (json['overall_score'] as num?)?.toDouble(),
     );
   }
+}
+
+Map<String, dynamic>? _mapFromJson(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return Map<String, dynamic>.from(value);
+  }
+  if (value is Map) {
+    return value.map((key, item) => MapEntry(key.toString(), item));
+  }
+  return null;
 }
 
 class TrainingAttemptScoreBreakdown {
@@ -445,6 +601,9 @@ class TrainingAttemptScoreBreakdown {
     this.scoringVersion = 'unknown',
     this.sampleCount = 0,
     this.evidenceQuality = 'unknown',
+    this.recordingEvidence = const <String, dynamic>{},
+    this.metricDetails = const <String, FeedbackMetricDetail>{},
+    this.segments = const <FeedbackSegmentEvidence>[],
   });
 
   final List<String> focusMetrics;
@@ -453,12 +612,18 @@ class TrainingAttemptScoreBreakdown {
   final String scoringVersion;
   final int sampleCount;
   final String evidenceQuality;
+  final Map<String, dynamic> recordingEvidence;
+  final Map<String, FeedbackMetricDetail> metricDetails;
+  final List<FeedbackSegmentEvidence> segments;
 
   factory TrainingAttemptScoreBreakdown.fromJson(Map<String, dynamic> json) {
     final rawMetricScores =
         json['metric_scores'] as Map<String, dynamic>? ?? const {};
     final rawWeighted =
         json['weighted_components'] as Map<String, dynamic>? ?? const {};
+    final rawMetricDetails =
+        _mapFromJson(json['metric_details']) ?? const <String, dynamic>{};
+    final rawSegments = json['segments'] as List<dynamic>? ?? const <dynamic>[];
     return TrainingAttemptScoreBreakdown(
       focusMetrics:
           (json['focus_metrics'] as List<dynamic>? ?? const <dynamic>[])
@@ -473,6 +638,24 @@ class TrainingAttemptScoreBreakdown {
       scoringVersion: (json['scoring_version'] as String?) ?? 'unknown',
       sampleCount: (json['sample_count'] as num?)?.toInt() ?? 0,
       evidenceQuality: (json['evidence_quality'] as String?) ?? 'unknown',
+      recordingEvidence:
+          _mapFromJson(json['recording_evidence']) ?? const <String, dynamic>{},
+      metricDetails: rawMetricDetails.map(
+        (key, value) => MapEntry(
+          key,
+          FeedbackMetricDetail.fromJson(
+            value is Map ? Map<String, dynamic>.from(value) : const {},
+          ),
+        ),
+      ),
+      segments: rawSegments
+          .whereType<Map>()
+          .map(
+            (item) => FeedbackSegmentEvidence.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }

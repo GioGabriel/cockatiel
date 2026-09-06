@@ -368,6 +368,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         VocalMetricFrame(
           timestampMs: frame.timestampMs,
           targetId: activeStage?.stageId ?? _activeTargetLabel(),
+          targetLabel: activeStage?.targetLabel ?? _activeTargetLabel(),
           targetFrequencyHz: targetHz,
           frequencyHz: frame.frequencyHz,
           loudnessDb: frame.loudnessDb,
@@ -427,6 +428,12 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         cycleConsistency: cycleConsistency,
         completionRate: completionRate,
         interruptionCount: _breathingInterruptionCount,
+        evidence: {
+          'duration_ms': _attemptStopwatch.elapsedMilliseconds,
+          'phase_count': stageCount,
+          'completed_phase_count': completedPhaseCount,
+          'interruption_count': _breathingInterruptionCount,
+        },
       );
     }
 

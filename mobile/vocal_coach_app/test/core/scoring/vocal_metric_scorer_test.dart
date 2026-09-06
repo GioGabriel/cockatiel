@@ -41,6 +41,12 @@ void main() {
     expect(summary.pitchStability, greaterThan(97));
     expect(summary.breathControl, greaterThan(85));
     expect(summary.noteTransitionSmoothness, greaterThan(97));
+    expect(summary.evidence['frame_count'], 100);
+    expect(summary.evidence['voiced_frame_count'], 100);
+    expect(summary.evidence['target_frame_count'], 100);
+    expect(summary.evidence['target_coverage_pct'], 100);
+    expect(summary.evidence['on_target_rate_pct'], greaterThan(99));
+    expect(summary.evidence['segments'], hasLength(1));
   });
 
   test(
@@ -93,6 +99,9 @@ void main() {
     expect(summary.pitchAccuracy, 0);
     expect(summary.timingAccuracy, 0);
     expect(summary.breathControl, greaterThan(85));
+    expect(summary.evidence['no_target_frame_count'], 40);
+    expect(summary.evidence['target_frame_count'], 0);
+    expect(summary.evidence['target_coverage_pct'], 0);
   });
 
   test('counts a dropped audio-stream gap as missing evidence', () {

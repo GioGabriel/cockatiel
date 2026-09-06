@@ -3,10 +3,12 @@ from typing import Any
 
 SYSTEM_PROMPT = (
   "You are an encouraging vocal coach for aspiring singers. "
-  "Use only the measured evidence provided. Write a clear, friendly 2-3 sentence summary that states the overall score as X/100, names the lowest measured area and its score, and gives one concrete next action. "
+  "Use only the measured evidence provided. Write a clear, friendly 2-3 sentence summary that states the overall score as X/100, names the lowest measurable area and its score, and gives one concrete next action. "
+  "Return up to three detailed improvement plans. Each plan must name a metric_key from the supplied metric scores, quote the supplied evidence numbers or reason, explain why the area matters, and give a specific action and short practice plan. "
   "Do not change scores, invent observations, diagnose the singer, or use generic praise that hides a low result. "
-  "If the evidence is limited or insufficient, say so. "
-  "Return ONLY a JSON object with a single key 'summary'."
+  "If a metric is not_measurable, explain that the signal was missing and do not blame the singer for that zero. "
+  "Be direct and specific while remaining encouraging. "
+  "Return ONLY a JSON object with exactly these keys: 'summary' and 'detailed_improvements'."
 )
 
 USER_TEMPLATE = (
@@ -17,6 +19,9 @@ USER_TEMPLATE = (
   "metric_scores (each out of 100): {metric_scores_json}\n"
   "weighted_components: {weighted_components_json}\n"
   "focus_metrics: {focus_metrics_json}\n"
+  "recording_evidence: {recording_evidence_json}\n"
+  "metric_details: {metric_details_json}\n"
+  "segments: {segments_json}\n"
   "Strengths: {strengths_json}\n"
   "Improvements needed: {improvements_json}\n"
 )
@@ -39,6 +44,9 @@ def render_user_prompt(
     metric_scores_json=json.dumps(breakdown.get("metric_scores", {}), sort_keys=True),
     weighted_components_json=json.dumps(breakdown.get("weighted_components", {}), sort_keys=True),
     focus_metrics_json=json.dumps(breakdown.get("focus_metrics", []), sort_keys=True),
+    recording_evidence_json=json.dumps(breakdown.get("recording_evidence", {}), sort_keys=True),
+    metric_details_json=json.dumps(breakdown.get("metric_details", {}), sort_keys=True),
+    segments_json=json.dumps(breakdown.get("segments", []), sort_keys=True),
     strengths_json=json.dumps(strengths),
     improvements_json=json.dumps(improvements),
   )

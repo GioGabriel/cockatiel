@@ -12,6 +12,18 @@ def test_feedback_prompt_includes_evidence_for_user_facing_coaching():
       "evidence_quality": "reliable",
       "sample_count": 180,
       "focus_metrics": ["pitch_accuracy"],
+      "recording_evidence": {
+        "voiced_coverage_pct": 49.86,
+        "target_coverage_pct": 0,
+        "no_target_frame_count": 180,
+      },
+      "metric_details": {
+        "pitch_accuracy": {
+          "status": "not_measurable",
+          "reason": "No target-note comparison frames were captured.",
+        },
+      },
+      "segments": [],
     },
   )
 
@@ -19,3 +31,5 @@ def test_feedback_prompt_includes_evidence_for_user_facing_coaching():
   assert "pitch_accuracy" in prompt
   assert "reliable" in prompt
   assert "180" in prompt
+  assert "not_measurable" in prompt
+  assert "No target-note comparison" in prompt

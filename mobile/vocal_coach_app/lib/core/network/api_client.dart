@@ -29,6 +29,14 @@ class ApiException implements Exception {
   final List<String> validationPaths;
   final List<String> validationErrorTypes;
 
+  String get userMessage {
+    if (validationPaths.isEmpty) {
+      return message;
+    }
+    final fields = validationPaths.take(3).join(', ');
+    return '$message Check: $fields.';
+  }
+
   @override
   String toString() =>
       'ApiException(statusCode: $statusCode, code: $code, traceId: $traceId)';

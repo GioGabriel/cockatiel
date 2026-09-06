@@ -895,13 +895,14 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
 
     try {
       // The backend also rejects voice attempts with too little evidence.
-      if (!_isBreathingExercise && _metricAccumulator.sampleCount == 0) {
-        // Only error if literally 0 frames were processed (mic totally dead).
+      final evidenceError = _isBreathingExercise
+          ? null
+          : voiceEvidenceSaveError(_metricAccumulator.sampleCount);
+      if (evidenceError != null) {
         setState(() {
-          _error =
-              'Microphone didn\'t pick up any audio. $_attemptNoun not saved.';
+          _error = evidenceError;
           _isSavingAttempt = false;
-          _status = '$_attemptNoun ended with no audio input.';
+          _status = '$_attemptNoun ended without enough audio evidence.';
         });
         return;
       }
@@ -928,7 +929,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       _resetMetricsWindow();
     } catch (error) {
       setState(() {
-        _error = error.toString();
+        _error = _friendlyError(error);
         _status = 'Could not save ${_attemptNoun.toLowerCase()}. Try again.';
       });
     } finally {
@@ -978,7 +979,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       });
     } catch (error) {
       setState(() {
-        _error = error.toString();
+        _error = _friendlyError(error);
       });
     } finally {
       if (mounted) {
@@ -987,6 +988,13 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         });
       }
     }
+  }
+
+  String _friendlyError(Object error) {
+    if (error is ApiException) {
+      return error.userMessage;
+    }
+    return error.toString();
   }
 
   int get _attemptElapsedSec {

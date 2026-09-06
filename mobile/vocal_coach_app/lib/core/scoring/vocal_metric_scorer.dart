@@ -2,6 +2,20 @@ import 'dart:math' as math;
 
 import '../../shared/models/session_models.dart';
 
+const minimumVoiceEvidenceSamples = 16;
+
+String? voiceEvidenceSaveError(int sampleCount) {
+  final capturedSamples = math.max(0, sampleCount);
+  if (capturedSamples == 0) {
+    return "Microphone didn't pick up any audio. Take not saved.";
+  }
+  if (capturedSamples < minimumVoiceEvidenceSamples) {
+    return 'Only $capturedSamples of $minimumVoiceEvidenceSamples audio samples were captured. '
+        'Check microphone permission and try the take again.';
+  }
+  return null;
+}
+
 /// One frame of evidence used by both guided training and karaoke scoring.
 class VocalMetricFrame {
   const VocalMetricFrame({

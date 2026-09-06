@@ -29,6 +29,12 @@ void _addFrames(
 }
 
 void main() {
+  test('requires enough voice evidence before an attempt can be saved', () {
+    expect(voiceEvidenceSaveError(0), contains('didn\'t pick up any audio'));
+    expect(voiceEvidenceSaveError(8), contains('8 of 16'));
+    expect(voiceEvidenceSaveError(16), isNull);
+  });
+
   test('gives a clean, sustained target a high and stable score', () {
     final accumulator = VocalMetricAccumulator();
     _addFrames(accumulator, count: 100, frequencyHz: 440);

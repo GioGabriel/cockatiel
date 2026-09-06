@@ -50,6 +50,20 @@ void main() {
     expect(apiError.toString(), isNot(contains('secret')));
   });
 
+  test('turns validation details into an actionable user message', () {
+    const error = ApiException(
+      statusCode: 422,
+      code: 'VALIDATION_ERROR',
+      message: 'Request validation failed.',
+      validationPaths: ['body.metric_summary.sample_count'],
+    );
+
+    expect(
+      error.userMessage,
+      'Request validation failed. Check: body.metric_summary.sample_count.',
+    );
+  });
+
   test('omits an empty bearer token instead of sending an invalid credential',
       () async {
     late http.BaseRequest request;

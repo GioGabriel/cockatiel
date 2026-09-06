@@ -549,7 +549,7 @@ class TrainingAttemptMetricSummary {
       'pitch_stability': pitchStability,
       'vibrato_consistency': vibratoConsistency,
       'note_transition_smoothness': noteTransitionSmoothness,
-      if (evidence != null) 'evidence': evidence,
+      if (evidence != null) 'evidence': _normalizedVoiceEvidence(evidence!),
     };
   }
 
@@ -581,6 +581,36 @@ class TrainingAttemptMetricSummary {
       overallScore: (json['overall_score'] as num?)?.toDouble(),
     );
   }
+}
+
+Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
+  final normalized = Map<String, dynamic>.from(source);
+  normalized['p95_abs_cents'] = _finiteNumberOrZero(
+    normalized['p95_abs_cents'],
+  );
+
+  final rawSegments = normalized['segments'];
+  if (rawSegments is List) {
+    normalized['segments'] = rawSegments.map((item) {
+      if (item is! Map) {
+        return item;
+      }
+      final segment = Map<String, dynamic>.from(item);
+      segment['p95_abs_cents'] = _finiteNumberOrZero(
+        segment['p95_abs_cents'],
+      );
+      return segment;
+    }).toList(growable: false);
+  }
+
+  return normalized;
+}
+
+num _finiteNumberOrZero(Object? value) {
+  if (value is num && value.isFinite) {
+    return value;
+  }
+  return 0.0;
 }
 
 Map<String, dynamic>? _mapFromJson(Object? value) {

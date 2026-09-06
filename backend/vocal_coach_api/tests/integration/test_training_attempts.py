@@ -214,6 +214,30 @@ def test_attempt_contract_accepts_onset_and_acoustic_evidence(client, auth_heade
   assert evidence["mean_spectral_centroid_hz"] == 820
 
 
+def test_attempt_contract_normalizes_missing_percentile_evidence(client, auth_headers):
+  session_id = _create_training_session(client, auth_headers)
+  payload = _voice_attempt_payload(index=1, score_seed=75)
+  payload["metric_summary"]["evidence"] = {
+    "p95_abs_cents": None,
+    "segments": [
+      {"segment_id": "target-a", "p95_abs_cents": None},
+      {"segment_id": "target-b", "p95_abs_cents": 84.5},
+    ],
+  }
+
+  response = client.post(
+    f"/v1/sessions/{session_id}/attempts",
+    headers=auth_headers,
+    json=payload,
+  )
+
+  assert response.status_code == 201
+  evidence = response.json()["attempt"]["metric_summary"]["evidence"]
+  assert evidence["p95_abs_cents"] == 0
+  assert evidence["segments"][0]["p95_abs_cents"] == 0
+  assert evidence["segments"][1]["p95_abs_cents"] == 84.5
+
+
 def test_karaoke_attempt_saves_and_finalizes(client, auth_headers):
   response = client.post(
     "/v1/sessions",

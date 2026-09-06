@@ -233,4 +233,30 @@ void main() {
       'interruption_count': 1,
     });
   });
+
+  test('voice metric summaries normalize nullable percentile evidence', () {
+    final summary = TrainingAttemptMetricSummary.voice(
+      sampleCount: 24,
+      pitchAccuracy: 72,
+      timingAccuracy: 68,
+      breathControl: 75,
+      pitchStability: 70,
+      vibratoConsistency: 60,
+      noteTransitionSmoothness: 66,
+      evidence: {
+        'p95_abs_cents': null,
+        'segments': [
+          {'segment_id': 'stage_1', 'p95_abs_cents': null},
+          {'segment_id': 'stage_2', 'p95_abs_cents': 84.5},
+        ],
+      },
+    );
+
+    final evidence = summary.toCreateJson()['evidence'] as Map<String, dynamic>;
+    final segments = evidence['segments'] as List<dynamic>;
+
+    expect(evidence['p95_abs_cents'], 0.0);
+    expect((segments[0] as Map<String, dynamic>)['p95_abs_cents'], 0.0);
+    expect((segments[1] as Map<String, dynamic>)['p95_abs_cents'], 84.5);
+  });
 }

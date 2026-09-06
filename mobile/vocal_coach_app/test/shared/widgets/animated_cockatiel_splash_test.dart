@@ -28,6 +28,12 @@ void main() {
       find.byKey(const ValueKey('cockatiel-splash-motion-layer')),
       findsOneWidget,
     );
+
+    final splashRect = tester.getRect(find.byType(AnimatedCockatielSplash));
+    final progressRect = tester.getRect(
+      find.byKey(const ValueKey('cockatiel-splash-progress')),
+    );
+    expect(progressRect.center.dx, closeTo(splashRect.center.dx, 1));
   });
 
   testWidgets('completes the staged entrance without throwing',

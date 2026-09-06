@@ -118,6 +118,7 @@ class _AnimatedCockatielSplashState extends State<AnimatedCockatielSplash>
                   final contentOpacity = _opacity(progress, 0.52, 0.86);
 
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(
                         height: artworkHeight,
@@ -167,41 +168,48 @@ class _AnimatedCockatielSplashState extends State<AnimatedCockatielSplash>
                         opacity: contentOpacity,
                         child: Transform.translate(
                           offset: Offset(0, 12 * (1 - contentOpacity)),
-                          child: Column(
-                            children: [
-                              Text(
-                                'Cockatiel',
-                                style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Voice practice, made clear',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              if (widget.showProgress) ...[
-                                const SizedBox(height: 32),
-                                Semantics(
-                                  label: 'Loading your vocal coach',
-                                  child: SizedBox(
-                                    key: const ValueKey(
-                                      'cockatiel-splash-progress',
-                                    ),
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: colorScheme.primary,
-                                    ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Cockatiel',
+                                  textAlign: TextAlign.center,
+                                  style:
+                                      theme.textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Voice practice, made clear',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                if (widget.showProgress) ...[
+                                  const SizedBox(height: 32),
+                                  Semantics(
+                                    label: 'Loading your vocal coach',
+                                    child: SizedBox(
+                                      key: const ValueKey(
+                                        'cockatiel-splash-progress',
+                                      ),
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 32),
                               ],
-                              const SizedBox(height: 32),
-                            ],
+                            ),
                           ),
                         ),
                       ),

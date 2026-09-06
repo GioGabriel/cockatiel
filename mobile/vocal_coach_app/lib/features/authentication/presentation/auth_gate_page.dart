@@ -149,28 +149,45 @@ class _AuthGatePageState extends State<AuthGatePage> {
 
             final motionDisabled =
                 MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-            return AnimatedSwitcher(
-              duration: motionDisabled
-                  ? Duration.zero
-                  : const Duration(milliseconds: 260),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                final offset = Tween<Offset>(
-                  begin: const Offset(0, 0.025),
-                  end: Offset.zero,
-                ).animate(animation);
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: offset,
-                    child: child,
-                  ),
-                );
-              },
-              child: KeyedSubtree(
-                key: ValueKey(contentKey),
-                child: content,
+            return SizedBox.expand(
+              child: AnimatedSwitcher(
+                duration: motionDisabled
+                    ? Duration.zero
+                    : const Duration(milliseconds: 260),
+                // The default AnimatedSwitcher layout uses a loose Stack. That
+                // lets a startup child shrink to its intrinsic logo/text width
+                // while the auth gate is still resolving, which makes the
+                // splash appear pinned to the left on wide web viewports.
+                // Keep every route state viewport-sized during the transition.
+                layoutBuilder: (currentChild, previousChildren) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    alignment: Alignment.center,
+                    children: [
+                      ...previousChildren,
+                      if (currentChild != null) currentChild,
+                    ],
+                  );
+                },
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final offset = Tween<Offset>(
+                    begin: const Offset(0, 0.025),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: offset,
+                      child: child,
+                    ),
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey(contentKey),
+                  child: content,
+                ),
               ),
             );
           },

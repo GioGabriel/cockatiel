@@ -17,6 +17,7 @@ def test_feedback_orchestrator_uses_google_ai_for_evidence_backed_detail(monkeyp
       assert "pitch_accuracy" in user_prompt
       assert "evidence_quality" in user_prompt
       assert "not_measurable" in user_prompt
+      assert "cannot measure airflow" in user_prompt
       return {
         "summary": "Your target-note guide was not available for this take, so pitch matching could not be judged fairly.",
         "detailed_improvements": [
@@ -79,6 +80,11 @@ def test_feedback_orchestrator_uses_google_ai_for_evidence_backed_detail(monkeyp
         },
       },
       "segments": [],
+    },
+    session_context={
+      "training_basis": ["Gentle pitch-centering practice"],
+      "measurement_plan": ["Pitch error in cents and onset delay"],
+      "measurement_limits": ["Phone microphone cannot measure airflow"],
     },
   )
 

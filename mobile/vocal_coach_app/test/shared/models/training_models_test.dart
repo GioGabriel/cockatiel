@@ -185,6 +185,23 @@ void main() {
       expect(exercise.instructions, ['Step 1']);
       expect(exercise.patternsByDifficulty.length, 1);
     });
+
+    test('fromJson parses evidence basis and measurement limits', () {
+      final exercise = TrainingExercise.fromJson({
+        'exercise_id': 'evidence_drill',
+        'name': 'Evidence drill',
+        'description': 'Desc',
+        'objective': 'Objective',
+        'training_basis': ['Pentachord foundation'],
+        'measurement_plan': ['Pitch error in cents'],
+        'measurement_limits': ['Phone microphone cannot measure airflow'],
+      });
+
+      expect(exercise.trainingBasis, ['Pentachord foundation']);
+      expect(exercise.measurementPlan, ['Pitch error in cents']);
+      expect(exercise.measurementLimits,
+          ['Phone microphone cannot measure airflow']);
+    });
   });
 
   group('TrainingCategory', () {

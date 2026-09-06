@@ -166,6 +166,54 @@ def test_breathing_attempt_uses_breathing_metric_contract(client, auth_headers):
   ]
 
 
+def test_attempt_contract_accepts_onset_and_acoustic_evidence(client, auth_headers):
+  session_id = _create_training_session(client, auth_headers)
+  payload = _voice_attempt_payload(index=1, score_seed=75)
+  payload["metric_summary"]["evidence"] = {
+    "frame_count": 64,
+    "voiced_frame_count": 60,
+    "target_window_frame_count": 64,
+    "target_frame_count": 60,
+    "voiced_coverage_pct": 93.75,
+    "target_window_coverage_pct": 100,
+    "target_coverage_pct": 93.75,
+    "on_target_rate_pct": 82,
+    "mean_onset_delay_ms": 140,
+    "p95_onset_delay_ms": 260,
+    "late_onset_count": 1,
+    "mean_settling_time_ms": 90,
+    "mean_zero_crossing_rate": 0.05,
+    "mean_spectral_centroid_hz": 820,
+    "mean_spectral_rolloff_hz": 2100,
+    "mean_crest_factor_db": 12,
+    "clipping_ratio_pct": 0,
+    "mean_periodicity": 0.9,
+    "segments": [
+      {
+        "segment_id": "target-a",
+        "label": "Do",
+        "frame_count": 64,
+        "voiced_frame_count": 60,
+        "target_frame_count": 60,
+        "onset_delay_ms": 140,
+        "settling_time_ms": 90,
+        "score": 82,
+      },
+    ],
+  }
+
+  response = client.post(
+    f"/v1/sessions/{session_id}/attempts",
+    headers=auth_headers,
+    json=payload,
+  )
+
+  assert response.status_code == 201
+  evidence = response.json()["attempt"]["score_breakdown"]["recording_evidence"]
+  assert evidence["mean_onset_delay_ms"] == 140
+  assert evidence["mean_spectral_centroid_hz"] == 820
+
+
 def test_karaoke_attempt_saves_and_finalizes(client, auth_headers):
   response = client.post(
     "/v1/sessions",

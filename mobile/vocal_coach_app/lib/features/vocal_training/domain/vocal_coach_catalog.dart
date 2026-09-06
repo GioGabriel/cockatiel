@@ -14,6 +14,9 @@ class VocalExercise {
     required this.difficulty,
     required this.focusMetrics,
     required this.recommendedOrder,
+    this.trainingBasis = const [],
+    this.measurementPlan = const [],
+    this.measurementLimits = const [],
   });
 
   final String id;
@@ -28,6 +31,9 @@ class VocalExercise {
   final String difficulty;
   final List<String> focusMetrics;
   final int recommendedOrder;
+  final List<String> trainingBasis;
+  final List<String> measurementPlan;
+  final List<String> measurementLimits;
 }
 
 class VocalCoachCategory {
@@ -70,7 +76,7 @@ const vocalCoachCatalog = <VocalCoachCategory>[
         exerciseMode: 'voice',
         instructions: [
           'Keep jaw and neck relaxed.',
-          'Sustain open vowels at stable airflow.',
+          'Sustain open vowels with an even, comfortable tone.',
           'Aim tone forward without squeezing.',
         ],
         aiFocus: 'Tone color, resonance consistency, and projection efficiency',
@@ -103,7 +109,7 @@ const vocalCoachCatalog = <VocalCoachCategory>[
         id: 'note_transition_drill',
         name: 'Note Transition Drill',
         description:
-            'Move between adjacent notes smoothly with stable airflow.',
+            'Move between adjacent notes smoothly with a connected tone.',
         objective:
             'Connect notes with controlled transitions and faster pitch settling.',
         whatYouDo:
@@ -128,7 +134,7 @@ const vocalCoachCatalog = <VocalCoachCategory>[
   ),
   VocalCoachCategory(
     id: 'do_re_mi',
-    title: 'Do Re Mi Fa Sol',
+    title: 'Do Re Mi Fa Sol La Ti Do',
     subtitle: 'Pitch-target drills and ear-voice alignment.',
     description:
         'Develop note recognition, interval awareness, and scale accuracy.',
@@ -137,7 +143,8 @@ const vocalCoachCatalog = <VocalCoachCategory>[
       VocalExercise(
         id: 'do_re_mi_basic_ladder',
         name: 'Basic Ladder',
-        description: 'Step through Do Re Mi Fa Sol with stable intonation.',
+        description:
+            'Begin with the Do–Sol pentachord, then build toward La, Ti, and high Do with stable intonation.',
         objective: 'Strengthen basic scale control and pitch targeting.',
         whatYouDo:
             'Sing one target note at a time in order, matching each step before climbing to the next one.',
@@ -177,8 +184,8 @@ const vocalCoachCatalog = <VocalCoachCategory>[
   VocalCoachCategory(
     id: 'breathing',
     title: 'Breathing',
-    subtitle: 'Breath support, phrase length, and airflow consistency.',
-    description: 'Train support, airflow pacing, and phrase endurance.',
+    subtitle: 'Breath pacing, body awareness, and phrase endurance.',
+    description: 'Practice breath timing and phrase pacing with guided cycles.',
     icon: Icons.air_rounded,
     exercises: [
       VocalExercise(
@@ -211,7 +218,7 @@ const vocalCoachCatalog = <VocalCoachCategory>[
         name: 'Long Phrase Breathing',
         description:
             'Practice longer inhale-to-exhale cycles that mimic phrase-length breath pacing.',
-        objective: 'Improve airflow pacing and phrase-end stability.',
+        objective: 'Improve phrase planning and exhale pacing.',
         whatYouDo:
             'Use the timer to inhale, then stretch a calm, even exhale for longer phrase-style counts.',
         requiresMicrophone: false,

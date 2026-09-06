@@ -13,6 +13,12 @@ class VocalMetricFrame {
     required this.loudnessDb,
     required this.voiced,
     required this.confidence,
+    this.zeroCrossingRate,
+    this.spectralCentroidHz,
+    this.spectralRolloffHz,
+    this.crestFactorDb,
+    this.clippingRatio,
+    this.periodicity,
   });
 
   final int timestampMs;
@@ -23,6 +29,12 @@ class VocalMetricFrame {
   final double loudnessDb;
   final bool voiced;
   final double confidence;
+  final double? zeroCrossingRate;
+  final double? spectralCentroidHz;
+  final double? spectralRolloffHz;
+  final double? crestFactorDb;
+  final double? clippingRatio;
+  final double? periodicity;
 }
 
 class VocalMetricSummary {
@@ -57,6 +69,70 @@ class VocalMetricSummary {
       noteTransitionSmoothness: noteTransitionSmoothness,
       evidence: evidence,
     );
+  }
+}
+
+/// Captures optional microphone evidence for timer-led breathing drills.
+///
+/// The phase score remains timer-based. These descriptors explain what the
+/// microphone heard without pretending that a phone can measure airflow.
+class BreathingAudioAccumulator {
+  BreathingAudioAccumulator({this.audibleFloorDb = -45});
+
+  final double audibleFloorDb;
+  int _frameCount = 0;
+  int _audibleFrameCount = 0;
+  double _loudnessTotal = 0;
+  double _loudnessSquaredTotal = 0;
+  int? _firstTimestampMs;
+  int? _lastTimestampMs;
+
+  void reset() {
+    _frameCount = 0;
+    _audibleFrameCount = 0;
+    _loudnessTotal = 0;
+    _loudnessSquaredTotal = 0;
+    _firstTimestampMs = null;
+    _lastTimestampMs = null;
+  }
+
+  void addFrame({
+    required int timestampMs,
+    required double loudnessDb,
+  }) {
+    _firstTimestampMs ??= timestampMs;
+    _lastTimestampMs = timestampMs;
+    _frameCount += 1;
+    if (!loudnessDb.isFinite || loudnessDb <= audibleFloorDb) {
+      return;
+    }
+    _audibleFrameCount += 1;
+    _loudnessTotal += loudnessDb;
+    _loudnessSquaredTotal += loudnessDb * loudnessDb;
+  }
+
+  Map<String, dynamic> build({required int durationMs}) {
+    final mean =
+        _audibleFrameCount == 0 ? null : _loudnessTotal / _audibleFrameCount;
+    final variance = _audibleFrameCount == 0
+        ? 0.0
+        : (_loudnessSquaredTotal / _audibleFrameCount) - (mean! * mean);
+    final observedDuration = math.max(
+      durationMs,
+      (_lastTimestampMs ?? 0) - (_firstTimestampMs ?? 0),
+    );
+    return {
+      'audio_frame_count': _frameCount,
+      'audible_frame_count': _audibleFrameCount,
+      'audible_coverage_pct': _frameCount == 0
+          ? 0.0
+          : (_audibleFrameCount / _frameCount * 100).clamp(0.0, 100.0),
+      'mean_loudness_db': mean,
+      'loudness_stddev_db': math.sqrt(math.max(0, variance)),
+      'audio_observed_duration_ms': observedDuration,
+      'audio_evidence_note':
+          'Optional microphone loudness proxy; this does not measure airflow.',
+    };
   }
 }
 
@@ -99,6 +175,13 @@ class VocalMetricAccumulator {
   double _confidenceSquaredTotal = 0;
   double _loudnessTotal = 0;
   double _loudnessSquaredTotal = 0;
+  double _zeroCrossingRateTotal = 0;
+  double _spectralCentroidTotal = 0;
+  double _spectralRolloffTotal = 0;
+  double _crestFactorTotal = 0;
+  double _clippingRatioTotal = 0;
+  double _periodicityTotal = 0;
+  int _acousticFrameCount = 0;
   int _currentVoicedRun = 0;
   int _longestVoicedRun = 0;
   bool _previousWasVoiced = false;
@@ -141,6 +224,13 @@ class VocalMetricAccumulator {
     _confidenceSquaredTotal = 0;
     _loudnessTotal = 0;
     _loudnessSquaredTotal = 0;
+    _zeroCrossingRateTotal = 0;
+    _spectralCentroidTotal = 0;
+    _spectralRolloffTotal = 0;
+    _crestFactorTotal = 0;
+    _clippingRatioTotal = 0;
+    _periodicityTotal = 0;
+    _acousticFrameCount = 0;
     _currentVoicedRun = 0;
     _longestVoicedRun = 0;
     _previousWasVoiced = false;
@@ -173,6 +263,20 @@ class VocalMetricAccumulator {
     _lastTimestampMs = frame.timestampMs;
     _capturedFrameCount += 1;
     _sampleCount += 1;
+    if (frame.zeroCrossingRate != null ||
+        frame.spectralCentroidHz != null ||
+        frame.spectralRolloffHz != null ||
+        frame.crestFactorDb != null ||
+        frame.clippingRatio != null ||
+        frame.periodicity != null) {
+      _acousticFrameCount += 1;
+      _zeroCrossingRateTotal += frame.zeroCrossingRate ?? 0;
+      _spectralCentroidTotal += frame.spectralCentroidHz ?? 0;
+      _spectralRolloffTotal += frame.spectralRolloffHz ?? 0;
+      _crestFactorTotal += frame.crestFactorDb ?? 0;
+      _clippingRatioTotal += frame.clippingRatio ?? 0;
+      _periodicityTotal += frame.periodicity ?? 0;
+    }
     final validConfidence = frame.confidence.isFinite
         ? frame.confidence.clamp(0.0, 1.0).toDouble()
         : 0.0;
@@ -290,12 +394,7 @@ class VocalMetricAccumulator {
         : (_weightedPitchScore / _confidenceWeight).clamp(0, 100).toDouble();
     final pitchAccuracy = _roundScore(targetScore * targetCoverage);
 
-    final targetAdherence = _weightedTargetFrames == 0
-        ? 0.0
-        : (_weightedOnTargetFrames / _weightedTargetFrames)
-            .clamp(0.0, 1.0)
-            .toDouble();
-    final timingAccuracy = _roundScore(targetAdherence * targetCoverage * 100);
+    final timingAccuracy = _roundScore(_timingScore(targetCoverage));
 
     final vibratoEvidence = _vibratoEvidence(targetCoverage);
     final pitchStability = _roundScore(_stabilityScore(targetCoverage));
@@ -339,6 +438,19 @@ class VocalMetricAccumulator {
         : (_weightedOnTargetFrames / _weightedTargetFrames * 100)
             .clamp(0.0, 100.0)
             .toDouble();
+    final segmentEvidence =
+        _segments.values.map((segment) => segment.toJson()).toList();
+    final onsetDelays = segmentEvidence
+        .map((segment) => segment['onset_delay_ms'])
+        .whereType<num>()
+        .map((value) => value.toDouble())
+        .toList();
+    final settlingTimes = segmentEvidence
+        .map((segment) => segment['settling_time_ms'])
+        .whereType<num>()
+        .map((value) => value.toDouble())
+        .toList();
+    final lateOnsetCount = onsetDelays.where((delay) => delay > 250).length;
     final evidence = <String, dynamic>{
       'duration_ms': math.max(
         0,
@@ -380,11 +492,33 @@ class VocalMetricAccumulator {
       'completed_transition_count': _completedTransitionCount,
       'failed_transition_count':
           _failedTransitionCount + (_pendingTransition == null ? 0 : 1),
+      'mean_onset_delay_ms': _roundNumber(_mean(onsetDelays)),
+      'p95_onset_delay_ms': _roundNumber(_percentile(onsetDelays, 0.95)),
+      'late_onset_count': lateOnsetCount,
+      'mean_settling_time_ms': _roundNumber(_mean(settlingTimes)),
+      'mean_zero_crossing_rate': _acousticFrameCount == 0
+          ? null
+          : _roundNumber(_zeroCrossingRateTotal / _acousticFrameCount, 4),
+      'mean_spectral_centroid_hz': _acousticFrameCount == 0
+          ? null
+          : _roundNumber(_spectralCentroidTotal / _acousticFrameCount),
+      'mean_spectral_rolloff_hz': _acousticFrameCount == 0
+          ? null
+          : _roundNumber(_spectralRolloffTotal / _acousticFrameCount),
+      'mean_crest_factor_db': _acousticFrameCount == 0
+          ? null
+          : _roundNumber(_crestFactorTotal / _acousticFrameCount),
+      'clipping_ratio_pct': _acousticFrameCount == 0
+          ? null
+          : _roundNumber(_clippingRatioTotal / _acousticFrameCount * 100),
+      'mean_periodicity': _acousticFrameCount == 0
+          ? null
+          : _roundNumber(_periodicityTotal / _acousticFrameCount, 4),
       'vibrato_detected': vibratoEvidence.detected,
       'vibrato_rate_hz': vibratoEvidence.rateHz,
       'vibrato_amplitude_cents': vibratoEvidence.amplitudeCents,
       'vibrato_regularity_pct': vibratoEvidence.regularityPct,
-      'segments': _segments.values.map((segment) => segment.toJson()).toList(),
+      'segments': segmentEvidence,
     };
 
     return VocalMetricSummary(
@@ -397,6 +531,25 @@ class VocalMetricAccumulator {
       noteTransitionSmoothness: noteTransitionSmoothness,
       evidence: evidence,
     );
+  }
+
+  double _timingScore(double targetCoverage) {
+    final measurableSegments = _segments.values
+        .where((segment) => segment.hasTimingEvidence)
+        .toList(growable: false);
+    if (measurableSegments.isEmpty) {
+      if (_weightedTargetFrames == 0) {
+        return 0;
+      }
+      final targetAdherence =
+          (_weightedOnTargetFrames / _weightedTargetFrames).clamp(0.0, 1.0);
+      return targetAdherence * targetCoverage * 100;
+    }
+    final average = measurableSegments
+            .map((segment) => segment.timingScore)
+            .reduce((left, right) => left + right) /
+        measurableSegments.length;
+    return average.clamp(0.0, 100.0).toDouble();
   }
 
   void _recordTargetTransition(
@@ -564,6 +717,13 @@ class VocalMetricAccumulator {
         ((values.length - 1) * percentile).round().clamp(0, values.length - 1);
     return values[index];
   }
+
+  double _mean(List<double> values) {
+    if (values.isEmpty) {
+      return 0;
+    }
+    return values.reduce((left, right) => left + right) / values.length;
+  }
 }
 
 class _VibratoEvidence {
@@ -597,6 +757,8 @@ class _SegmentAccumulator {
   double _scoreTotal = 0;
   double _absCentsTotal = 0;
   final List<double> _absCents = <double>[];
+  int? _firstVoicedTimestampMs;
+  int? _firstOnTargetTimestampMs;
 
   void addFrame({
     required int timestampMs,
@@ -614,6 +776,7 @@ class _SegmentAccumulator {
       return;
     }
     _voicedFrameCount += 1;
+    _firstVoicedTimestampMs ??= timestampMs;
     if (targetHz == null || targetHz <= 0 || frequencyHz == null) {
       return;
     }
@@ -621,9 +784,45 @@ class _SegmentAccumulator {
     final absCents = cents.abs();
     _targetFrameCount += 1;
     _onTargetFrameCount += absCents <= onTargetToleranceCents ? 1 : 0;
+    if (absCents <= onTargetToleranceCents) {
+      _firstOnTargetTimestampMs ??= timestampMs;
+    }
     _scoreTotal += _frameScore(absCents);
     _absCentsTotal += absCents;
     _absCents.add(absCents);
+  }
+
+  bool get hasTimingEvidence => _targetFrameCount > 0;
+
+  double get timingScore {
+    if (_frameCount == 0 || !hasTimingEvidence) {
+      return 0;
+    }
+    final voicedCoverage =
+        (_targetFrameCount / _frameCount).clamp(0.0, 1.0).toDouble();
+    final onsetDelay = onsetDelayMs;
+    final onsetScore = onsetDelay == null
+        ? 0.0
+        : (100 - (onsetDelay / 4)).clamp(0.0, 100.0).toDouble();
+    return ((voicedCoverage * 65) + (onsetScore * 0.35)).clamp(0.0, 100.0);
+  }
+
+  int? get onsetDelayMs {
+    final firstVoiced = _firstVoicedTimestampMs;
+    final start = _startMs;
+    if (firstVoiced == null || start == null) {
+      return null;
+    }
+    return math.max(0, firstVoiced - start);
+  }
+
+  int? get settlingTimeMs {
+    final firstVoiced = _firstVoicedTimestampMs;
+    final firstOnTarget = _firstOnTargetTimestampMs;
+    if (firstVoiced == null || firstOnTarget == null) {
+      return null;
+    }
+    return math.max(0, firstOnTarget - firstVoiced);
   }
 
   Map<String, dynamic> toJson() {
@@ -658,6 +857,8 @@ class _SegmentAccumulator {
         measured ? _absCentsTotal / _targetFrameCount : 0,
       ),
       'p95_abs_cents': _roundNumber(_percentile(_absCents, 0.95)),
+      'onset_delay_ms': onsetDelayMs,
+      'settling_time_ms': settlingTimeMs,
       'score': _roundNumber(measured ? _scoreTotal / _targetFrameCount : 0),
       'status': measured
           ? (targetCoverage < 80 ? 'partial' : 'measured')

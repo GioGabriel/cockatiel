@@ -18,6 +18,7 @@ def resolve_feedback_prompts(
   strengths: list[str],
   improvements: list[str],
   score_breakdown: dict[str, Any] | None = None,
+  exercise_context: dict[str, Any] | None = None,
 ) -> tuple[str, str, str]:
   resolved_version = _resolve_prompt_version(prompt_version, session_id)
   renderer = _PROMPT_RENDERERS[resolved_version]
@@ -29,5 +30,6 @@ def resolve_feedback_prompts(
     strengths=strengths,
     improvements=improvements,
     score_breakdown=score_breakdown,
+    exercise_context=exercise_context,
   )
   return system_prompt, user_prompt, resolved_version

@@ -1,4 +1,4 @@
-from app.modules.training.catalog import default_attempt_policy, get_exercise
+from app.modules.training.catalog import default_attempt_policy, get_exercise, list_exercises
 
 
 def test_training_catalog_hierarchy(client, auth_headers):
@@ -18,6 +18,9 @@ def test_training_catalog_hierarchy(client, auth_headers):
   )
   assert resonance["objective"]
   assert resonance["what_you_do"]
+  assert resonance["training_basis"]
+  assert resonance["measurement_plan"]
+  assert resonance["measurement_limits"]
   assert resonance["requires_microphone"] is True
   assert resonance["exercise_mode"] == "voice"
   assert resonance["focus_metrics"] == ["breath_control", "pitch_stability", "pitch_accuracy"]
@@ -28,7 +31,7 @@ def test_training_catalog_hierarchy(client, auth_headers):
   ] == ["Do", "Re", "Mi", "Fa", "Sol"]
 
   do_re_mi = next(item for item in categories if item["category_id"] == "do_re_mi")
-  assert do_re_mi["title"] == "Do Re Mi Fa Sol"
+  assert do_re_mi["title"] == "Do Re Mi Fa Sol La Ti Do"
   basic_ladder = next(
     item for item in do_re_mi["exercises"] if item["exercise_id"] == "do_re_mi_basic_ladder"
   )
@@ -43,6 +46,11 @@ def test_training_catalog_hierarchy(client, auth_headers):
     item for item in do_re_mi["exercises"] if item["exercise_id"] == "do_re_mi_interval_jumps"
   )
   assert interval_jumps["patterns_by_difficulty"]["advanced"]["pattern_type"] == "jump"
+  advanced_interval_labels = [
+    stage["target_label"]
+    for stage in interval_jumps["patterns_by_difficulty"]["advanced"]["stages"]
+  ]
+  assert {"La", "Ti", "Do′"}.issubset(advanced_interval_labels)
 
   breathing = next(item for item in categories if item["category_id"] == "breathing")
   support_ladder = next(
@@ -110,7 +118,7 @@ def test_training_session_stores_category_and_config(client, auth_headers):
   assert session_payload["exercise_spec"]["objective"]
   assert session_payload["exercise_spec"]["what_you_do"]
   assert session_payload["runtime_plan"]["pattern_type"] == "sustain"
-  assert "Do, Re, Mi, Fa, Sol" in session_payload["runtime_plan"]["teaching_note"]
+  assert "pentachord" in session_payload["runtime_plan"]["teaching_note"]
   assert session_payload["runtime_plan"]["total_duration_sec"] == 30
   assert session_payload["runtime_plan"]["stages"][0]["target_label"] == "Do"
 
@@ -154,13 +162,10 @@ def test_training_catalog_explains_scale_and_interval_patterns():
   interval_pattern = interval["patterns_by_difficulty"]["beginner"]
   placement_pattern = placement["patterns_by_difficulty"]["beginner"]
 
-  assert ladder_pattern["teaching_note"] == (
-    "This is the complete beginner scale: Do, Re, Mi, Fa, Sol."
-  )
+  assert "pentachord" in ladder_pattern["teaching_note"]
+  assert "La, Ti, and high Do" in ladder_pattern["teaching_note"]
   assert "intentionally skip" in interval_pattern["teaching_note"]
-  assert placement_pattern["teaching_note"] == (
-    "This beginner resonance exercise follows the complete sequence: Do, Re, Mi, Fa, Sol."
-  )
+  assert "pentachord foundation" in placement_pattern["teaching_note"]
   assert [stage["target_label"] for stage in placement_pattern["stages"]] == [
     "Do",
     "Re",
@@ -184,7 +189,7 @@ def test_beginner_warmup_uses_the_complete_five_note_ladder():
   ]
 
 
-def test_beginner_transition_and_intermediate_ladder_do_not_skip_fa_or_sol():
+def test_beginner_transition_and_intermediate_ladder_progress_to_full_octave():
   transition = get_exercise("note_transition_drill")
   ladder = get_exercise("do_re_mi_basic_ladder")
 
@@ -203,6 +208,9 @@ def test_beginner_transition_and_intermediate_ladder_do_not_skip_fa_or_sol():
     "Mi",
     "Fa",
     "Sol",
+    "La",
+    "Ti",
+    "Do′",
     "Mi",
   ]
 
@@ -211,7 +219,30 @@ def test_beginner_transition_and_intermediate_ladder_do_not_skip_fa_or_sol():
   assert [
     stage["target_label"]
     for stage in advanced_transition["patterns_by_difficulty"]["advanced"]["stages"]
-  ][:5] == ["Do", "Re", "Mi", "Fa", "Sol"]
+  ][:8] == ["Do", "Re", "Mi", "Fa", "Sol", "La", "Ti", "Do′"]
+
+  advanced_interval = get_exercise("do_re_mi_interval_jumps")
+  assert advanced_interval is not None
+  advanced_interval_labels = [
+    stage["target_label"]
+    for stage in advanced_interval["patterns_by_difficulty"]["advanced"]["stages"]
+  ]
+  assert {"La", "Ti", "Do′"}.issubset(advanced_interval_labels)
+
+
+def test_training_catalog_declares_measurement_limits_for_every_exercise():
+  exercises = []
+  for category in ["vocal_training", "do_re_mi", "breathing"]:
+    exercises.extend(list_exercises(category))
+
+  assert len(exercises) == 7
+  for exercise in exercises:
+    assert exercise["training_basis"]
+    assert exercise["measurement_plan"]
+    assert exercise["measurement_limits"]
+
+  breathing = next(item for item in exercises if item["exercise_id"] == "breath_support_ladder")
+  assert any("airflow" in item.lower() for item in breathing["measurement_limits"])
 
 
 def test_training_duration_policy_is_short_and_repeatable():

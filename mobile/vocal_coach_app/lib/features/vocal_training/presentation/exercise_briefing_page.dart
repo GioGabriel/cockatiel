@@ -154,6 +154,51 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
 
   String get _aiFocus => _catalogExercise?.aiFocus ?? widget.exercise.aiFocus;
 
+  List<String> get _trainingBasis {
+    final items =
+        _catalogExercise?.trainingBasis ?? widget.exercise.trainingBasis;
+    if (items.isNotEmpty) {
+      return items;
+    }
+    return _isBreathingExercise
+        ? const [
+            'Paced inhale and exhale phases rehearse repeatable breath timing.',
+          ]
+        : const [
+            'Short guided target notes isolate pitch, timing, and steadiness so you can repeat the skill safely.',
+          ];
+  }
+
+  List<String> get _measurementPlan {
+    final items =
+        _catalogExercise?.measurementPlan ?? widget.exercise.measurementPlan;
+    if (items.isNotEmpty) {
+      return items;
+    }
+    return _isBreathingExercise
+        ? const [
+            'Timer phase completion and interruptions; optional microphone loudness evidence.',
+          ]
+        : const [
+            'Pitch error in cents, target coverage, onset timing, and pitch stability.',
+          ];
+  }
+
+  List<String> get _measurementLimits {
+    final items = _catalogExercise?.measurementLimits ??
+        widget.exercise.measurementLimits;
+    if (items.isNotEmpty) {
+      return items;
+    }
+    return _isBreathingExercise
+        ? const [
+            'A phone microphone cannot directly measure airflow or respiratory movement.',
+          ]
+        : const [
+            'Microphone analysis is an acoustic proxy, not a clinical voice assessment.',
+          ];
+  }
+
   List<String> get _focusMetrics =>
       _catalogExercise?.focusMetrics.map(_displayMetricLabel).toList() ??
       widget.exercise.focusMetrics;
@@ -400,13 +445,64 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                     style: theme.textTheme.titleSmall),
                 const SizedBox(height: 6),
                 Text(
-                  'Pitch accuracy = matching the target note. Timing = singing at the right moment. '
-                  'Breath support = keeping airflow steady. We show detailed numbers after the session.',
+                  'Pitch accuracy compares your detected note with the target in cents. '
+                  'Timing measures when your voice enters the target window. '
+                  'Breath steadiness uses continuity and loudness as microphone proxies; '
+                  'the phone cannot directly measure airflow. Detailed evidence appears after the session.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
                 ),
+                if (_trainingBasis.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text('Why this drill exists',
+                      style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 6),
+                  for (final item in _trainingBasis)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Text(
+                        '• $item',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                ],
+                if (_measurementPlan.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text('What we measure', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 6),
+                  for (final item in _measurementPlan)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Text(
+                        '• $item',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                ],
+                if (_measurementLimits.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text('Important limits', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 6),
+                  for (final item in _measurementLimits)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Text(
+                        '• $item',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                ],
                 const SizedBox(height: 14),
                 Text('Your session flow', style: theme.textTheme.titleSmall),
                 const SizedBox(height: 6),

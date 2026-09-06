@@ -96,15 +96,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     'A#': 10,
     'B': 11,
   };
-  static const Map<String, int> _solfegeSemitoneOffsets = {
-    'Do': 0,
-    'Re': 2,
-    'Mi': 4,
-    'Fa': 5,
-    'Sol': 7,
-    'La': 9,
-    'Ti': 11,
-  };
   bool _isLoadingSessionMeta = true;
   bool _isSavingAttempt = false;
   bool _isFinalizing = false;
@@ -139,6 +130,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   double? _bestAttemptScore;
   late final LiveAudioAnalyzer _liveAudioAnalyzer;
   late final VocalMetricAccumulator _metricAccumulator;
+  late final BreathingAudioAccumulator _breathingAudioAccumulator;
   StreamSubscription<LiveAudioFrame>? _liveAudioSubscription;
   Timer? _tipsTimer;
   Timer? _loaderTimer;
@@ -188,6 +180,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       maxFrequencyHz: maxFreq,
     );
     _metricAccumulator = VocalMetricAccumulator();
+    _breathingAudioAccumulator = BreathingAudioAccumulator();
     WidgetsBinding.instance.addObserver(this);
     _startTipsRotation();
     _startLoaderPulse();
@@ -246,8 +239,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     });
   }
 
-  Future<void> _startMicrophoneAnalysis() async {
-    if (!_requiresMicrophone) {
+  Future<void> _startMicrophoneAnalysis({bool optional = false}) async {
+    if (!_requiresMicrophone && !optional) {
       setState(() {
         _isMicrophoneReady = false;
         _microphoneError = null;
@@ -284,7 +277,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       }
       setState(() {
         _isMicrophoneReady = true;
-        _microphoneStatus = 'Listening live';
+        _microphoneStatus =
+            optional ? 'Optional audio evidence active' : 'Listening live';
       });
     } catch (error) {
       if (!mounted) {
@@ -293,7 +287,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       setState(() {
         _isMicrophoneReady = false;
         _microphoneError = error.toString();
-        _microphoneStatus = 'Microphone permission required';
+        _microphoneStatus = optional
+            ? 'Timer works without optional microphone evidence'
+            : 'Microphone permission required';
       });
     }
   }
@@ -364,18 +360,31 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
 
     if (_isAttemptRunning && _attemptStopwatch.isRunning) {
       final activeStage = _activeRuntimeStage;
-      _metricAccumulator.addFrame(
-        VocalMetricFrame(
+      if (_isBreathingExercise) {
+        _breathingAudioAccumulator.addFrame(
           timestampMs: frame.timestampMs,
-          targetId: activeStage?.stageId ?? _activeTargetLabel(),
-          targetLabel: activeStage?.targetLabel ?? _activeTargetLabel(),
-          targetFrequencyHz: targetHz,
-          frequencyHz: frame.frequencyHz,
           loudnessDb: frame.loudnessDb,
-          voiced: frame.voiced,
-          confidence: frame.confidence,
-        ),
-      );
+        );
+      } else {
+        _metricAccumulator.addFrame(
+          VocalMetricFrame(
+            timestampMs: frame.timestampMs,
+            targetId: activeStage?.stageId ?? _activeTargetLabel(),
+            targetLabel: activeStage?.targetLabel ?? _activeTargetLabel(),
+            targetFrequencyHz: targetHz,
+            frequencyHz: frame.frequencyHz,
+            loudnessDb: frame.loudnessDb,
+            voiced: frame.voiced,
+            confidence: frame.confidence,
+            zeroCrossingRate: frame.zeroCrossingRate,
+            spectralCentroidHz: frame.spectralCentroidHz,
+            spectralRolloffHz: frame.spectralRolloffHz,
+            crestFactorDb: frame.crestFactorDb,
+            clippingRatio: frame.clippingRatio,
+            periodicity: frame.periodicity,
+          ),
+        );
+      }
     }
 
     setState(() {
@@ -433,6 +442,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
           'phase_count': stageCount,
           'completed_phase_count': completedPhaseCount,
           'interruption_count': _breathingInterruptionCount,
+          ..._breathingAudioAccumulator.build(
+            durationMs: _attemptStopwatch.elapsedMilliseconds,
+          ),
         },
       );
     }
@@ -528,6 +540,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       });
       if (_requiresMicrophone) {
         unawaited(_startMicrophoneAnalysis());
+      } else if (_isBreathingExercise) {
+        unawaited(_startMicrophoneAnalysis(optional: true));
       } else {
         setState(() {
           _microphoneStatus =
@@ -558,6 +572,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       });
       if (_requiresMicrophone) {
         unawaited(_startMicrophoneAnalysis());
+      } else if (_isBreathingExercise) {
+        unawaited(_startMicrophoneAnalysis(optional: true));
       } else {
         setState(() {
           _microphoneStatus =
@@ -645,6 +661,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       _solfegeIndex = 0;
       _breathingCompletedPhaseCount = 1;
       _breathingInterruptionCount = 0;
+      _breathingAudioAccumulator.reset();
       _pitchHistory.clear();
       _attemptStopwatch.reset();
       _attemptStopwatch.start();
@@ -1067,10 +1084,32 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     }
 
     final keyOffset = _keySemitoneOffsets[_selectedKey] ?? 0;
-    final scaleOffset = _solfegeSemitoneOffsets[label] ?? 0;
+    final scaleOffset = _solfegeSemitoneOffset(label) ?? 0;
     final tonicMidi = ((_selectedOctave + 1) * 12) + keyOffset;
     final targetMidi = tonicMidi + scaleOffset;
     return 440.0 * pow(2.0, (targetMidi - 69) / 12).toDouble();
+  }
+
+  int? _solfegeSemitoneOffset(String label) {
+    var normalized = label.trim().toLowerCase().replaceAll('′', "'");
+    final isHigh = normalized.contains('high') || normalized.endsWith("'");
+    normalized = normalized.replaceAll('high', '').replaceAll("'", '').trim();
+    const offsets = {
+      'do': 0,
+      're': 2,
+      'mi': 4,
+      'fa': 5,
+      'sol': 7,
+      'so': 7,
+      'la': 9,
+      'ti': 11,
+      'si': 11,
+    };
+    final offset = offsets[normalized];
+    if (offset == null) {
+      return null;
+    }
+    return offset + (isHigh ? 12 : 0);
   }
 
   double _pitchVisualizerMinHz() {

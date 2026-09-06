@@ -46,6 +46,8 @@ class MetricSegmentEvidence(BaseModel):
   mean_confidence: float = Field(default=0, ge=0, le=1)
   mean_abs_cents: float = Field(default=0, ge=0, le=1200)
   p95_abs_cents: float = Field(default=0, ge=0, le=1200)
+  onset_delay_ms: int | None = Field(default=None, ge=0)
+  settling_time_ms: int | None = Field(default=None, ge=0)
   score: float = Field(default=0, ge=0, le=100)
   status: Literal["measured", "partial", "not_measurable", "not_applicable"] = "measured"
   reason: str | None = Field(default=None, max_length=280)
@@ -77,6 +79,16 @@ class VoiceMetricEvidence(BaseModel):
   p95_abs_cents: float = Field(default=0, ge=0, le=1200)
   pitch_bias_cents: float = Field(default=0, ge=-1200, le=1200)
   pitch_stddev_cents: float = Field(default=0, ge=0, le=1200)
+  mean_onset_delay_ms: float = Field(default=0, ge=0)
+  p95_onset_delay_ms: float = Field(default=0, ge=0)
+  late_onset_count: int = Field(default=0, ge=0)
+  mean_settling_time_ms: float = Field(default=0, ge=0)
+  mean_zero_crossing_rate: float | None = Field(default=None, ge=0, le=1)
+  mean_spectral_centroid_hz: float | None = Field(default=None, ge=0, le=24000)
+  mean_spectral_rolloff_hz: float | None = Field(default=None, ge=0, le=24000)
+  mean_crest_factor_db: float | None = Field(default=None, ge=0, le=100)
+  clipping_ratio_pct: float | None = Field(default=None, ge=0, le=100)
+  mean_periodicity: float | None = Field(default=None, ge=0, le=1)
   longest_voiced_run_ms: int = Field(default=0, ge=0)
   voiced_run_count: int = Field(default=0, ge=0)
   interruption_count: int = Field(default=0, ge=0)
@@ -97,6 +109,13 @@ class BreathingMetricEvidence(BaseModel):
   phase_count: int = Field(default=0, ge=0)
   completed_phase_count: int = Field(default=0, ge=0)
   interruption_count: int = Field(default=0, ge=0)
+  audio_frame_count: int = Field(default=0, ge=0)
+  audible_frame_count: int = Field(default=0, ge=0)
+  audible_coverage_pct: float = Field(default=0, ge=0, le=100)
+  mean_loudness_db: float | None = Field(default=None, ge=-120, le=10)
+  loudness_stddev_db: float | None = Field(default=None, ge=0, le=120)
+  audio_observed_duration_ms: int = Field(default=0, ge=0)
+  audio_evidence_note: str | None = Field(default=None, max_length=240)
 
 
 class VoiceTrainingAttemptMetricSummaryIn(BaseModel):
@@ -341,6 +360,9 @@ class TrainingExerciseOut(BaseModel):
   exercise_mode: Literal["voice", "breathing_timer"]
   instructions: list[str]
   ai_focus: str
+  training_basis: list[str] = Field(default_factory=list)
+  measurement_plan: list[str] = Field(default_factory=list)
+  measurement_limits: list[str] = Field(default_factory=list)
   default_difficulty: TrainingDifficulty
   recommended_order: int = Field(ge=1)
   focus_metrics: list[str]

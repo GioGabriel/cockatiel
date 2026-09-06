@@ -153,6 +153,16 @@ def _normalized_recording_evidence(
       "p95_abs_cents": 0.0,
       "pitch_bias_cents": 0.0,
       "pitch_stddev_cents": 0.0,
+      "mean_onset_delay_ms": 0.0,
+      "p95_onset_delay_ms": 0.0,
+      "late_onset_count": 0,
+      "mean_settling_time_ms": 0.0,
+      "mean_zero_crossing_rate": None,
+      "mean_spectral_centroid_hz": None,
+      "mean_spectral_rolloff_hz": None,
+      "mean_crest_factor_db": None,
+      "clipping_ratio_pct": None,
+      "mean_periodicity": None,
       "longest_voiced_run_ms": 0,
       "voiced_run_count": 1 if sample_count else 0,
       "interruption_count": 0,
@@ -211,6 +221,28 @@ def _normalized_recording_evidence(
     "p95_abs_cents": min(max(_safe_float(raw.get("p95_abs_cents")), 0.0), 1200.0),
     "pitch_bias_cents": min(max(_safe_float(raw.get("pitch_bias_cents")), -1200.0), 1200.0),
     "pitch_stddev_cents": min(max(_safe_float(raw.get("pitch_stddev_cents")), 0.0), 1200.0),
+    "mean_onset_delay_ms": max(_safe_float(raw.get("mean_onset_delay_ms")), 0.0),
+    "p95_onset_delay_ms": max(_safe_float(raw.get("p95_onset_delay_ms")), 0.0),
+    "late_onset_count": _safe_int(raw.get("late_onset_count")),
+    "mean_settling_time_ms": max(_safe_float(raw.get("mean_settling_time_ms")), 0.0),
+    "mean_zero_crossing_rate": (
+      None if raw.get("mean_zero_crossing_rate") is None else min(max(_safe_float(raw.get("mean_zero_crossing_rate")), 0.0), 1.0)
+    ),
+    "mean_spectral_centroid_hz": (
+      None if raw.get("mean_spectral_centroid_hz") is None else min(max(_safe_float(raw.get("mean_spectral_centroid_hz")), 0.0), 24000.0)
+    ),
+    "mean_spectral_rolloff_hz": (
+      None if raw.get("mean_spectral_rolloff_hz") is None else min(max(_safe_float(raw.get("mean_spectral_rolloff_hz")), 0.0), 24000.0)
+    ),
+    "mean_crest_factor_db": (
+      None if raw.get("mean_crest_factor_db") is None else min(max(_safe_float(raw.get("mean_crest_factor_db")), 0.0), 100.0)
+    ),
+    "clipping_ratio_pct": (
+      None if raw.get("clipping_ratio_pct") is None else min(max(_safe_float(raw.get("clipping_ratio_pct")), 0.0), 100.0)
+    ),
+    "mean_periodicity": (
+      None if raw.get("mean_periodicity") is None else min(max(_safe_float(raw.get("mean_periodicity")), 0.0), 1.0)
+    ),
     "longest_voiced_run_ms": _safe_int(raw.get("longest_voiced_run_ms")),
     "voiced_run_count": _safe_int(raw.get("voiced_run_count")),
     "interruption_count": _safe_int(raw.get("interruption_count")),
@@ -240,6 +272,13 @@ def _normalized_breathing_evidence(
       "completed_phase_count": 0,
       "phase_coverage_pct": 0.0,
       "interruption_count": _safe_int(metric_summary.get("interruption_count")),
+      "audio_frame_count": 0,
+      "audible_frame_count": 0,
+      "audible_coverage_pct": 0.0,
+      "mean_loudness_db": None,
+      "loudness_stddev_db": None,
+      "audio_observed_duration_ms": 0,
+      "audio_evidence_note": None,
       "detailed_evidence": False,
     }, False
 
@@ -258,6 +297,15 @@ def _normalized_breathing_evidence(
     "completed_phase_count": completed_phase_count,
     "phase_coverage_pct": phase_coverage_pct,
     "interruption_count": _safe_int(raw.get("interruption_count")),
+    "audio_frame_count": _safe_int(raw.get("audio_frame_count")),
+    "audible_frame_count": _safe_int(raw.get("audible_frame_count")),
+    "audible_coverage_pct": min(max(_safe_float(raw.get("audible_coverage_pct")), 0.0), 100.0),
+    "mean_loudness_db": (
+      None if raw.get("mean_loudness_db") is None else min(max(_safe_float(raw.get("mean_loudness_db")), -120.0), 10.0)
+    ),
+    "loudness_stddev_db": max(_safe_float(raw.get("loudness_stddev_db")), 0.0),
+    "audio_observed_duration_ms": _safe_int(raw.get("audio_observed_duration_ms")),
+    "audio_evidence_note": raw.get("audio_evidence_note"),
     "detailed_evidence": True,
   }, True
 
@@ -330,6 +378,15 @@ def _metric_detail(
       detail["reason"] = (
         f"The recording completed {completed_phase_count} of {phase_count} guided phases."
       )
+    audio_frame_count = _safe_int(evidence.get("audio_frame_count"))
+    if audio_frame_count:
+      detail["reason"] += (
+        f" Optional microphone evidence heard audible sound in "
+        f"{_safe_float(evidence.get('audible_coverage_pct')):.0f}% of audio frames; "
+        "this does not measure airflow."
+      )
+    else:
+      detail["reason"] += " Timer evidence was available; optional microphone audio was not captured."
     if detail["status"] == "measured" and phase_coverage < 80:
       detail["status"] = "partial"
     return detail
@@ -375,8 +432,9 @@ def _metric_detail(
       detail["coverage_pct"] = target_coverage
     elif metric == "timing_accuracy":
       detail["reason"] = (
-        f"The voice overlapped {target_coverage:.0f}% of the target window, with "
-        f"{evidence['on_target_rate_pct']:.0f}% of confident target frames on target."
+        f"The voice covered {target_coverage:.0f}% of target-note frames; average target entry "
+        f"delay was {evidence['mean_onset_delay_ms']:.0f} ms and "
+        f"{evidence['late_onset_count']} target(s) started later than 250 ms."
       )
       detail["observed_frames"] = target_count
       detail["coverage_pct"] = target_coverage
@@ -408,6 +466,26 @@ def _metric_detail(
       )
       detail["observed_frames"] = target_count
       detail["coverage_pct"] = target_coverage
+    elif metric == "breath_control":
+      if voiced_count <= 0:
+        detail.update({
+          "status": "not_measurable",
+          "reason": (
+            "No confident voiced frames were captured, so breath steadiness could not be estimated "
+            "from the microphone signal. This 0/100 is missing evidence, not a diagnosis."
+          ),
+          "observed_frames": 0,
+          "coverage_pct": 0.0,
+        })
+        return detail
+      detail["reason"] = (
+        f"Estimated from {voiced_coverage:.0f}% voiced coverage, "
+        f"{evidence['voiced_run_count']} voiced run(s), and "
+        f"{_safe_float(evidence.get('loudness_stddev_db')):.1f} dB loudness variation. "
+        "This is a continuity/loudness proxy, not direct airflow measurement."
+      )
+      detail["observed_frames"] = voiced_count
+      detail["coverage_pct"] = voiced_coverage
 
     coverage_for_metric = (
       target_coverage

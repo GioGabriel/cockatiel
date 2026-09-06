@@ -140,6 +140,9 @@ class TrainingExercise {
     required this.exerciseMode,
     required this.instructions,
     required this.aiFocus,
+    required this.trainingBasis,
+    required this.measurementPlan,
+    required this.measurementLimits,
     required this.defaultDifficulty,
     required this.recommendedOrder,
     required this.focusMetrics,
@@ -158,6 +161,9 @@ class TrainingExercise {
   final String exerciseMode;
   final List<String> instructions;
   final String aiFocus;
+  final List<String> trainingBasis;
+  final List<String> measurementPlan;
+  final List<String> measurementLimits;
   final String defaultDifficulty;
   final int recommendedOrder;
   final List<String> focusMetrics;
@@ -208,6 +214,16 @@ class TrainingExercise {
           .toList(),
       aiFocus: (json['ai_focus'] as String?) ??
           'Pitch accuracy, rhythm lock, and vocal expression',
+      trainingBasis: (json['training_basis'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
+      measurementPlan: (json['measurement_plan'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
+      measurementLimits:
+          (json['measurement_limits'] as List<dynamic>? ?? const [])
+              .whereType<String>()
+              .toList(growable: false),
       defaultDifficulty: (json['default_difficulty'] as String?) ??
           (json['difficulty'] as String?) ??
           'beginner',

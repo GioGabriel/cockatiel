@@ -88,6 +88,7 @@ def generate_feedback(
       strengths=strengths,
       improvements=improvements,
       score_breakdown=score_breakdown,
+      exercise_context=session_context,
     )
     prompt_version = resolved_prompt_version
     prompt_metric_suffix = _metric_name_for_prompt_version(prompt_version)

@@ -104,3 +104,28 @@ def test_scoring_uses_only_valid_focus_metrics_when_catalog_is_incomplete():
     "breath_control",
   ]
   assert result["strongest_metric"] == "pitch_accuracy"
+
+
+def test_zero_breath_proxy_explains_missing_audio_instead_of_blame():
+  result = score_training_attempt(
+    exercise_id="resonance_placement",
+    metric_summary={
+      "sample_count": 20,
+      "pitch_accuracy": 0,
+      "timing_accuracy": 0,
+      "breath_control": 0,
+      "pitch_stability": 0,
+      "vibrato_consistency": 70,
+      "note_transition_smoothness": 0,
+      "evidence": {
+        "frame_count": 20,
+        "voiced_frame_count": 0,
+        "target_frame_count": 0,
+        "no_target_frame_count": 20,
+      },
+    },
+  )
+
+  detail = result["score_breakdown"]["metric_details"]["breath_control"]
+  assert detail["status"] == "not_measurable"
+  assert "missing evidence" in detail["reason"]

@@ -25,6 +25,11 @@ def test_feedback_prompt_includes_evidence_for_user_facing_coaching():
       },
       "segments": [],
     },
+    exercise_context={
+      "training_basis": ["Gentle pitch-centering practice"],
+      "measurement_plan": ["Pitch error in cents and onset delay"],
+      "measurement_limits": ["Phone microphone cannot measure airflow"],
+    },
   )
 
   assert "7/100" in prompt
@@ -33,3 +38,6 @@ def test_feedback_prompt_includes_evidence_for_user_facing_coaching():
   assert "180" in prompt
   assert "not_measurable" in prompt
   assert "No target-note comparison" in prompt
+  assert "Gentle pitch-centering practice" in prompt
+  assert "onset delay" in prompt
+  assert "cannot measure airflow" in prompt

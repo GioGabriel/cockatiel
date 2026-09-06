@@ -22,11 +22,115 @@ _DEFAULT_METRIC_WEIGHTS = {
 }
 
 _PATTERN_TEACHING_NOTES = {
-  "ladder": "This exercise moves through the five-note ladder: Do, Re, Mi, Fa, Sol. Any notes after Sol are a controlled return or variation.",
-  "sustain": "This resonance exercise follows the five-note sequence: Do, Re, Mi, Fa, Sol. Any notes after Sol are a controlled return.",
+  "ladder": "A five-note pentachord (Do, Re, Mi, Fa, Sol) is the beginner foundation; higher levels add La, Ti, and high Do for the full octave.",
+  "sustain": "A five-note pentachord (Do, Re, Mi, Fa, Sol) is the beginner foundation; higher levels add La, Ti, and high Do for the full octave.",
   "transition": "This is a connection exercise: repeated or nearby notes build smooth movement between pitches.",
   "jump": "This is an interval exercise: the notes intentionally skip steps so you can practice accurate leaps.",
   "breathing": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
+}
+
+_FULL_SCALE = ("Do", "Re", "Mi", "Fa", "Sol", "La", "Ti", "Do′")
+
+_TRAINING_EVIDENCE_METADATA: dict[str, dict[str, list[str]]] = {
+  "resonance_placement": {
+    "training_basis": [
+      "Humming and other semi-occluded vocal-tract exercises are used as gentle warm-up and coordination tasks.",
+      "Sustained vowels make pitch steadiness and repeatable tone easier to observe.",
+    ],
+    "measurement_plan": [
+      "Fundamental frequency (pitch) error in cents against each target note.",
+      "Voiced coverage, onset delay, pitch settling time, and pitch variation per target.",
+      "Relative loudness consistency and additional microphone acoustic descriptors when available.",
+    ],
+    "measurement_limits": [
+      "A phone microphone cannot directly measure vocal-tract resonance, throat tension, or airflow.",
+      "Resonance and breath-control feedback is an acoustic proxy, not a clinical voice assessment.",
+    ],
+  },
+  "warmup_pitch": {
+    "training_basis": [
+      "Gentle, progressively wider pitch patterns are a practical way to prepare pitch coordination without forcing volume.",
+      "Short repeated targets provide immediate external feedback while keeping practice blocks repeatable.",
+    ],
+    "measurement_plan": [
+      "Pitch error in cents, target-note coverage, and confident voiced-frame coverage.",
+      "Onset delay, pitch settling time, pitch variability, and loudness consistency per note.",
+    ],
+    "measurement_limits": [
+      "This does not verify vocal-fold health, range safety, or absence of strain.",
+      "The pitch detector can be less reliable with noise, breathy tone, very low volume, or overlapping sound.",
+    ],
+  },
+  "note_transition_drill": {
+    "training_basis": [
+      "Adjacent-note legato work isolates the coordination needed to move between pitches without an uncontrolled slide.",
+      "Progressing from steps to a wider octave exposes both small transitions and larger register changes.",
+    ],
+    "measurement_plan": [
+      "Target-to-target interval, onset delay, pitch settling time, and cents error after each transition.",
+      "Completed versus failed transitions, voiced coverage, and pitch stability for each target window.",
+    ],
+    "measurement_limits": [
+      "The app estimates acoustic pitch movement; it does not see laryngeal motion or diagnose vocal tension.",
+      "Transition scores need calibrated recordings before they should be interpreted as a proficiency grade.",
+    ],
+  },
+  "do_re_mi_basic_ladder": {
+    "training_basis": [
+      "Movable-do solfège links scale-degree hearing to the voice; Do–Sol is a useful beginner pentachord before the full octave.",
+      "Intermediate and advanced levels add La, Ti, and high Do so the progression does not stop at Sol.",
+    ],
+    "measurement_plan": [
+      "Per-note cents error, on-target rate, onset timing, settling time, and pitch stability.",
+      "Coverage and confidence are reported so a missing or noisy recording cannot look like a perfect score.",
+    ],
+    "measurement_limits": [
+      "The drill measures matching to the selected tonic and target notes; it does not prove aural skill outside this pattern.",
+      "A numeric score is an engineering measure and still needs human-rated calibration for proficiency claims.",
+    ],
+  },
+  "do_re_mi_interval_jumps": {
+    "training_basis": [
+      "Non-adjacent scale-degree jumps train anticipation and direct landing rather than relying only on stepwise sliding.",
+      "The advanced pattern samples La, Ti, and high Do so interval work covers the full octave.",
+    ],
+    "measurement_plan": [
+      "Interval size, landing error in cents, onset delay, settling time, and post-landing stability.",
+      "Transition completion rate and recovery time after each guided jump.",
+    ],
+    "measurement_limits": [
+      "The detector cannot determine whether a singer internally heard the note before singing it.",
+      "Large jumps can exceed the configured vocal range; practice range must remain comfortable for the singer.",
+    ],
+  },
+  "breath_support_ladder": {
+    "training_basis": [
+      "Paced inhale, settle, and exhale phases build repeatable breath timing and body-awareness habits.",
+      "The routine is a coordination exercise, not a claim that one breathing pattern fits every singer.",
+    ],
+    "measurement_plan": [
+      "Phase completion, interruptions, elapsed duration, and consistency of following the guided sequence.",
+      "Optional microphone audio proxy: audible-frame coverage, loudness trend, and stream quality.",
+    ],
+    "measurement_limits": [
+      "A phone microphone cannot measure airflow, lung volume, rib movement, subglottal pressure, or true breath support.",
+      "Audio evidence is optional and cannot replace respiratory or airflow sensors.",
+    ],
+  },
+  "long_phrase_breathing": {
+    "training_basis": [
+      "Longer paced exhale phases rehearse planning and endurance for phrase-length timing.",
+      "Professional breathing is variable; the routine is a repeatable practice target, not a universal physiological prescription.",
+    ],
+    "measurement_plan": [
+      "Phase completion, interruption count, time spent in each guided phase, and cycle consistency.",
+      "Optional microphone audio proxy: audible-frame coverage, loudness trend, and stream quality.",
+    ],
+    "measurement_limits": [
+      "A phone microphone cannot prove airflow pacing or respiratory kinematics.",
+      "Stop if dizzy, uncomfortable, or strained; this app is not medical or respiratory therapy.",
+    ],
+  },
 }
 
 
@@ -87,13 +191,13 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
           "exercise_id": "resonance_placement",
           "name": "Resonance Placement",
           "description": "Place tone forward while keeping neck and jaw relaxed.",
-          "objective": "Build forward, efficient resonance without throat tension.",
-          "what_you_do": "Hum and sustain light notes while keeping the tone bright, relaxed, and forward.",
+          "objective": "Practice a stable, forward-feeling tone without adding throat tension.",
+          "what_you_do": "Hum and sustain light notes while keeping the tone bright, relaxed, and easy to observe.",
           "requires_microphone": True,
           "exercise_mode": "voice",
           "instructions": [
             "Stand tall and relaxed.",
-            "Sustain open vowels with steady airflow.",
+            "Sustain open vowels with an even, comfortable tone.",
             "Keep tone bright without throat squeeze.",
           ],
           "ai_focus": "Tone consistency, projection efficiency, and resonance stability",
@@ -117,7 +221,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
           },
           "coach_cues": {
             "ready": "Keep the tone forward and the throat easy.",
-            "too_soft": "Add supported airflow, not throat push.",
+            "too_soft": "Use a clear, comfortable sound without pushing the throat.",
             "on_pitch": "Bright and steady - keep the buzz forward.",
             "low_pitch": "Lift resonance slightly without adding tension.",
             "high_pitch": "Release jaw pressure and let the tone settle.",
@@ -127,7 +231,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
               "placement_foundation",
               pattern_type="sustain",
               summary="Five relaxed tones that build forward placement across the complete beginner sequence.",
-              teaching_note="This beginner resonance exercise follows the complete sequence: Do, Re, Mi, Fa, Sol.",
+              teaching_note="This beginner resonance exercise uses a five-note pentachord foundation: Do, Re, Mi, Fa, Sol.",
               stages=[
                 _stage(
                   "forward_hum",
@@ -358,7 +462,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "intermediate": _pattern(
               "warmup_arc",
               pattern_type="ladder",
-              summary="Ascend and descend with clean pitch entry and stable airflow.",
+              summary="Ascend and descend with clean pitch entry and stable tone.",
               stages=[
                 _stage(
                   "warmup_arc_do",
@@ -466,7 +570,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
           "instructions": [
             "Connect notes legato.",
             "Minimize sudden pitch jumps.",
-            "Keep airflow even during transitions.",
+            "Keep the phrase connection even during transitions.",
           ],
           "ai_focus": "Transition smoothness, settling speed, and stability",
           "default_difficulty": "intermediate",
@@ -489,7 +593,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
           },
           "coach_cues": {
             "ready": "Connect each note smoothly without rushing.",
-            "too_soft": "Keep airflow active through the change.",
+            "too_soft": "Keep the sound connected through the change.",
             "on_pitch": "Smooth landing - keep the line connected.",
             "low_pitch": "Prepare the next note earlier and guide upward.",
             "high_pitch": "Release the jump and settle through the breath.",
@@ -525,7 +629,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   "transition_fa",
                   title="Fa Reach",
                   solfege="Fa",
-                  instruction="Keep airflow even as you continue upward.",
+                  instruction="Keep the sound connected as you continue upward.",
                   beats=1,
                 ),
                 _stage(
@@ -567,7 +671,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   "transition_arc_fa",
                   title="Fa Reach",
                   solfege="Fa",
-                  instruction="Keep airflow even through the reach.",
+                  instruction="Keep the sound connected through the reach.",
                   beats=1,
                 ),
                 _stage(
@@ -617,7 +721,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
                   "transition_skip_fa",
                   title="Fa Reach",
                   solfege="Fa",
-                  instruction="Keep airflow even through the reach.",
+                  instruction="Keep the sound connected through the reach.",
                   beats=1,
                 ),
                 _stage(
@@ -693,7 +797,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
           },
           "coach_cues": {
             "ready": "Track each note before you sing it.",
-            "too_soft": "Use enough airflow to make the pitch register clearly.",
+            "too_soft": "Use a clear, comfortable sound so the pitch can be detected reliably.",
             "on_pitch": "Nice lock - hold it steady.",
             "low_pitch": "Aim a touch higher into the note.",
             "high_pitch": "Relax the attack and settle into center.",
@@ -703,7 +807,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
               "basic_ladder",
               pattern_type="ladder",
               summary="Straight scale ladder to reinforce note recognition.",
-              teaching_note="This is the complete beginner scale: Do, Re, Mi, Fa, Sol.",
+              teaching_note="This is the beginner pentachord foundation: Do, Re, Mi, Fa, Sol. Higher levels add La, Ti, and high Do.",
               stages=[
                 _stage("ladder_do", title="Do", solfege="Do", instruction="Lock the tonic cleanly.", beats=1),
                 _stage("ladder_re", title="Re", solfege="Re", instruction="Move up without sliding.", beats=1),
@@ -804,13 +908,16 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "advanced": _pattern(
               "interval_jumps_full",
               pattern_type="jump",
-              summary="Wider interval jumps that test anticipation and pitch control.",
+              summary="Full-octave interval jumps that test anticipation and pitch control.",
               stages=[
                 _stage("jump_full_do", title="Do", solfege="Do", instruction="Set a stable tonic.", beats=1),
                 _stage("jump_full_sol", title="Sol", solfege="Sol", instruction="Land directly on the top note.", beats=1),
                 _stage("jump_full_mi", title="Mi", solfege="Mi", instruction="Recover with the same clarity.", beats=1),
+                _stage("jump_full_la", title="La", solfege="La", instruction="Prepare the wider leap before you sing.", beats=1),
                 _stage("jump_full_ti", title="Ti", solfege="Ti", instruction="Prepare mentally before the leap.", beats=1),
                 _stage("jump_full_fa", title="Fa", solfege="Fa", instruction="Return without dropping support.", beats=1),
+                _stage("jump_full_high_do", title="High Do", solfege="Do′", instruction="Reach the octave gently and keep the landing stable.", beats=1),
+                _stage("jump_full_sol_return", title="Sol", solfege="Sol", instruction="Recover from the octave without sliding.", beats=1),
                 _stage("jump_full_do_finish", title="Do", solfege="Do", instruction="Finish centered and stable.", beats=1),
               ],
             ),
@@ -821,14 +928,14 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
     {
       "category_id": "breathing",
       "title": "Breathing",
-      "subtitle": "Support, airflow control, and phrase endurance",
+      "subtitle": "Breath pacing, body awareness, and phrase endurance",
       "description": "Develop breath management for sustained and stable singing.",
       "exercises": [
         {
           "exercise_id": "breath_support_ladder",
           "name": "Support Ladder",
-          "description": "Follow guided inhale and exhale counts to build steady breath support.",
-          "objective": "Develop steady breath support by following longer inhale and exhale timing cycles.",
+          "description": "Follow guided inhale and exhale counts to practice repeatable breath pacing.",
+          "objective": "Practice repeatable breath timing through gradually longer inhale and exhale cycles.",
           "what_you_do": "Follow the timer to inhale, hold briefly if prompted, and exhale slowly through each guided cycle.",
           "requires_microphone": False,
           "exercise_mode": "breathing_timer",
@@ -837,7 +944,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "Exhale at steady pressure for the full count.",
             "Keep shoulders relaxed while the timer guides you.",
           ],
-          "ai_focus": "Breath pacing, support consistency, and routine completion quality",
+          "ai_focus": "Breath pacing, routine consistency, and phase completion quality",
           "default_difficulty": "beginner",
           "recommended_order": 1,
           "focus_metrics": [
@@ -860,7 +967,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
           },
           "coach_cues": {
             "ready": "Set the ribs low and get ready to follow the next breath phase.",
-            "too_soft": "Keep the airflow active all the way through the release.",
+            "too_soft": "Keep the exhale even all the way through the release.",
             "on_pitch": "Nice pacing - keep the inhale quiet and the exhale even.",
             "low_pitch": "Take a fuller, calmer inhale before the next release.",
             "high_pitch": "Slow the air down and soften the pressure on the exhale.",
@@ -905,7 +1012,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
           "exercise_id": "long_phrase_breathing",
           "name": "Long Phrase Breathing",
           "description": "Practice longer inhale-to-exhale cycles that mimic the pacing needed for long singing phrases.",
-          "objective": "Improve airflow pacing and phrase-end control through guided long-breath timing.",
+          "objective": "Improve phrase planning and exhale pacing through guided long-breath timing.",
           "what_you_do": "Use the timer to inhale, then stretch a calm, even exhale for longer phrase-style counts.",
           "requires_microphone": False,
           "exercise_mode": "breathing_timer",
@@ -914,7 +1021,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "Pace the exhale instead of pushing air out early.",
             "Stay relaxed until the end of the count.",
           ],
-          "ai_focus": "Airflow pacing, endurance, and guided phrase support",
+          "ai_focus": "Exhale pacing, endurance, and guided phrase completion",
           "default_difficulty": "intermediate",
           "recommended_order": 2,
           "focus_metrics": [
@@ -938,8 +1045,8 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
           "coach_cues": {
             "ready": "Plan the breath now and stay calm through the longer release.",
             "too_soft": "Keep the support connected as the phrase keeps going.",
-            "on_pitch": "That pacing is steady - keep the airflow smooth to the end.",
-            "low_pitch": "Refill more fully so the next long release stays supported.",
+            "on_pitch": "That pacing is steady - keep the exhale smooth to the end.",
+            "low_pitch": "Reset calmly so the next long release stays comfortable.",
             "high_pitch": "Back off the pressure and spread the air across the full phrase.",
           },
           "patterns_by_difficulty": {
@@ -960,7 +1067,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
               stages=[
                 _stage("phrase_medium_inhale", title="Inhale", solfege="Inhale", instruction="Set the breath low and calm before the long exhale.", beats=1),
                 _stage("phrase_medium_release", title="Release", solfege="Release", instruction="Begin the exhale smoothly without dumping air.", beats=1),
-                _stage("phrase_medium_extend", title="Extend", solfege="Extend", instruction="Keep the airflow even as the count gets longer.", beats=2),
+                _stage("phrase_medium_extend", title="Extend", solfege="Extend", instruction="Keep the exhale even as the count gets longer.", beats=2),
                 _stage("phrase_medium_finish", title="Finish", solfege="Finish", instruction="Stay supported right to the end.", beats=2),
               ],
             ),
@@ -985,24 +1092,104 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
 }
 
 
+def _full_scale_stage(label: str, index: int, pattern_id: str) -> dict[str, Any]:
+  stage_id = f"{pattern_id}_full_{index + 1}"
+  title = "High Do" if label == "Do′" else label
+  instruction = (
+    "Reach the octave gently and keep the landing stable."
+    if label == "Do′"
+    else f"Prepare the {label} before moving to the next scale degree."
+  )
+  return _stage(
+    stage_id,
+    title=title,
+    solfege=label,
+    instruction=instruction,
+    beats=1,
+  )
+
+
+def _decorate_pattern(
+  exercise_id: str,
+  difficulty: str,
+  pattern: dict[str, Any],
+) -> dict[str, Any]:
+  decorated = deepcopy(pattern)
+  pattern_type = str(decorated.get("pattern_type") or "")
+  stages = list(decorated.get("stages") or [])
+  labels = [str(stage.get("target_label") or stage.get("solfege") or "") for stage in stages]
+
+  if difficulty != "beginner" and pattern_type in {"ladder", "sustain", "transition"}:
+    prefix_length = 5 if labels[:5] == list(_FULL_SCALE[:5]) else 0
+    if prefix_length:
+      missing_scale_stages = [
+        _full_scale_stage(label, index, str(decorated.get("pattern_id") or exercise_id))
+        for index, label in enumerate(_FULL_SCALE[prefix_length:], start=prefix_length)
+        if label not in labels
+      ]
+      decorated["stages"] = stages[:prefix_length] + missing_scale_stages + stages[prefix_length:]
+      stages = list(decorated["stages"])
+      labels = [str(stage.get("target_label") or stage.get("solfege") or "") for stage in stages]
+
+  if pattern_type in {"ladder", "sustain", "transition"}:
+    if difficulty == "beginner":
+      decorated["teaching_note"] = (
+        "This beginner pattern uses the five-note pentachord foundation: "
+        "Do, Re, Mi, Fa, Sol. Higher levels add La, Ti, and high Do."
+      )
+    else:
+      decorated["teaching_note"] = (
+        "This pattern starts with the five-note pentachord foundation and expands "
+        "through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do."
+      )
+  elif pattern_type == "jump" and difficulty == "advanced":
+    decorated["teaching_note"] = (
+      "This interval exercise intentionally skips scale steps; the advanced range "
+      "includes La, Ti, and high Do so the full octave is tested."
+    )
+
+  return decorated
+
+
+def _decorated_catalog() -> dict[str, Any]:
+  catalog = deepcopy(_VOCAL_COACH_CATALOG)
+  for category in catalog["categories"]:
+    if category["category_id"] == "do_re_mi":
+      category["title"] = "Do Re Mi Fa Sol La Ti Do"
+    for exercise in category["exercises"]:
+      metadata = _TRAINING_EVIDENCE_METADATA.get(exercise["exercise_id"], {})
+      exercise.update(
+        {
+          "training_basis": list(metadata.get("training_basis") or []),
+          "measurement_plan": list(metadata.get("measurement_plan") or []),
+          "measurement_limits": list(metadata.get("measurement_limits") or []),
+        }
+      )
+      exercise["patterns_by_difficulty"] = {
+        difficulty: _decorate_pattern(exercise["exercise_id"], difficulty, pattern)
+        for difficulty, pattern in exercise["patterns_by_difficulty"].items()
+      }
+  return catalog
+
+
 def get_catalog() -> dict[str, Any]:
-  return deepcopy(_VOCAL_COACH_CATALOG)
+  return _decorated_catalog()
 
 
 def list_categories() -> list[dict[str, Any]]:
-  return deepcopy(_VOCAL_COACH_CATALOG["categories"])
+  return get_catalog()["categories"]
 
 
 def get_category(category_id: str) -> dict[str, Any] | None:
   normalized = category_id.strip().lower()
-  for category in _VOCAL_COACH_CATALOG["categories"]:
+  for category in get_catalog()["categories"]:
     if category["category_id"] == normalized:
       return deepcopy(category)
   return None
 
 
 def list_exercises(category_id: str | None = None) -> list[dict[str, Any]]:
-  categories = _VOCAL_COACH_CATALOG["categories"]
+  categories = get_catalog()["categories"]
   if category_id:
     normalized = category_id.strip().lower()
     categories = [item for item in categories if item["category_id"] == normalized]

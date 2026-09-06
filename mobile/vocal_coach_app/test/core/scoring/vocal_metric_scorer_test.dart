@@ -125,6 +125,45 @@ void main() {
     expect(summary.pitchAccuracy, lessThan(80));
   });
 
+  test('timing measures target entry delay independently from pitch accuracy',
+      () {
+    final accumulator = VocalMetricAccumulator();
+    for (var index = 0; index < 10; index++) {
+      accumulator.addFrame(
+        VocalMetricFrame(
+          timestampMs: index * 32,
+          targetId: 'target-a',
+          targetFrequencyHz: 440,
+          frequencyHz: null,
+          loudnessDb: -50,
+          voiced: false,
+          confidence: 0.95,
+        ),
+      );
+    }
+    for (var index = 10; index < 40; index++) {
+      accumulator.addFrame(
+        VocalMetricFrame(
+          timestampMs: index * 32,
+          targetId: 'target-a',
+          targetFrequencyHz: 440,
+          frequencyHz: 440,
+          loudnessDb: -24,
+          voiced: true,
+          confidence: 0.95,
+        ),
+      );
+    }
+
+    final summary = accumulator.build();
+
+    expect(summary.pitchAccuracy, greaterThan(70));
+    expect(summary.timingAccuracy, lessThan(90));
+    expect(summary.evidence['mean_onset_delay_ms'], greaterThan(250));
+    expect(summary.evidence['late_onset_count'], 1);
+    expect(summary.evidence['segments'].single['onset_delay_ms'], 320);
+  });
+
   test('scores a staged target change using settling evidence', () {
     final accumulator = VocalMetricAccumulator();
     _addFrames(accumulator, count: 30, frequencyHz: 440);

@@ -9,6 +9,7 @@ import '../../../core/state/app_state.dart';
 import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/training_models.dart';
 import '../../../shared/utils/vocal_utils.dart';
+import '../../../shared/widgets/scrollable_action_layout.dart';
 import '../domain/vocal_coach_catalog.dart';
 import 'training_session_page.dart';
 
@@ -313,275 +314,254 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(_exerciseName)),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header Card
-              Expanded(
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
+      body: ScrollableActionLayout(
+        content: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.categoryTitle.toUpperCase(),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Hero(
+                  tag: 'exercise_title_${widget.exercise.id}',
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Text(
+                      _exerciseName,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _exerciseObjective,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                if (_selectedPattern != null) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color:
+                            theme.colorScheme.primary.withValues(alpha: 0.35),
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.categoryTitle.toUpperCase(),
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            letterSpacing: 1.2,
+                          'Why these notes?',
+                          style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Hero(
-                          tag: 'exercise_title_${widget.exercise.id}',
-                          child: Material(
-                            color: Colors.transparent,
-                            child: Text(
-                              _exerciseName,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 4),
                         Text(
-                          _exerciseObjective,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        if (_selectedPattern != null) ...[
-                          const SizedBox(height: 14),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer
-                                  .withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: theme.colorScheme.primary
-                                    .withValues(alpha: 0.35),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Why these notes?',
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _selectedPattern!.teachingNote,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    height: 1.35,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                        Text('What you\'ll do',
-                            style: theme.textTheme.titleSmall),
-                        const SizedBox(height: 6),
-                        Text(
-                          _whatYouDo,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Text('What the feedback means',
-                            style: theme.textTheme.titleSmall),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Pitch accuracy = matching the target note. Timing = singing at the right moment. '
-                          'Breath support = keeping airflow steady. We show detailed numbers after the session.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Text('Your session flow',
-                            style: theme.textTheme.titleSmall),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Prepare → understand the goal → practice with live guidance → review your result → see what to practice next.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
-                        ),
-                        if (_focusMetrics.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final metric in _focusMetrics)
-                                Chip(
-                                  label: Text(metric),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                            ],
-                          ),
-                        ],
-                        if (_instructions.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          Text('Step by step',
-                              style: theme.textTheme.titleSmall),
-                          const SizedBox(height: 6),
-                          for (var index = 0;
-                              index < _instructions.length;
-                              index++)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                '${index + 1}. ${_instructions[index]}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                        ],
-                        const SizedBox(height: 24),
-                        Text('Difficulty', style: theme.textTheme.titleSmall),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final option in const [
-                              ('beginner', 'Beginner', '20s'),
-                              ('intermediate', 'Intermediate', '30s'),
-                              ('advanced', 'Advanced', '45s'),
-                            ])
-                              ChoiceChip(
-                                label: Text('${option.$2} · ${option.$3}'),
-                                selected: _selectedDifficulty == option.$1,
-                                onSelected: _isStarting
-                                    ? null
-                                    : (selected) {
-                                        if (selected) {
-                                          setState(() =>
-                                              _selectedDifficulty = option.$1);
-                                        }
-                                      },
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Practice blocks are intentionally short so you can repeat them without vocal fatigue. Karaoke songs remain full length.',
+                          _selectedPattern!.teachingNote,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             height: 1.35,
                           ),
                         ),
-                        if (_requiresMicrophone) ...[
-                          const SizedBox(height: 24),
-                          Text('Vocal Range',
-                              style: theme.textTheme.titleSmall),
-                          const SizedBox(height: 8),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: _vocalRanges.keys.map((range) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: ChoiceChip(
-                                    label: Text(range),
-                                    selected: _selectedRange == range,
-                                    onSelected: _isStarting
-                                        ? null
-                                        : (selected) {
-                                            if (selected) {
-                                              setState(() {
-                                                _selectedRange = range;
-                                                _selectedKey =
-                                                    _vocalRanges[range]!['key']
-                                                        as String;
-                                                _selectedOctave = _vocalRanges[
-                                                    range]!['octave'] as int;
-                                              });
-                                            }
-                                          },
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ],
-                        const Spacer(),
-                        if (widget.recommendation != null)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer
-                                  .withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.auto_awesome,
-                                    size: 20, color: theme.colorScheme.primary),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    widget.recommendation!.reason,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color:
-                                          theme.colorScheme.onPrimaryContainer,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                       ],
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(color: theme.colorScheme.error),
-                    textAlign: TextAlign.center,
+                ],
+                const SizedBox(height: 16),
+                Text('What you\'ll do', style: theme.textTheme.titleSmall),
+                const SizedBox(height: 6),
+                Text(
+                  _whatYouDo,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.4,
                   ),
                 ),
-
-              // Start button
-              FilledButton.icon(
-                onPressed: _isStarting ? null : _beginSession,
-                icon: _isStarting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.play_arrow_rounded),
-                label: Text(
-                  _isStarting ? 'Starting...' : 'Start Session',
-                  style: const TextStyle(fontSize: 16),
+                const SizedBox(height: 14),
+                Text('What the feedback means',
+                    style: theme.textTheme.titleSmall),
+                const SizedBox(height: 6),
+                Text(
+                  'Pitch accuracy = matching the target note. Timing = singing at the right moment. '
+                  'Breath support = keeping airflow steady. We show detailed numbers after the session.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
                 ),
+                const SizedBox(height: 14),
+                Text('Your session flow', style: theme.textTheme.titleSmall),
+                const SizedBox(height: 6),
+                Text(
+                  'Prepare → understand the goal → practice with live guidance → review your result → see what to practice next.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
+                if (_focusMetrics.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final metric in _focusMetrics)
+                        Chip(
+                          label: Text(metric),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                ],
+                if (_instructions.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text('Step by step', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 6),
+                  for (var index = 0; index < _instructions.length; index++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '${index + 1}. ${_instructions[index]}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
+                const SizedBox(height: 24),
+                Text('Difficulty', style: theme.textTheme.titleSmall),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final option in const [
+                      ('beginner', 'Beginner', '20s'),
+                      ('intermediate', 'Intermediate', '30s'),
+                      ('advanced', 'Advanced', '45s'),
+                    ])
+                      ChoiceChip(
+                        label: Text('${option.$2} · ${option.$3}'),
+                        selected: _selectedDifficulty == option.$1,
+                        onSelected: _isStarting
+                            ? null
+                            : (selected) {
+                                if (selected) {
+                                  setState(
+                                      () => _selectedDifficulty = option.$1);
+                                }
+                              },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Practice blocks are intentionally short so you can repeat them without vocal fatigue. Karaoke songs remain full length.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+                if (_requiresMicrophone) ...[
+                  const SizedBox(height: 24),
+                  Text('Vocal Range', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _vocalRanges.keys.map((range) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text(range),
+                            selected: _selectedRange == range,
+                            onSelected: _isStarting
+                                ? null
+                                : (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _selectedRange = range;
+                                        _selectedKey =
+                                            _vocalRanges[range]!['key']
+                                                as String;
+                                        _selectedOctave =
+                                            _vocalRanges[range]!['octave']
+                                                as int;
+                                      });
+                                    }
+                                  },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+                if (widget.recommendation != null) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.auto_awesome,
+                            size: 20, color: theme.colorScheme.primary),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            widget.recommendation!.reason,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        error: _error == null
+            ? null
+            : Text(
+                _error!,
+                style: TextStyle(color: theme.colorScheme.error),
+                textAlign: TextAlign.center,
               ),
-            ],
+        action: FilledButton.icon(
+          onPressed: _isStarting ? null : _beginSession,
+          icon: _isStarting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.play_arrow_rounded),
+          label: Text(
+            _isStarting ? 'Starting...' : 'Start Session',
+            style: const TextStyle(fontSize: 16),
           ),
         ),
       ),

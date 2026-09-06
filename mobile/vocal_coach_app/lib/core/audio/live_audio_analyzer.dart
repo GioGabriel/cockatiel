@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:record/record.dart';
 
+import 'pitch/yin_pitch_estimator.dart';
+
 class LiveAudioFrame {
   LiveAudioFrame({
     required this.timestampMs,
@@ -38,6 +40,11 @@ class LiveAudioAnalyzer {
   final AudioRecorder _recorder = AudioRecorder();
   final StreamController<LiveAudioFrame> _framesController =
       StreamController<LiveAudioFrame>.broadcast();
+  late final YinPitchEstimator _pitchEstimator = YinPitchEstimator(
+    sampleRate: sampleRate,
+    minFrequencyHz: minFrequencyHz,
+    maxFrequencyHz: maxFrequencyHz,
+  );
 
   StreamSubscription<Uint8List>? _streamSubscription;
   List<int> _pendingSamples = <int>[];
@@ -107,7 +114,7 @@ class LiveAudioAnalyzer {
 
   void _emitFrame(List<int> frame) {
     final loudnessDb = _computeLoudnessDb(frame);
-    final pitch = _estimatePitch(frame);
+    final pitch = _pitchEstimator.estimate(frame);
     final frequencyHz =
         (pitch != null && loudnessDb > -55) ? pitch.frequencyHz : null;
     final isVoiced = frequencyHz != null;
@@ -132,67 +139,4 @@ class LiveAudioAnalyzer {
     final rms = sqrt(energy / frame.length).clamp(1e-8, 1.0);
     return 20 * (log(rms) / ln10);
   }
-
-  _PitchEstimate? _estimatePitch(List<int> frame) {
-    final samples = List<double>.generate(
-      frame.length,
-      (index) => frame[index] / 32768.0,
-      growable: false,
-    );
-
-    var mean = 0.0;
-    for (final value in samples) {
-      mean += value;
-    }
-    mean /= samples.length;
-
-    var variance = 0.0;
-    for (var i = 0; i < samples.length; i++) {
-      samples[i] = samples[i] - mean;
-      variance += samples[i] * samples[i];
-    }
-
-    if (variance <= 1e-7) {
-      return null;
-    }
-
-    final minLag =
-        (sampleRate / maxFrequencyHz).floor().clamp(2, frameSize - 2);
-    final maxLag =
-        (sampleRate / minFrequencyHz).ceil().clamp(minLag + 1, frameSize - 2);
-
-    var bestLag = 0;
-    var bestCorrelation = -1.0;
-
-    for (var lag = minLag; lag <= maxLag; lag++) {
-      var correlation = 0.0;
-      for (var i = 0; i + lag < samples.length; i++) {
-        correlation += samples[i] * samples[i + lag];
-      }
-      final normalized = correlation / variance;
-      if (normalized > bestCorrelation) {
-        bestCorrelation = normalized;
-        bestLag = lag;
-      }
-    }
-
-    if (bestLag == 0 || bestCorrelation < 0.22) {
-      return null;
-    }
-
-    final frequencyHz = sampleRate / bestLag;
-    if (frequencyHz < minFrequencyHz || frequencyHz > maxFrequencyHz) {
-      return null;
-    }
-
-    return _PitchEstimate(
-        frequencyHz: frequencyHz, confidence: bestCorrelation);
-  }
-}
-
-class _PitchEstimate {
-  _PitchEstimate({required this.frequencyHz, required this.confidence});
-
-  final double frequencyHz;
-  final double confidence;
 }

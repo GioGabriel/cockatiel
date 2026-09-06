@@ -1,6 +1,19 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
+
+const double _artworkAspectRatio = 1122 / 1402;
+const String _defaultFirstFrameAsset =
+    'assets/images/cockatiel_splash_hero_v2.png';
+const String _defaultVideoAsset = 'assets/videos/cockatiel_splash.mp4';
+const List<String> _defaultFrameAssets = [
+  _defaultFirstFrameAsset,
+  'assets/images/cockatiel_splash_frame_1.png',
+  'assets/images/cockatiel_splash_frame_2.png',
+  'assets/images/cockatiel_splash_frame_3.png',
+];
 
 /// A short, deterministic brand entrance that works in Chrome and on Android.
 ///
@@ -10,12 +23,14 @@ import 'package:flutter/material.dart';
 class AnimatedCockatielSplash extends StatefulWidget {
   const AnimatedCockatielSplash({
     super.key,
-    this.showProgress = false,
-    this.assetPath = 'assets/images/cockatiel_splash_hero_v2.png',
+    this.assetPath = _defaultFirstFrameAsset,
+    this.videoAssetPath = _defaultVideoAsset,
+    this.enableVideo = true,
   });
 
-  final bool showProgress;
   final String assetPath;
+  final String videoAssetPath;
+  final bool enableVideo;
 
   @override
   State<AnimatedCockatielSplash> createState() =>
@@ -24,31 +39,38 @@ class AnimatedCockatielSplash extends StatefulWidget {
 
 class _AnimatedCockatielSplashState extends State<AnimatedCockatielSplash>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _entrance;
-  late final Animation<double> _notes;
+  late final AnimationController _animationController;
+  late final Animation<double> _flight;
+  late final Animation<double> _noteReveal;
   late final Animation<double> _settle;
+  VideoPlayerController? _videoController;
+  bool _videoAttempted = false;
+  bool _videoInitializationComplete = false;
+  bool _videoReady = false;
   bool _motionDisabled = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2_200),
-    )..forward();
-    _entrance = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0, 0.58, curve: Curves.easeOutCubic),
+      // This is a brand entrance, not a loading indicator. It must finish so
+      // startup can hand control back to the auth gate without a live ticker.
+      duration: const Duration(milliseconds: 2200),
     );
-    _notes = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.16, 0.82, curve: Curves.easeOutCubic),
+    _flight = CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0, 0.72, curve: Curves.easeOutCubic),
+    );
+    _noteReveal = CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.14, 0.78, curve: Curves.easeOutCubic),
     );
     _settle = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.62, 1, curve: Curves.easeInOutCubic),
+      parent: _animationController,
+      curve: const Interval(0.58, 1, curve: Curves.easeInOutCubic),
     );
+    _animationController.forward();
   }
 
   @override
@@ -56,172 +78,271 @@ class _AnimatedCockatielSplashState extends State<AnimatedCockatielSplash>
     super.didChangeDependencies();
     final motionDisabled =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (motionDisabled == _motionDisabled) {
-      return;
+    if (motionDisabled != _motionDisabled) {
+      _motionDisabled = motionDisabled;
+      if (motionDisabled) {
+        _animationController
+          ..stop()
+          ..value = 1;
+        final videoController = _videoController;
+        if (videoController != null && _videoReady) {
+          unawaited(_freezeVideo(videoController));
+        }
+      } else if (_videoReady) {
+        final videoController = _videoController;
+        if (videoController != null) {
+          unawaited(videoController.play());
+        }
+      } else if (!_animationController.isCompleted) {
+        _animationController.forward();
+      }
     }
 
-    _motionDisabled = motionDisabled;
-    if (motionDisabled) {
-      _controller
-        ..stop()
-        ..value = 1;
-    } else if (!_controller.isCompleted) {
-      _controller.forward();
+    if (!_videoAttempted && widget.enableVideo && !_motionDisabled) {
+      _videoAttempted = true;
+      unawaited(_initializeVideo());
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _animationController.dispose();
+    final videoController = _videoController;
+    _videoController = null;
+    if (videoController != null && _videoInitializationComplete) {
+      unawaited(_disposeVideoController(videoController));
+    }
     super.dispose();
+  }
+
+  Future<void> _initializeVideo() async {
+    final controller = VideoPlayerController.asset(widget.videoAssetPath);
+    _videoController = controller;
+    var initializationSucceeded = false;
+    try {
+      await controller.initialize();
+      initializationSucceeded = true;
+      _videoInitializationComplete = true;
+      await controller.setLooping(false);
+      // The supplied splash includes a short audio bed. Native platforms can
+      // start it with the splash animation; browser autoplay policy is
+      // handled by web/index.html with an explicit sound affordance.
+      await controller.setVolume(1);
+      if (!mounted) {
+        unawaited(_disposeVideoController(controller));
+        return;
+      }
+
+      if (_motionDisabled) {
+        await _freezeVideo(controller);
+      } else {
+        await controller.play();
+      }
+      if (!mounted) {
+        unawaited(_disposeVideoController(controller));
+        return;
+      }
+      setState(() {
+        _videoReady = true;
+      });
+    } catch (_) {
+      // The animated artwork is the intentional fallback for unsupported
+      // codecs, missing assets, autoplay restrictions, or plugin failures.
+      if (mounted) {
+        setState(() {
+          _videoReady = false;
+        });
+      }
+      _videoInitializationComplete = true;
+      if (initializationSucceeded) {
+        unawaited(_disposeVideoController(controller));
+      } else if (identical(_videoController, controller)) {
+        // video_player may leave its creation future incomplete when the
+        // platform backend is unavailable. Do not await disposal in that
+        // state; there is no platform player to reclaim.
+        _videoController = null;
+      }
+    }
+  }
+
+  Future<void> _freezeVideo(VideoPlayerController controller) async {
+    try {
+      await controller.pause();
+      await controller.seekTo(controller.value.duration);
+    } catch (_) {
+      // Reduced-motion fallback must remain usable even if seeking is not
+      // supported by a platform video backend.
+    }
+  }
+
+  Future<void> _disposeVideoController(
+    VideoPlayerController controller,
+  ) async {
+    try {
+      await controller.dispose();
+    } catch (_) {
+      // Disposal is best effort when a platform backend shuts down during
+      // startup or route teardown.
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final showVideo =
+        _videoReady && !_motionDisabled && _videoController != null;
 
     return Semantics(
       container: true,
       label: 'Preparing Cockatiel vocal coaching',
       child: ColoredBox(
         color: theme.scaffoldBackgroundColor,
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final reservedForCopy = widget.showProgress ? 150.0 : 96.0;
-              final availableArtworkHeight = math.max(
-                0.0,
-                constraints.maxHeight - reservedForCopy,
-              );
-              final artworkHeight = math.min(
-                availableArtworkHeight,
-                math.min(
-                  constraints.maxHeight * 0.68,
-                  constraints.maxWidth * 1.08,
-                ),
-              );
-              return AnimatedBuilder(
-                animation: _controller,
-                child: RepaintBoundary(
-                  child: _SplashArtwork(
-                    assetPath: widget.assetPath,
-                    primaryColor: colorScheme.primary,
-                    secondaryColor: colorScheme.secondary,
-                  ),
-                ),
-                builder: (context, child) {
-                  final progress = _motionDisabled ? 1.0 : _controller.value;
-                  final entrance = _motionDisabled ? 1.0 : _entrance.value;
-                  final notes = _motionDisabled ? 1.0 : _notes.value;
-                  final settle = _motionDisabled ? 1.0 : _settle.value;
-                  final contentOpacity = _opacity(progress, 0.52, 0.86);
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(
-                        height: artworkHeight,
-                        width: double.infinity,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Transform.translate(
-                              offset: Offset(
-                                -constraints.maxWidth * 0.14 * (1 - entrance),
-                                constraints.maxHeight *
-                                        0.055 *
-                                        (1 - entrance) -
-                                    constraints.maxHeight * 0.012 * settle,
-                              ),
-                              child: Transform.rotate(
-                                angle: -0.035 * (1 - entrance) +
-                                    math.sin(settle * math.pi) * 0.008,
-                                child: Transform.scale(
-                                  scale: 0.9 + entrance * 0.1,
-                                  child: Opacity(
-                                    opacity: _opacity(entrance, 0, 0.5),
-                                    child: child,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            IgnorePointer(
-                              child: CustomPaint(
-                                key: const ValueKey(
-                                  'cockatiel-splash-motion-layer',
-                                ),
-                                painter: _SplashMotionPainter(
-                                  entranceProgress: entrance,
-                                  noteProgress: notes,
-                                  settleProgress: settle,
-                                  primaryColor: colorScheme.primary,
-                                  secondaryColor: colorScheme.secondary,
-                                ),
-                              ),
-                            ),
-                          ],
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (showVideo) _FullBleedSplashVideo(controller: _videoController!),
+            if (!showVideo)
+              SafeArea(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    const reservedForWordmark = 92.0;
+                    final artworkSize = _containSize(
+                      Size(
+                        constraints.maxWidth,
+                        math.max(
+                          0,
+                          constraints.maxHeight - reservedForWordmark,
                         ),
                       ),
-                      const Spacer(),
-                      Opacity(
-                        opacity: contentOpacity,
-                        child: Transform.translate(
-                          offset: Offset(0, 12 * (1 - contentOpacity)),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Cockatiel',
-                                  textAlign: TextAlign.center,
-                                  style:
-                                      theme.textTheme.headlineMedium?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Voice practice, made clear',
-                                  textAlign: TextAlign.center,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                if (widget.showProgress) ...[
-                                  const SizedBox(height: 32),
-                                  Semantics(
-                                    label: 'Loading your vocal coach',
-                                    child: SizedBox(
-                                      key: const ValueKey(
-                                        'cockatiel-splash-progress',
-                                      ),
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        color: colorScheme.primary,
+                    );
+                    return AnimatedBuilder(
+                      animation: _animationController,
+                      builder: (context, _) {
+                        final progress =
+                            _motionDisabled ? 1.0 : _animationController.value;
+                        final flight = _motionDisabled ? 1.0 : _flight.value;
+                        final noteReveal =
+                            _motionDisabled ? 1.0 : _noteReveal.value;
+                        final settle = _motionDisabled ? 1.0 : _settle.value;
+                        final frame = _frameFor(progress);
+                        final opacity = _opacity(flight, 0, 0.18);
+                        final scale = _lerp(0.96, 1, flight);
+                        final offset = Offset(
+                          _lerp(-artworkSize.width * 0.18, 0, flight),
+                          _lerp(artworkSize.height * 0.04, 0, flight) -
+                              math.sin(flight * math.pi) *
+                                  artworkSize.height *
+                                  0.03,
+                        );
+                        final rotation = _lerp(-0.025, 0, flight) +
+                            math.sin(settle * math.pi) * 0.006;
+
+                        return Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: artworkSize.width,
+                                height: artworkSize.height,
+                                child: Transform.translate(
+                                  offset: offset,
+                                  child: Transform.rotate(
+                                    angle: rotation,
+                                    child: Transform.scale(
+                                      scale: scale,
+                                      child: Opacity(
+                                        opacity: opacity,
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            RepaintBoundary(
+                                              child: _SplashArtwork(
+                                                assetPath: widget.assetPath,
+                                                frame: frame,
+                                                primaryColor:
+                                                    colorScheme.primary,
+                                                secondaryColor:
+                                                    colorScheme.secondary,
+                                              ),
+                                            ),
+                                            IgnorePointer(
+                                              child: CustomPaint(
+                                                key: const ValueKey(
+                                                  'cockatiel-splash-animation-layer',
+                                                ),
+                                                painter:
+                                                    _SplashAnimationPainter(
+                                                  entranceProgress: flight,
+                                                  noteProgress: noteReveal,
+                                                  settleProgress: settle,
+                                                  animationProgress: progress,
+                                                  primaryColor:
+                                                      colorScheme.primary,
+                                                  secondaryColor:
+                                                      colorScheme.secondary,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ],
-                                const SizedBox(height: 32),
-                              ],
-                            ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Opacity(
+                                opacity: _opacity(progress, 0.46, 0.78),
+                                child: Text(
+                                  'Cockatiel',
+                                  key: const ValueKey(
+                                      'cockatiel-splash-wordmark'),
+                                  style:
+                                      theme.textTheme.headlineMedium?.copyWith(
+                                    color: colorScheme.onSurface,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
       ),
     );
+  }
+
+  Size _containSize(Size available) {
+    var width = available.width;
+    var height = width / _artworkAspectRatio;
+    if (height > available.height) {
+      height = available.height;
+      width = height * _artworkAspectRatio;
+    }
+    return Size(width, height);
+  }
+
+  int _frameFor(double progress) {
+    if (_motionDisabled || progress >= 0.94) {
+      return 2;
+    }
+
+    // Raised -> down -> recovery -> down gives the viewer unmistakable wing
+    // articulation while remaining short enough for startup.
+    const sequence = <int>[0, 1, 2, 3, 2, 1, 2];
+    final index = (progress * sequence.length).floor().clamp(
+          0,
+          sequence.length - 1,
+        );
+    return sequence[index];
   }
 
   double _opacity(double progress, double start, double end) {
@@ -233,30 +354,263 @@ class _AnimatedCockatielSplashState extends State<AnimatedCockatielSplash>
     }
     return Curves.easeOut.transform((progress - start) / (end - start));
   }
+
+  double _lerp(double begin, double end, double progress) {
+    return begin + ((end - begin) * progress.clamp(0, 1));
+  }
+}
+
+class _FullBleedSplashVideo extends StatelessWidget {
+  const _FullBleedSplashVideo({required this.controller});
+
+  final VideoPlayerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final videoSize = controller.value.size;
+    if (videoSize.width <= 0 || videoSize.height <= 0) {
+      return const SizedBox.expand();
+    }
+    final viewportSize = MediaQuery.sizeOf(context);
+    final viewportAspectRatio = viewportSize.height == 0
+        ? 0.0
+        : viewportSize.width / viewportSize.height;
+    final fit = viewportAspectRatio >= 0.75 ? BoxFit.contain : BoxFit.cover;
+
+    return Semantics(
+      container: true,
+      label: 'Cockatiel animated splash',
+      child: ClipRect(
+        child: SizedBox.expand(
+          child: FittedBox(
+            // Portrait phone screens get edge-to-edge coverage. Wide desktop
+            // and tablet layouts preserve the complete portrait video.
+            fit: fit,
+            alignment: Alignment.center,
+            clipBehavior: Clip.hardEdge,
+            child: SizedBox(
+              width: videoSize.width,
+              height: videoSize.height,
+              child: VideoPlayer(controller),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SplashAnimationPainter extends CustomPainter {
+  const _SplashAnimationPainter({
+    required this.entranceProgress,
+    required this.noteProgress,
+    required this.settleProgress,
+    required this.animationProgress,
+    required this.primaryColor,
+    required this.secondaryColor,
+  });
+
+  final double entranceProgress;
+  final double noteProgress;
+  final double settleProgress;
+  final double animationProgress;
+  final Color primaryColor;
+  final Color secondaryColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Every accent is derived from the same finite progress value. Nothing in
+    // this painter repeats after the entrance has settled.
+    final phase = animationProgress * math.pi * 4;
+    _drawFlightTrails(canvas, size);
+    _drawNotes(canvas, size, phase);
+    _drawMicrophonePulse(canvas, size);
+    _drawResponsiveWaveform(canvas, size, phase);
+  }
+
+  void _drawFlightTrails(Canvas canvas, Size size) {
+    final trailProgress = _fadeOut(entranceProgress, 0.72, 0.98);
+    final trailPaint = Paint()
+      ..color = secondaryColor.withValues(alpha: 0.16 * trailProgress)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.0018
+      ..strokeCap = StrokeCap.round;
+
+    for (var index = 0; index < 3; index++) {
+      final path = Path()
+        ..moveTo(size.width * (0.08 + index * 0.025), size.height * 0.68)
+        ..quadraticBezierTo(
+          size.width * 0.31,
+          size.height * (0.58 - index * 0.018),
+          size.width * 0.58,
+          size.height * (0.45 + index * 0.02),
+        );
+      canvas.drawPath(path, trailPaint);
+    }
+  }
+
+  void _drawNotes(Canvas canvas, Size size, double phase) {
+    final notePaint = Paint()
+      ..color = secondaryColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.0022
+      ..strokeCap = StrokeCap.round;
+    final origin = Offset(size.width * 0.57, size.height * 0.35);
+    final noteOffsets = <Offset>[
+      const Offset(0, 0),
+      const Offset(0.11, -0.07),
+      const Offset(0.2, 0.02),
+    ];
+
+    for (var index = 0; index < noteOffsets.length; index++) {
+      final launchProgress = noteProgress - (index * 0.16);
+      if (launchProgress <= 0) {
+        continue;
+      }
+      final launch = launchProgress.clamp(0.0, 1.0).toDouble();
+      final lift = Curves.easeOutCubic.transform(launch);
+      final fadeIn = (launchProgress / 0.16).clamp(0.0, 1.0).toDouble();
+      final fadeOut = _fadeOut(noteProgress, 0.72, 1);
+      final fade = fadeIn * fadeOut;
+      final position = origin +
+          Offset(
+            size.width * noteOffsets[index].dx +
+                math.sin(phase + index) * size.width * 0.012,
+            size.height * noteOffsets[index].dy - size.height * 0.16 * lift,
+          );
+      _drawNote(
+        canvas,
+        size,
+        position,
+        notePaint
+          ..color = secondaryColor.withValues(
+            alpha: 0.62 * noteProgress * fade,
+          ),
+        flipped: index.isOdd,
+      );
+    }
+  }
+
+  void _drawMicrophonePulse(Canvas canvas, Size size) {
+    final center = Offset(size.width * 0.71, size.height * 0.58);
+    final pulseProgress =
+        ((animationProgress - 0.48) / 0.38).clamp(0.0, 1.0).toDouble();
+    for (var index = 0; index < 2; index++) {
+      final ringProgress =
+          (pulseProgress - index * 0.22).clamp(0.0, 1.0).toDouble();
+      final radius = size.width * (0.025 + ringProgress * 0.095);
+      final pulsePaint = Paint()
+        ..color = primaryColor.withValues(
+          alpha: 0.13 * (1 - ringProgress) * settleProgress,
+        )
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.002;
+      canvas.drawCircle(center, radius, pulsePaint);
+    }
+  }
+
+  void _drawResponsiveWaveform(Canvas canvas, Size size, double phase) {
+    final waveformOpacity = _fadeOut(animationProgress, 0.62, 1);
+    final waveformPaint = Paint()
+      ..color = primaryColor.withValues(
+        alpha: 0.14 * settleProgress * waveformOpacity,
+      )
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.0018
+      ..strokeCap = StrokeCap.round;
+    final waveform = Path();
+    final baseline = size.height * 0.68;
+    for (var index = 0; index <= 40; index++) {
+      final x = size.width * index / 40;
+      final pulse = math.sin(index * 0.85 + phase);
+      final amplitude = size.height * (0.008 + pulse.abs() * 0.025);
+      final y = baseline + math.sin(index * 0.72 + phase) * amplitude;
+      if (index == 0) {
+        waveform.moveTo(x, y);
+      } else {
+        waveform.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(waveform, waveformPaint);
+  }
+
+  void _drawNote(
+    Canvas canvas,
+    Size size,
+    Offset origin,
+    Paint paint, {
+    required bool flipped,
+  }) {
+    final stemDirection = flipped ? -1.0 : 1.0;
+    final noteWidth = math.max(10.0, size.width * 0.016);
+    final noteHeight = noteWidth * 0.68;
+    final stemLength = math.max(18.0, size.width * 0.026);
+    final beamLength = math.max(8.0, size.width * 0.014);
+    final stemTop = origin.translate(0, -stemLength * stemDirection);
+    canvas.drawOval(
+      Rect.fromCenter(center: origin, width: noteWidth, height: noteHeight),
+      paint,
+    );
+    canvas.drawLine(origin, stemTop, paint);
+    canvas.drawLine(
+      stemTop,
+      stemTop.translate(beamLength * stemDirection, 7 * stemDirection),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SplashAnimationPainter oldDelegate) {
+    return oldDelegate.entranceProgress != entranceProgress ||
+        oldDelegate.noteProgress != noteProgress ||
+        oldDelegate.settleProgress != settleProgress ||
+        oldDelegate.animationProgress != animationProgress ||
+        oldDelegate.primaryColor != primaryColor ||
+        oldDelegate.secondaryColor != secondaryColor;
+  }
+
+  double _fadeOut(double progress, double start, double end) {
+    if (progress <= start) {
+      return 1;
+    }
+    if (progress >= end) {
+      return 0;
+    }
+    return 1 - Curves.easeIn.transform((progress - start) / (end - start));
+  }
 }
 
 class _SplashArtwork extends StatelessWidget {
   const _SplashArtwork({
     required this.assetPath,
+    required this.frame,
     required this.primaryColor,
     required this.secondaryColor,
   });
 
   final String assetPath;
+  final int frame;
   final Color primaryColor;
   final Color secondaryColor;
 
   @override
   Widget build(BuildContext context) {
+    final frameAsset = assetPath == _defaultFirstFrameAsset
+        ? _defaultFrameAssets[frame]
+        : assetPath;
+
     return Semantics(
+      container: true,
       label: 'Cockatiel vocal coaching artwork',
       image: true,
+      excludeSemantics: true,
       child: Image.asset(
         key: const ValueKey('cockatiel-splash-artwork'),
-        assetPath,
+        frameAsset,
         fit: BoxFit.contain,
         alignment: Alignment.center,
         filterQuality: FilterQuality.medium,
+        gaplessPlayback: true,
         errorBuilder: (context, error, stackTrace) {
           return SizedBox.expand(
             child: CustomPaint(
@@ -270,119 +624,6 @@ class _SplashArtwork extends StatelessWidget {
         },
       ),
     );
-  }
-}
-
-class _SplashMotionPainter extends CustomPainter {
-  const _SplashMotionPainter({
-    required this.entranceProgress,
-    required this.noteProgress,
-    required this.settleProgress,
-    required this.primaryColor,
-    required this.secondaryColor,
-  });
-
-  final double entranceProgress;
-  final double noteProgress;
-  final double settleProgress;
-  final Color primaryColor;
-  final Color secondaryColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final waveformPaint = Paint()
-      ..color = primaryColor.withValues(alpha: 0.34)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final waveform = Path();
-    final baseline = size.height * 0.76;
-    for (var index = 0; index <= 36; index++) {
-      final x = size.width * index / 36;
-      final pulse = math.sin(index * 0.92 + settleProgress * math.pi * 2);
-      final amplitude = size.height * (0.008 + pulse.abs() * 0.022);
-      final y = baseline +
-          math.sin(index * 0.7 + settleProgress * 2) * amplitude;
-      if (index == 0) {
-        waveform.moveTo(x, y);
-      } else {
-        waveform.lineTo(x, y);
-      }
-    }
-    canvas.drawPath(waveform, waveformPaint);
-
-    final notePaint = Paint()
-      ..color = secondaryColor
-      ..strokeWidth = 1.8
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final noteOrigins = [
-      Offset(size.width * 0.22, size.height * 0.30),
-      Offset(size.width * 0.68, size.height * 0.22),
-      Offset(size.width * 0.82, size.height * 0.38),
-      Offset(size.width * 0.38, size.height * 0.18),
-    ];
-
-    for (var index = 0; index < noteOrigins.length; index++) {
-      final delay = index * 0.12;
-      final localProgress =
-          ((noteProgress - delay) / 0.72).clamp(0.0, 1.0).toDouble();
-      final fall = Curves.easeOutCubic.transform(localProgress);
-      final drift = math.sin((localProgress + index) * math.pi) * 10;
-      final position = noteOrigins[index] +
-          Offset(drift, size.height * 0.22 * fall);
-      final fadeIn = (localProgress / 0.16).clamp(0.0, 1.0).toDouble();
-      final fadeOut =
-          ((1 - localProgress) / 0.22).clamp(0.0, 1.0).toDouble();
-      final opacity = (fadeIn * fadeOut * 0.9).clamp(0.0, 1.0).toDouble();
-      _drawNote(
-        canvas,
-        position,
-        notePaint..color = secondaryColor.withValues(alpha: opacity),
-        flipped: index.isOdd,
-      );
-    }
-
-    final entranceLinePaint = Paint()
-      ..color = secondaryColor.withValues(alpha: 0.12 * entranceProgress)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-    final arc = Rect.fromCenter(
-      center: Offset(size.width * 0.5, size.height * 0.46),
-      width: size.width * 0.72,
-      height: size.height * 0.34,
-    );
-    canvas.drawArc(arc, math.pi * 1.05, math.pi * 0.72, false, entranceLinePaint);
-  }
-
-  void _drawNote(
-    Canvas canvas,
-    Offset origin,
-    Paint paint, {
-    required bool flipped,
-  }) {
-    final stemDirection = flipped ? -1.0 : 1.0;
-    final stemTop = origin.translate(0, -22 * stemDirection);
-    canvas.drawOval(
-      Rect.fromCenter(center: origin, width: 13, height: 9),
-      paint,
-    );
-    canvas.drawLine(origin, stemTop, paint);
-    canvas.drawLine(
-      stemTop,
-      stemTop.translate(10 * stemDirection, 7 * stemDirection),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _SplashMotionPainter oldDelegate) {
-    return oldDelegate.entranceProgress != entranceProgress ||
-        oldDelegate.noteProgress != noteProgress ||
-        oldDelegate.settleProgress != settleProgress ||
-        oldDelegate.primaryColor != primaryColor ||
-        oldDelegate.secondaryColor != secondaryColor;
   }
 }
 

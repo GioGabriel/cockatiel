@@ -42,69 +42,233 @@
       pointer-events: none;
     }
 
-    /* ── LOGO ───────────────────────────────────────── */
-    .splash-logo {
-      width: 96px;
-      height: 96px;
-      border-radius: 22px;
-      overflow: hidden;
-      margin-bottom: 28px;
-      /* Entrance: fade in + subtle scale from 0.92 */
-      animation: enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
-    .splash-logo img {
+    /* The video owns the complete brand composition. Cover is intentional:
+       it fills both viewport axes on portrait phones without letterboxing. */
+    .splash-video,
+    .splash-fallback {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
+      display: block;
       object-fit: cover;
+      object-position: center;
+      background: #09090F;
+    }
+
+    /* Portrait phones get true edge-to-edge coverage. Wide Chrome and tablet
+       layouts preserve the complete portrait composition instead of cropping
+       the bird and title to fill a landscape viewport. */
+    @media (min-aspect-ratio: 3/4) {
+      .splash-video,
+      .splash-fallback {
+        object-fit: contain;
+      }
+    }
+
+    .splash-fallback,
+    .splash-fallback-wordmark {
+      display: none;
+    }
+
+    #splash.video-failed .splash-video {
+      display: none;
+    }
+
+    #splash.video-failed .splash-fallback {
       display: block;
     }
 
-    /* ── WORDMARK ───────────────────────────────────── */
-    .splash-wordmark {
-      font-size: 28px;
+    .splash-fallback-wordmark {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 8vh;
+      color: #f4f1e9;
+      font-size: clamp(24px, 7vw, 36px);
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      text-align: center;
+    }
+
+    #splash-sound-toggle {
+      position: absolute;
+      top: max(1rem, env(safe-area-inset-top));
+      right: max(1rem, env(safe-area-inset-right));
+      z-index: 1;
+      border: 1px solid rgba(244, 241, 233, 0.32);
+      border-radius: 999px;
+      padding: 0.65rem 0.9rem;
+      color: #f4f1e9;
+      background: rgba(9, 9, 15, 0.82);
+      font: inherit;
+      font-size: 0.8rem;
       font-weight: 700;
-      color: #ffffff;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
-      animation: enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+      letter-spacing: 0.02em;
+      cursor: pointer;
     }
 
-    /* ── TAGLINE ────────────────────────────────────── */
-    .splash-tagline {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.35);
-      letter-spacing: 0.5px;
-      animation: enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    #splash-sound-toggle:focus-visible {
+      outline: 3px solid #f1b24a;
+      outline-offset: 3px;
     }
 
-    /* ── SINGLE ANIMATION: fade up ──────────────────── */
-    @keyframes enter {
-      from { opacity: 0; transform: translateY(8px) scale(0.96); }
-      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    #splash.video-failed .splash-fallback-wordmark {
+      display: block;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #splash { transition: none; }
+      .splash-video { display: none; }
+      .splash-fallback,
+      .splash-fallback-wordmark { display: block; }
     }
   </style>
 </head>
 <body>
 
   <div id="splash">
-    <div class="splash-logo">
-      <img src="cockatiel_logo.jpg" alt="Cockatiel" />
-    </div>
-    <div class="splash-wordmark">Cockatiel</div>
-    <div class="splash-tagline">Your Gateway to Vocal Mastery</div>
+    <video
+      class="splash-video"
+      id="splash-video"
+      autoplay
+      playsinline
+      preload="auto"
+      poster="assets/assets/images/cockatiel_splash_hero_v2.png"
+      aria-label="Cockatiel animated vocal coaching splash"
+    >
+      <source src="assets/assets/videos/cockatiel_splash.mp4" type="video/mp4" />
+    </video>
+    <img
+      class="splash-fallback"
+      src="assets/assets/images/cockatiel_splash_hero_v2.png"
+      alt="Cockatiel bird beside a microphone with musical notes"
+    />
+    <div class="splash-fallback-wordmark">Cockatiel</div>
+    <button
+      id="splash-sound-toggle"
+      type="button"
+      aria-label="Enable splash sound"
+      hidden
+    >Enable sound</button>
   </div>
 
   <script src="flutter_bootstrap.js" async></script>
 
   <script>
-    window.addEventListener('flutter-first-frame', function () {
-      const splash = document.getElementById('splash');
+    const splash = document.getElementById('splash');
+    const splashVideo = document.getElementById('splash-video');
+    const splashSoundToggle = document.getElementById('splash-sound-toggle');
+    const splashMinimumDurationMs = 900;
+    const splashMaximumDurationMs = 8000;
+    const splashStartedAt = performance.now();
+    let splashDismissalTimer = null;
+    let flutterReady = false;
+    let videoEnded = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let splashDismissed = false;
+
+    function useSplashFallback() {
+      if (splash) {
+        splash.classList.add('video-failed');
+      }
+      videoEnded = true;
+      requestDismiss();
+    }
+
+    function showSoundToggle() {
+      if (splashSoundToggle) {
+        splashSoundToggle.hidden = false;
+      }
+    }
+
+    function hideSoundToggle() {
+      if (splashSoundToggle) {
+        splashSoundToggle.hidden = true;
+      }
+    }
+
+    function playMutedFallback() {
+      if (!splashVideo) {
+        useSplashFallback();
+        return;
+      }
+      splashVideo.muted = true;
+      splashVideo.volume = 0;
+      showSoundToggle();
+      const playback = splashVideo.play();
+      if (playback && typeof playback.catch === 'function') {
+        playback.catch(useSplashFallback);
+      }
+    }
+
+    function enableSplashAudio() {
+      if (!splashVideo) {
+        return;
+      }
+      splashVideo.muted = false;
+      splashVideo.volume = 1;
+      const playback = splashVideo.play();
+      if (!playback || typeof playback.then !== 'function') {
+        hideSoundToggle();
+        return;
+      }
+      playback.then(hideSoundToggle).catch(playMutedFallback);
+    }
+
+    function requestDismiss() {
+      if (!flutterReady || !videoEnded) {
+        return;
+      }
+      dismissSplash();
+    }
+
+    function dismissSplash(force = false) {
+      if (splashDismissed) {
+        return;
+      }
+      const elapsed = performance.now() - splashStartedAt;
+      if (!force && elapsed < splashMinimumDurationMs) {
+        if (splashDismissalTimer === null) {
+          splashDismissalTimer = window.setTimeout(() => {
+            splashDismissalTimer = null;
+            dismissSplash();
+          }, splashMinimumDurationMs - elapsed);
+        }
+        return;
+      }
+      splashDismissed = true;
+      if (splashDismissalTimer !== null) {
+        window.clearTimeout(splashDismissalTimer);
+        splashDismissalTimer = null;
+      }
       if (splash) {
         splash.classList.add('hidden');
         setTimeout(() => splash.remove(), 550);
       }
-    });
+    }
+
+    if (splashVideo && !videoEnded) {
+      splashVideo.addEventListener('ended', () => {
+        videoEnded = true;
+        requestDismiss();
+      });
+      splashVideo.addEventListener('error', useSplashFallback, {once: true});
+      splashVideo.muted = false;
+      splashVideo.volume = 1;
+      splashVideo.play().then(hideSoundToggle).catch(playMutedFallback);
+    }
+
+    if (splashSoundToggle) {
+      splashSoundToggle.addEventListener('click', enableSplashAudio);
+    }
+
+    window.addEventListener('flutter-first-frame', () => {
+      flutterReady = true;
+      requestDismiss();
+    }, {once: true});
+    // Never let a failed engine start or a stalled media element hide the
+    // real failure state forever. Normal startup exits on video completion.
+    setTimeout(() => dismissSplash(true), splashMaximumDurationMs);
   </script>
 </body>
 </html>

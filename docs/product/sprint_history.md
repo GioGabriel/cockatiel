@@ -4,7 +4,7 @@ This file is the single source of truth for sprint planning and status.
 Update it after each milestone, merged implementation batch, and validation run.
 
 > Historical note: early sprint entries mention Ollama. The active runtime no longer
-> depends on Ollama; deterministic coaching is authoritative and OpenRouter is optional
+> depends on Ollama; deterministic coaching is authoritative and hosted AI summaries are optional
 > for a natural-language summary.
 
 ## How to update this file
@@ -65,7 +65,7 @@ Status: completed
 Integrate backend-only AI feedback generation with model routing and fallback safety.
 
 ### Delivered
-- Historical Ollama provider and model routing (superseded by OpenRouter + deterministic fallback).
+- Historical Ollama provider and model routing (superseded by hosted Gemini summaries + deterministic fallback).
 - Prompt registry with versioning and A/B (`v1a`, `v1b`).
 - Structured payload validation and deterministic fallback.
 
@@ -409,7 +409,7 @@ Align the system with all thesis documentation deliverables. Implement missing m
 - 2026-06-22: Sprint 11 scope changed from Diction/Pronunciation to Thesis Alignment Comprehensive. Original Sprint 11 content removed as out-of-thesis-scope.
 - 2026-06-22: Full spec created (requirements, design, tasks) at `.kiro/specs/thesis-alignment-comprehensive/`. 13 requirements, 22 correctness properties, 43 implementation tasks defined.
 - 2026-06-22: Kiro hooks (10) and steering files (7) created for consistent coding throughout implementation.
-- 2026-06-22: Added OpenRouter provider for client demo/presentation use. The old Ollama cascade described in this historical entry is no longer the active implementation; current behavior is OpenRouter summary → deterministic fallback.
+- 2026-06-22: Added a hosted summary provider for client demo/presentation use. The old Ollama cascade described in this historical entry is no longer the active implementation; current behavior is Google AI Studio summary → deterministic fallback.
 - 2026-06-22: Pushed monorepo to GitHub (GioGabriel/cockatiel). Added `render.yaml` deployment blueprint for Render cloud hosting.
 - 2026-06-22: Backend deployed to Render at https://cockatiel-wdkv.onrender.com — health check verified. Built standalone APK pointing to cloud backend for client presentation.
 - 2026-06-23: Full implementation complete. 48/48 required tasks executed (14 optional property-based tests skipped for MVP). Results:

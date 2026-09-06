@@ -22,7 +22,7 @@ def test_ai_jobs_list_and_detail(client, auth_headers, monkeypatch):
       "difficulty": "beginner",
       "duration_sec": 30,
       "metric_summary": {
-        "sample_count": 5,
+            "sample_count": 64,
         "pitch_accuracy": 72,
         "timing_accuracy": 73,
         "breath_control": 71,

@@ -6,6 +6,7 @@ import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/karaoke_models.dart';
 import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/difficulty_badge.dart';
+import '../../../shared/widgets/scrollable_action_layout.dart';
 import 'karaoke_singing_page.dart';
 
 class KaraokeSongBriefingPage extends StatefulWidget {
@@ -80,101 +81,81 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(formattedStyle)),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header card
-              Expanded(
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary
-                                .withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.music_note_rounded,
-                            size: 40,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        DifficultyBadge(difficulty: drill.difficulty),
-                        const SizedBox(height: 16),
-                        Hero(
-                          tag: 'karaoke_song_title_${drill.drillId}',
-                          child: Material(
-                            color: Colors.transparent,
-                            child: Text(
-                              formattedTitle,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildIconStat(
-                                Icons.timer_outlined, durationLabel, theme),
-                            const SizedBox(width: 24),
-                            _buildIconStat(Icons.speed_outlined,
-                                '${drill.tempoBpm} BPM', theme),
-                          ],
-                        ),
-                        if (vocalLow.isNotEmpty && vocalHigh.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          _buildIconStat(Icons.mic_external_on_outlined,
-                              '$vocalLow – $vocalHigh', theme),
-                        ],
-                      ],
+      body: ScrollableActionLayout(
+        content: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.music_note_rounded,
+                    size: 40,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                DifficultyBadge(difficulty: drill.difficulty),
+                const SizedBox(height: 16),
+                Hero(
+                  tag: 'karaoke_song_title_${drill.drillId}',
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Text(
+                      formattedTitle,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              // Error message
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(color: theme.colorScheme.error),
-                    textAlign: TextAlign.center,
-                  ),
+                const SizedBox(height: 32),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 24,
+                  runSpacing: 12,
+                  children: [
+                    _buildIconStat(Icons.timer_outlined, durationLabel, theme),
+                    _buildIconStat(
+                        Icons.speed_outlined, '${drill.tempoBpm} BPM', theme),
+                  ],
                 ),
-
-              // Start Session button
-              FilledButton.icon(
-                onPressed: _isStarting ? null : _startSession,
-                icon: _isStarting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.play_arrow_rounded),
-                label: Text(
-                  _isStarting ? 'Loading...' : 'Start Karaoke',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                if (vocalLow.isNotEmpty && vocalHigh.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _buildIconStat(Icons.mic_external_on_outlined,
+                      '$vocalLow – $vocalHigh', theme),
+                ],
+              ],
+            ),
+          ),
+        ),
+        error: _error == null
+            ? null
+            : Text(
+                _error!,
+                style: TextStyle(color: theme.colorScheme.error),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
-            ],
+        action: FilledButton.icon(
+          onPressed: _isStarting ? null : _startSession,
+          icon: _isStarting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.play_arrow_rounded),
+          label: Text(
+            _isStarting ? 'Loading...' : 'Start Karaoke',
+            style: const TextStyle(fontSize: 16),
           ),
         ),
       ),

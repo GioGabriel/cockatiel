@@ -28,6 +28,8 @@ class AuthGatePage extends StatefulWidget {
 }
 
 class _AuthGatePageState extends State<AuthGatePage> {
+  static const _startupTimeout = Duration(seconds: 12);
+
   late final Future<void> _bootstrapFuture;
   StreamSubscription<String>? _notificationTapSub;
   bool _showOnboarding = false;
@@ -46,8 +48,34 @@ class _AuthGatePageState extends State<AuthGatePage> {
   Future<void> _bootstrap() async {
     // Check onboarding status in parallel with app state init.
     final onboardingDone = OnboardingPage.hasCompletedOnboarding();
-    await widget.appState.initialize(widget.apiClient);
-    final completed = await onboardingDone;
+    try {
+      // Auth/profile initialization is allowed to continue in the background,
+      // but it must not hold the entire app behind an unbounded splash. The
+      // auth gate will react when AppState finishes and publish the home shell
+      // if a signed-in user becomes available later.
+      await widget.appState
+          .initialize(widget.apiClient)
+          .timeout(_startupTimeout);
+    } on TimeoutException {
+      // Keep the startup surface usable. AppState owns the eventual auth
+      // result and will notify this gate when the in-flight request completes.
+    } catch (_) {
+      // AppState maps expected auth/API failures to safe user-facing state.
+      // A startup exception must still release the splash rather than leaving
+      // the user on an infinite loader.
+    }
+
+    bool completed = true;
+    try {
+      completed = await onboardingDone.timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => true,
+      );
+    } catch (_) {
+      // If local onboarding storage is unavailable, fail open to auth rather
+      // than blocking access to the account screen.
+      completed = true;
+    }
     if (!mounted) return;
     setState(() {
       _showOnboarding = !completed;
@@ -108,7 +136,6 @@ class _AuthGatePageState extends State<AuthGatePage> {
             late final Widget content;
             late final String contentKey;
             if (snapshot.connectionState == ConnectionState.waiting ||
-                widget.appState.isBootstrapping ||
                 !_onboardingChecked) {
               contentKey = 'bootstrap';
               content = const _BootstrappingPage();
@@ -203,7 +230,7 @@ class _BootstrappingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: AnimatedCockatielSplash(showProgress: true),
+      body: AnimatedCockatielSplash(),
     );
   }
 }

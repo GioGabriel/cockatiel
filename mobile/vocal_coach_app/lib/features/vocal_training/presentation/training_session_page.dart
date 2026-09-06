@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/audio/live_audio_analyzer.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/scoring/vocal_metric_scorer.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/animations/page_transitions.dart';
 import '../../../shared/models/session_models.dart';
@@ -137,6 +138,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   String? _selectedBestAttemptId;
   double? _bestAttemptScore;
   late final LiveAudioAnalyzer _liveAudioAnalyzer;
+  late final VocalMetricAccumulator _metricAccumulator;
   StreamSubscription<LiveAudioFrame>? _liveAudioSubscription;
   Timer? _tipsTimer;
   Timer? _loaderTimer;
@@ -146,14 +148,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   final Stopwatch _attemptStopwatch = Stopwatch();
   final List<PitchPoint> _pitchHistory = [];
 
-  int _windowFrameCount = 0;
-  int _windowVoicedFrameCount = 0;
-  int _windowOnPitchFrameCount = 0;
-  int _windowPitchTransitions = 0;
-  double _windowAbsCentsTotal = 0;
-  double _windowLoudnessTotal = 0;
-  double _windowPitchDeltaTotal = 0;
-  double? _windowPreviousFrequencyHz;
   int _onTargetFrameStreak = 0;
   int _calibrationFrameCount = 0;
   double _calibrationLoudnessTotal = 0;
@@ -193,6 +187,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       minFrequencyHz: minFreq,
       maxFrequencyHz: maxFreq,
     );
+    _metricAccumulator = VocalMetricAccumulator();
     WidgetsBinding.instance.addObserver(this);
     _startTipsRotation();
     _startLoaderPulse();
@@ -331,9 +326,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     var nextCentsError = _currentCentsError;
     var nextStatus = _microphoneStatus;
 
-    _windowFrameCount += 1;
-    _windowLoudnessTotal += frame.loudnessDb;
-
     if (_isCalibratingLoudness) {
       _calibrationFrameCount += 1;
       _calibrationLoudnessTotal += frame.loudnessDb;
@@ -346,21 +338,11 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       final loudEnough = frame.loudnessDb > _loudnessFloorDb;
       final onPitch = absCents <= 30 && loudEnough;
 
-      _windowVoicedFrameCount += 1;
-      _windowAbsCentsTotal += absCents;
       if (onPitch) {
-        _windowOnPitchFrameCount += 1;
         _onTargetFrameStreak += 1;
       } else {
         _onTargetFrameStreak = 0;
       }
-
-      if (_windowPreviousFrequencyHz != null) {
-        _windowPitchDeltaTotal +=
-            (frequencyHz - _windowPreviousFrequencyHz!).abs();
-        _windowPitchTransitions += 1;
-      }
-      _windowPreviousFrequencyHz = frequencyHz;
 
       if (_runtimePlan == null && _onTargetFrameStreak >= 4) {
         _solfegeIndex = (_solfegeIndex + 1) % _targetFrequenciesHz.length;
@@ -378,6 +360,21 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       nextStatus = frame.loudnessDb < -50
           ? 'Speak or sing a little louder to start detection.'
           : 'Listening...';
+    }
+
+    if (_isAttemptRunning && _attemptStopwatch.isRunning) {
+      final activeStage = _activeRuntimeStage;
+      _metricAccumulator.addFrame(
+        VocalMetricFrame(
+          timestampMs: frame.timestampMs,
+          targetId: activeStage?.stageId ?? _activeTargetLabel(),
+          targetFrequencyHz: targetHz,
+          frequencyHz: frame.frequencyHz,
+          loudnessDb: frame.loudnessDb,
+          voiced: frame.voiced,
+          confidence: frame.confidence,
+        ),
+      );
     }
 
     setState(() {
@@ -433,54 +430,11 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       );
     }
 
-    final frameCount = max(_windowFrameCount, 1);
-    final voicedFrameCount = max(_windowVoicedFrameCount, 1);
-    final avgAbsCents = _windowAbsCentsTotal / voicedFrameCount;
-    final avgLoudnessDb = _windowLoudnessTotal / frameCount;
-    final onPitchRatio = _windowOnPitchFrameCount / voicedFrameCount;
-    final voicedRatio = _windowVoicedFrameCount / frameCount;
-    final avgPitchDelta = _windowPitchTransitions > 0
-        ? _windowPitchDeltaTotal / _windowPitchTransitions
-        : 0;
-
-    final pitchAccuracy =
-        (avgAbsCents <= 50.0 ? 100.0 : (100.0 - (avgAbsCents - 50.0)))
-                .clamp(0, 100)
-                .toDouble() *
-            voicedRatio;
-    final timingAccuracy =
-        (40 + (onPitchRatio * 60)).clamp(0, 100).toDouble() * voicedRatio;
-    final loudnessPenalty = (avgLoudnessDb + 24).abs() * 2.2;
-    final breathControl =
-        ((100 - loudnessPenalty) * voicedRatio).clamp(0, 100).toDouble();
-    final pitchStability =
-        ((100 - (avgPitchDelta * 1.5)) * voicedRatio).clamp(0, 100).toDouble();
-    final vibratoConsistency = (55 + (voicedRatio * 45) - (avgPitchDelta * 0.6))
-        .clamp(0, 100)
-        .toDouble();
-    final noteTransitionSmoothness =
-        ((100 - (avgPitchDelta * 1.2)) * voicedRatio).clamp(0, 100).toDouble();
-
-    return TrainingAttemptMetricSummary.voice(
-      sampleCount: frameCount,
-      pitchAccuracy: pitchAccuracy,
-      timingAccuracy: timingAccuracy,
-      breathControl: breathControl,
-      pitchStability: pitchStability,
-      vibratoConsistency: vibratoConsistency,
-      noteTransitionSmoothness: noteTransitionSmoothness,
-    );
+    return _metricAccumulator.build().toTrainingAttemptMetricSummary();
   }
 
   void _resetMetricsWindow() {
-    _windowFrameCount = 0;
-    _windowVoicedFrameCount = 0;
-    _windowOnPitchFrameCount = 0;
-    _windowPitchTransitions = 0;
-    _windowAbsCentsTotal = 0;
-    _windowLoudnessTotal = 0;
-    _windowPitchDeltaTotal = 0;
-    _windowPreviousFrequencyHz = null;
+    _metricAccumulator.reset();
   }
 
   double _centsDifference(double frequencyHz, double targetHz) {
@@ -916,8 +870,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     });
 
     try {
-      // Removed strict audio frame requirement to prevent confusion when testing.
-      if (!_isBreathingExercise && _windowFrameCount == 0) {
+      // The backend also rejects voice attempts with too little evidence.
+      if (!_isBreathingExercise && _metricAccumulator.sampleCount == 0) {
         // Only error if literally 0 frames were processed (mic totally dead).
         setState(() {
           _error =

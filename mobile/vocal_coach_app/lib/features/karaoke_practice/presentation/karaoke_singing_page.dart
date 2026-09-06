@@ -8,6 +8,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../../core/audio/live_audio_analyzer.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/scoring/vocal_metric_scorer.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/karaoke_models.dart';
 import '../../../shared/models/session_models.dart';
@@ -39,6 +40,7 @@ class KaraokeSingingPage extends StatefulWidget {
 class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   final AudioPlayer _player = AudioPlayer();
   late final LiveAudioAnalyzer _analyzer;
+  late final VocalMetricAccumulator _metricAccumulator;
   late final KaraokeContentClient _contentClient;
   late final bool _ownsContentClient;
   StreamSubscription<LiveAudioFrame>? _audioSub;
@@ -64,16 +66,6 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   double? _liveCentsError;
   String _liveCoachCue = 'Press start when you are ready.';
 
-  // Metrics Window
-  int _windowFrameCount = 0;
-  int _windowVoicedFrameCount = 0;
-  int _windowOnPitchFrameCount = 0;
-  int _windowPitchTransitions = 0;
-  double _windowAbsCentsTotal = 0;
-  double _windowLoudnessTotal = 0;
-  double _windowPitchDeltaTotal = 0;
-  double? _windowPreviousFrequencyHz;
-
   @override
   void initState() {
     super.initState();
@@ -81,6 +73,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       minFrequencyHz: 80,
       maxFrequencyHz: 800,
     );
+    _metricAccumulator = VocalMetricAccumulator();
     _contentClient = widget.contentClient ?? KaraokeContentClient();
     _ownsContentClient = widget.contentClient == null;
     _initializeKaraoke();
@@ -299,46 +292,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   }
 
   TrainingAttemptMetricSummary _buildAttemptMetricSummary() {
-    final frameCount = max(_windowFrameCount, 1);
-    final voicedFrameCount = max(_windowVoicedFrameCount, 1);
-
-    final avgAbsCents = _windowAbsCentsTotal / voicedFrameCount;
-    final avgLoudnessDb = _windowLoudnessTotal / frameCount;
-    final onPitchRatio = _windowOnPitchFrameCount / voicedFrameCount;
-    final voicedRatio = _windowVoicedFrameCount / frameCount;
-
-    final avgPitchDelta = _windowPitchTransitions > 0
-        ? _windowPitchDeltaTotal / _windowPitchTransitions
-        : 0;
-
-    final pitchAccuracy =
-        (avgAbsCents <= 50.0 ? 100.0 : (100.0 - (avgAbsCents - 50.0)))
-                .clamp(0, 100)
-                .toDouble() *
-            voicedRatio;
-
-    final timingAccuracy =
-        (40 + (onPitchRatio * 60)).clamp(0, 100).toDouble() * voicedRatio;
-    final loudnessPenalty = (avgLoudnessDb + 24).abs() * 2.2;
-    final breathControl =
-        ((100 - loudnessPenalty) * voicedRatio).clamp(0, 100).toDouble();
-    final pitchStability =
-        ((100 - (avgPitchDelta * 1.5)) * voicedRatio).clamp(0, 100).toDouble();
-    final vibratoConsistency = (55 + (voicedRatio * 45) - (avgPitchDelta * 0.6))
-        .clamp(0, 100)
-        .toDouble();
-    final noteTransitionSmoothness =
-        ((100 - (avgPitchDelta * 1.2)) * voicedRatio).clamp(0, 100).toDouble();
-
-    return TrainingAttemptMetricSummary.voice(
-      sampleCount: frameCount,
-      pitchAccuracy: pitchAccuracy,
-      timingAccuracy: timingAccuracy,
-      breathControl: breathControl,
-      pitchStability: pitchStability,
-      vibratoConsistency: vibratoConsistency,
-      noteTransitionSmoothness: noteTransitionSmoothness,
-    );
+    return _metricAccumulator.build().toTrainingAttemptMetricSummary();
   }
 
   Future<void> _startSinging() async {
@@ -352,14 +306,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       _liveCentsError = null;
     });
 
-    _windowFrameCount = 0;
-    _windowVoicedFrameCount = 0;
-    _windowOnPitchFrameCount = 0;
-    _windowPitchTransitions = 0;
-    _windowAbsCentsTotal = 0;
-    _windowLoudnessTotal = 0;
-    _windowPitchDeltaTotal = 0;
-    _windowPreviousFrequencyHz = null;
+    _metricAccumulator.reset();
 
     try {
       await _analyzer.start();
@@ -407,26 +354,20 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
         });
       }
 
-      _windowFrameCount++;
-      _windowLoudnessTotal += frame.loudnessDb;
-
-      if (!frame.voiced || frame.frequencyHz == null) return;
-
-      _windowVoicedFrameCount++;
-      final freq = frame.frequencyHz!;
-      if (currentStage != null) {
-        final absCents = centsError?.abs() ?? 0;
-        _windowAbsCentsTotal += absCents;
-        if (absCents <= 50) {
-          _windowOnPitchFrameCount++;
-        }
-      }
-
-      if (_windowPreviousFrequencyHz != null) {
-        _windowPitchDeltaTotal += (freq - _windowPreviousFrequencyHz!).abs();
-        _windowPitchTransitions++;
-      }
-      _windowPreviousFrequencyHz = freq;
+      final targetHz = currentStage == null
+          ? null
+          : double.tryParse(currentStage.targetLabel) ?? 261.63;
+      _metricAccumulator.addFrame(
+        VocalMetricFrame(
+          timestampMs: frame.timestampMs,
+          targetId: currentStage?.stageId,
+          targetFrequencyHz: targetHz,
+          frequencyHz: frame.frequencyHz,
+          loudnessDb: frame.loudnessDb,
+          voiced: frame.voiced,
+          confidence: frame.confidence,
+        ),
+      );
     });
 
     if (!_hasInstrumentalAudio) {

@@ -400,12 +400,12 @@ class AudioSnippetCleanupOut(BaseModel):
 class AIHealthOut(BaseModel):
   status: Literal["ok", "configured", "degraded", "disabled"]
   detail: str
-  openrouter_enabled: bool
+  google_ai_enabled: bool
   configured: bool
   reachability: Literal["reachable", "unreachable", "unknown", "unconfigured", "disabled"]
   ai_async_enabled: bool
-  openrouter_model: str
-  openrouter_timeout_s: int = Field(ge=1)
+  google_ai_model: str
+  google_ai_timeout_s: int = Field(ge=1)
   reachable: bool
   latency_ms: int | None = Field(default=None, ge=0)
 

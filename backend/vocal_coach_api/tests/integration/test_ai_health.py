@@ -3,11 +3,11 @@ from types import SimpleNamespace
 
 def _settings(*, enabled: bool, keys: list[str]):
   return SimpleNamespace(
-    openrouter_enabled=enabled,
-    openrouter_api_keys=keys,
+    google_ai_enabled=enabled,
+    google_api_keys=keys,
     ai_async_enabled=False,
-    openrouter_model="test-model",
-    openrouter_timeout_s=5,
+    google_ai_model="test-model",
+    google_ai_timeout_s=5,
   )
 
 
@@ -22,6 +22,8 @@ def test_ai_health_reports_disabled_without_claiming_reachability(client, auth_h
   assert response.json()["configured"] is False
   assert response.json()["reachability"] == "disabled"
   assert response.json()["reachable"] is False
+  assert response.json()["google_ai_model"] == "test-model"
+  assert response.json()["google_ai_timeout_s"] == 5
 
 
 def test_ai_health_reports_configured_but_unverified_provider(client, auth_headers, monkeypatch):
@@ -35,3 +37,5 @@ def test_ai_health_reports_configured_but_unverified_provider(client, auth_heade
   assert response.json()["configured"] is True
   assert response.json()["reachability"] == "unknown"
   assert response.json()["reachable"] is False
+  assert response.json()["google_ai_model"] == "test-model"
+  assert response.json()["google_ai_timeout_s"] == 5

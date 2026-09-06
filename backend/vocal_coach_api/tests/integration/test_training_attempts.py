@@ -23,7 +23,7 @@ def _voice_attempt_payload(*, index: int, score_seed: float) -> dict[str, object
     "difficulty": "beginner",
     "duration_sec": 30,
     "metric_summary": {
-      "sample_count": 5,
+      "sample_count": 64,
       "pitch_accuracy": score_seed + 2,
       "timing_accuracy": score_seed + 1,
       "breath_control": score_seed,
@@ -99,6 +99,21 @@ def test_training_attempt_auto_selects_best(client, auth_headers):
   finalize = client.post(f"/v1/sessions/{session_id}/finalize", headers=auth_headers)
   assert finalize.status_code == 200
   assert finalize.json()["status"] == "completed"
+
+
+def test_voice_attempt_rejects_insufficient_audio_evidence(client, auth_headers):
+  session_id = _create_training_session(client, auth_headers)
+  payload = _voice_attempt_payload(index=1, score_seed=95)
+  payload["metric_summary"]["sample_count"] = 8
+
+  response = client.post(
+    f"/v1/sessions/{session_id}/attempts",
+    headers=auth_headers,
+    json=payload,
+  )
+
+  assert response.status_code == 422
+  assert response.json()["error"]["code"] == "INSUFFICIENT_AUDIO_EVIDENCE"
 
 
 def test_training_attempt_enforces_default_max_attempts(client, auth_headers):

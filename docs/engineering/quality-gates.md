@@ -23,7 +23,7 @@ ruff check app tests
 pytest --cov=app --cov-report=term-missing
 ```
 
-Backend tests must not require real Firebase, Firestore, OpenRouter, LRCLIB, or
+Backend tests must not require real Firebase, Firestore, Google AI Studio, LRCLIB, or
 Render credentials. Provider behavior is tested with fakes and bounded failure
 scenarios. Tests must not print credentials or write to a production database.
 

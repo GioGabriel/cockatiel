@@ -2,7 +2,7 @@
 
 Cockatiel is a Flutter vocal-practice app backed by a FastAPI service. It guides
 aspiring singers through short exercises and karaoke practice with local live
-audio feedback, deterministic coaching, and an optional OpenRouter summary.
+audio feedback, deterministic coaching, and an optional Google AI Studio summary.
 
 The deterministic `CoachingLogicEngine` is the product authority for scores,
 strengths, improvements, and next exercises. Remote AI is an enhancement, not a
@@ -54,9 +54,10 @@ Firestore is disabled, empty, or unavailable, the API returns an empty catalog
 or a safe unavailable error rather than presenting demo songs. Production audio
 storage also fails closed instead of falling back to ephemeral local disk.
 
-OpenRouter is optional. The canonical setting is `OPENROUTER_API_KEYS`; the
-legacy singular `OPENROUTER_API_KEY` is accepted only as a migration fallback.
-The backend never logs key values.
+Google AI Studio is optional. Configure comma-separated keys in
+`GOOGLE_API_KEYS` (or the singular local-development fallback
+`GOOGLE_API_KEY`). The default model is `gemini-2.5-flash-lite`; override it
+with `GOOGLE_AI_MODEL` when needed. The backend never logs key values.
 
 ## Local Flutter client
 

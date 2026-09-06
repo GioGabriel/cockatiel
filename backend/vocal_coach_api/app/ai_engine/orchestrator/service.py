@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from app.api.v1.schemas import CoachingFeedback
 from app.ai_engine.prompt_management.registry.service import resolve_feedback_prompts
-from app.ai_engine.providers.openrouter_client import OpenRouterClient
+from app.ai_engine.providers.google_ai_client import GoogleAiStudioClient
 from app.ai_engine.schemas.feedback_payload import LlmFeedbackPayload
 from app.ai_engine.orchestrator.coaching_engine import CoachingLogicEngine
 from app.core.config import settings
@@ -64,8 +64,9 @@ def generate_feedback(
   model_latency_ms = 0
   summary = None
   
-  # 2. OpenRouter Conversational Summary
-  if settings.openrouter_enabled and settings.openrouter_api_keys:
+  # 2. Google AI Studio conversational summary. This remains optional; the
+  # deterministic engine above is authoritative and always produces feedback.
+  if settings.google_ai_enabled and settings.google_api_keys:
     system_prompt, user_prompt, resolved_prompt_version = resolve_feedback_prompts(
       prompt_version=settings.prompt_version,
       session_id=session_id,
@@ -78,33 +79,35 @@ def generate_feedback(
     prompt_metric_suffix = _metric_name_for_prompt_version(prompt_version)
 
     try:
-      client = OpenRouterClient(
-        api_keys=settings.openrouter_api_keys,
-        model=settings.openrouter_model,
-        timeout_s=settings.openrouter_timeout_s,
-        temperature=settings.openrouter_temperature,
-        max_total_time_s=getattr(settings, "openrouter_max_total_time_s", settings.openrouter_timeout_s),
+      client = GoogleAiStudioClient(
+        api_keys=settings.google_api_keys,
+        model=settings.google_ai_model,
+        timeout_s=settings.google_ai_timeout_s,
+        temperature=settings.google_ai_temperature,
+        max_output_tokens=settings.google_ai_max_output_tokens,
+        fallback_models=settings.google_ai_fallback_models,
+        max_total_time_s=getattr(settings, "google_ai_max_total_time_s", settings.google_ai_timeout_s),
       )
       payload, model_latency_ms = client.generate_json(system_prompt=system_prompt, user_prompt=user_prompt)
       validated_payload = LlmFeedbackPayload.model_validate(payload)
       summary = validated_payload.summary
-      model_used = f"openrouter:{client.model}"
+      model_used = f"google-ai-studio:{client.model}"
       
       increment("ai_feedback_success_total")
       increment(f"ai_feedback_success_prompt_{prompt_metric_suffix}_total")
-      increment(f"ai_model_usage_openrouter_{_metric_name_for_model(client.model)}")
+      increment(f"ai_model_usage_google_ai_{_metric_name_for_model(client.model)}")
       observe("ai_feedback_latency_ms", model_latency_ms)
 
     except ValidationError as exc:
       logger.warning(
-        "openrouter_feedback_validation_failed session_id=%s error_type=%s",
+        "google_ai_feedback_validation_failed session_id=%s error_type=%s",
         session_id,
         type(exc).__name__,
       )
       increment("ai_feedback_validation_failure_total")
     except Exception as exc:
       logger.warning(
-        "openrouter_feedback_failed session_id=%s error_type=%s",
+        "google_ai_feedback_failed session_id=%s error_type=%s",
         session_id,
         type(exc).__name__,
       )
@@ -120,11 +123,11 @@ def generate_feedback(
       strengths=strengths,
       improvements=improvements,
     )
-    if model_used == "coaching-logic-engine" and settings.openrouter_enabled and settings.openrouter_api_keys:
+    if model_used == "coaching-logic-engine" and settings.google_ai_enabled and settings.google_api_keys:
       model_used = "coaching-logic-engine-fallback"
     increment("ai_feedback_fallback_total")
     increment(f"ai_feedback_fallback_prompt_{_metric_name_for_prompt_version(prompt_version)}_total")
-    fallback_reason = "openrouter_unavailable" if settings.openrouter_enabled else "openrouter_disabled"
+    fallback_reason = "google_ai_unavailable" if settings.google_ai_enabled else "google_ai_disabled"
     increment(f"ai_feedback_fallback_reason_{_metric_name_for_reason(fallback_reason)}_total")
 
   total_latency_ms = int((perf_counter() - start) * 1000)

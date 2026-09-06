@@ -26,21 +26,21 @@ services:
         value: "firestore"
       - key: METRICS_ACCESS_TOKEN
         sync: false
-      - key: OPENROUTER_ENABLED
-        # Deterministic coaching remains authoritative; enable remote summaries
-        # explicitly only after an OpenRouter key is configured.
-        value: "false"
-      - key: OPENROUTER_API_KEYS
+      - key: GOOGLE_AI_ENABLED
+        # Deterministic coaching remains authoritative; enable summaries only
+        # when the protected Google AI Studio key list is configured.
+        value: "true"
+      - key: GOOGLE_API_KEYS
         sync: false
-      # Legacy deployments may continue using OPENROUTER_API_KEY; the backend
-      # accepts it when the canonical plural variable is not configured.
-      - key: OPENROUTER_API_KEY
-        sync: false
-      - key: OPENROUTER_MODEL
-        value: "meta-llama/llama-3.1-8b-instruct:free"
-      - key: OPENROUTER_TIMEOUT_S
+      - key: GOOGLE_AI_MODEL
+        value: "gemini-2.5-flash-lite"
+      - key: GOOGLE_AI_TIMEOUT_S
         value: "20"
-      - key: OPENROUTER_MAX_TOTAL_TIME_S
+      - key: GOOGLE_AI_MAX_TOTAL_TIME_S
         value: "20"
+      - key: GOOGLE_AI_TEMPERATURE
+        value: "0.2"
+      - key: GOOGLE_AI_MAX_OUTPUT_TOKENS
+        value: "256"
       - key: PYTHON_VERSION
         value: "3.11.9"

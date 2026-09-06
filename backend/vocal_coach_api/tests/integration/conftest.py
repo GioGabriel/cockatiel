@@ -15,8 +15,8 @@ _TEST_PROMPT_VERSION = os.getenv("TEST_PROMPT_VERSION", "v1")
 
 os.environ["AUTH_BYPASS"] = "true"
 os.environ["FIRESTORE_ENABLED"] = "false"
-os.environ["OPENROUTER_ENABLED"] = "false"
-os.environ["OPENROUTER_API_KEYS"] = ""
+os.environ["GOOGLE_AI_ENABLED"] = "false"
+os.environ["GOOGLE_API_KEYS"] = ""
 os.environ["PROMPT_VERSION"] = _TEST_PROMPT_VERSION
 os.environ["AUDIO_SNIPPET_STORAGE_BACKEND"] = "local"
 os.environ["AUDIO_SNIPPET_LOCAL_DIR"] = "/tmp/vocal-coach-audio-snippets-tests"

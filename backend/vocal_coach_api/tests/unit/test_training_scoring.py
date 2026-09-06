@@ -7,7 +7,7 @@ def test_resonance_placement_scoring_uses_focus_weights_and_thresholds():
   result = score_training_attempt(
     exercise_id="resonance_placement",
     metric_summary={
-      "sample_count": 6,
+      "sample_count": 64,
       "pitch_accuracy": 74,
       "timing_accuracy": 68,
       "breath_control": 88,
@@ -27,7 +27,7 @@ def test_note_transition_drill_prioritizes_transition_metric():
   result = score_training_attempt(
     exercise_id="note_transition_drill",
     metric_summary={
-      "sample_count": 6,
+      "sample_count": 64,
       "pitch_accuracy": 78,
       "timing_accuracy": 72,
       "breath_control": 70,
@@ -46,7 +46,7 @@ def test_breath_support_ladder_prioritizes_breath_control():
   result = score_training_attempt(
     exercise_id="breath_support_ladder",
     metric_summary={
-      "sample_count": 6,
+      "sample_count": 64,
       "phase_completion_rate": 92,
       "pace_adherence": 88,
       "cycle_consistency": 84,

@@ -19,6 +19,10 @@ BREATHING_METRIC_FIELDS = (
   "completion_rate",
 )
 
+SCORING_VERSION = "2.0"
+MIN_EVIDENCE_SAMPLES = 16
+RELIABLE_EVIDENCE_SAMPLES = 128
+
 
 def metric_mode_for_exercise(exercise_id: str) -> str:
   exercise = get_exercise(exercise_id) or {}
@@ -69,6 +73,15 @@ def _metric_value(metric_summary: dict[str, Any], field: str) -> float:
   return round(min(max(_safe_float(metric_summary.get(field)), 0.0), 100.0), 2)
 
 
+def _evidence_quality(metric_summary: dict[str, Any]) -> str:
+  sample_count = max(0, int(_safe_float(metric_summary.get("sample_count"), 0.0)))
+  if sample_count < MIN_EVIDENCE_SAMPLES:
+    return "insufficient"
+  if sample_count < RELIABLE_EVIDENCE_SAMPLES:
+    return "limited"
+  return "reliable"
+
+
 def score_training_attempt(
   *,
   exercise_id: str,
@@ -87,6 +100,7 @@ def score_training_attempt(
     for field in metric_fields
   }
   overall_score = round(sum(weighted_components.values()), 2)
+  evidence_quality = _evidence_quality(metric_summary)
 
   default_focus_metrics = list(metric_fields[:3])
   focus_metrics = [
@@ -108,7 +122,7 @@ def score_training_attempt(
     for field, value in dict(thresholds.get("metric_floors") or {}).items()
     if field in metric_fields
   }
-  passed_threshold = overall_score >= overall_threshold and all(
+  passed_threshold = evidence_quality != "insufficient" and overall_score >= overall_threshold and all(
     metric_scores.get(field, 0.0) >= value
     for field, value in metric_floors.items()
   )
@@ -120,6 +134,9 @@ def score_training_attempt(
       "focus_metrics": focus_metrics,
       "metric_scores": metric_scores,
       "weighted_components": weighted_components,
+      "scoring_version": SCORING_VERSION,
+      "sample_count": max(0, int(_safe_float(metric_summary.get("sample_count"), 0.0))),
+      "evidence_quality": evidence_quality,
     },
     "strongest_metric": strongest_metric,
     "weakest_metric": weakest_metric,

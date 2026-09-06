@@ -49,7 +49,7 @@ mobile briefing/session surfaces it before and during practice. This keeps a
 pedagogical variation from looking like missing content.
 
 The deterministic coaching logic engine remains authoritative for metric
-interpretation. OpenRouter may add a bounded natural-language summary, but it
+interpretation. Google AI Studio may add a bounded natural-language summary, but it
 does not replace the metrics or the local live feedback path.
 
 ## Audio privacy

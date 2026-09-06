@@ -6,6 +6,7 @@ from app.api.v1.schemas import CanonicalMetric, CoachingFeedback
 from app.core.exceptions import ApiError
 from app.repositories.provider import get_session_repository
 from app.modules.training.scoring import (
+  MIN_EVIDENCE_SAMPLES,
   VOICE_METRIC_FIELDS,
   metric_fields_for_exercise,
   metric_mode_for_exercise,
@@ -194,9 +195,16 @@ def summarize_metrics(session_id: str) -> dict[str, float | int]:
   }
   for field in VOICE_METRIC_FIELDS:
     summary[field] = round(sum(float(item.get(field, 0.0)) for item in metrics) / len(metrics), 2)
-  summary["overall_score"] = round(
-    sum(float(summary[field]) for field in VOICE_METRIC_FIELDS) / len(VOICE_METRIC_FIELDS),
-    2,
+  exercise_id = str(
+    (session or {}).get("exercise_id")
+    or (session or {}).get("exercise_type")
+    or "training"
+  )
+  summary["overall_score"] = float(
+    score_training_attempt(
+      exercise_id=exercise_id,
+      metric_summary=summary,
+    )["overall_score"]
   )
   return summary
 
@@ -339,6 +347,12 @@ def save_training_attempt(
   for field in required_fields:
     summary[field] = round(float(metric_summary.get(field, 0.0)), 2)
   sample_count = int(metric_summary.get("sample_count") or 1)
+  if expected_metric_mode == "voice" and sample_count < MIN_EVIDENCE_SAMPLES:
+    raise ApiError(
+      code="INSUFFICIENT_AUDIO_EVIDENCE",
+      message="Record a little more singing before saving this attempt.",
+      status_code=422,
+    )
   summary["sample_count"] = max(sample_count, 1)
   if expected_metric_mode == "breathing":
     summary["interruption_count"] = max(0, int(metric_summary.get("interruption_count") or 0))

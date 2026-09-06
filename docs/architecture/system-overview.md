@@ -16,7 +16,7 @@ This document outlines the high-level architecture of the Vocal Coach (Cockatiel
 - **Deployment target:** Render (`render.yaml`); the live service and environment
   variables are external state and must be verified separately.
 - **Key Capabilities:**
-  - Deterministic coaching orchestration with optional bounded OpenRouter summaries.
+  - Deterministic coaching orchestration with optional bounded Google AI Studio summaries.
   - Aggregating vocal session metrics.
   - Generating detailed AI coaching feedback asynchronously.
 

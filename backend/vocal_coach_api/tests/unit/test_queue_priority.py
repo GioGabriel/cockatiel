@@ -3,7 +3,7 @@ import os
 
 os.environ["AUTH_BYPASS"] = "true"
 os.environ["FIRESTORE_ENABLED"] = "false"
-os.environ["OPENROUTER_ENABLED"] = "false"
+os.environ["GOOGLE_AI_ENABLED"] = "false"
 os.environ["AUDIO_SNIPPET_STORAGE_BACKEND"] = "local"
 os.environ["AUDIO_SNIPPET_LOCAL_DIR"] = "/tmp/vocal-coach-audio-test"
 os.environ["AUDIO_SNIPPET_RETENTION_DAYS"] = "30"

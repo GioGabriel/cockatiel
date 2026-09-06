@@ -106,7 +106,7 @@ class FeedbackPage extends StatelessWidget {
     if (modelUsed.startsWith('coaching-logic-engine')) {
       return 'Local coaching logic (available without remote AI)';
     }
-    if (modelUsed.startsWith('openrouter:')) {
+    if (modelUsed.startsWith('google-ai-studio:')) {
       return 'Optional AI summary with local coaching metrics';
     }
     return 'Coaching review';

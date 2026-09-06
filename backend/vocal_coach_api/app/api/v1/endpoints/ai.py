@@ -11,31 +11,31 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 @router.get("/health", response_model=AIHealthOut)
 def get_ai_health(_: dict = Depends(get_current_user)) -> AIHealthOut:
-  if not settings.openrouter_enabled:
+  if not settings.google_ai_enabled:
     return AIHealthOut(
       status="disabled",
-      detail="OpenRouter is disabled by configuration.",
-      openrouter_enabled=False,
+      detail="Google AI Studio summaries are disabled by configuration.",
+      google_ai_enabled=False,
       configured=False,
       reachability="disabled",
       ai_async_enabled=settings.ai_async_enabled,
-      openrouter_model=settings.openrouter_model,
-      openrouter_timeout_s=settings.openrouter_timeout_s,
+      google_ai_model=settings.google_ai_model,
+      google_ai_timeout_s=settings.google_ai_timeout_s,
       reachable=False,
       latency_ms=None,
     )
 
-  configured = bool(settings.openrouter_api_keys)
+  configured = bool(settings.google_api_keys)
   if not configured:
     return AIHealthOut(
       status="degraded",
-      detail="OpenRouter is enabled but no API key is configured. Deterministic coaching remains available.",
-      openrouter_enabled=True,
+      detail="Google AI Studio is enabled but no API key is configured. Deterministic coaching remains available.",
+      google_ai_enabled=True,
       configured=False,
       reachability="unconfigured",
       ai_async_enabled=settings.ai_async_enabled,
-      openrouter_model=settings.openrouter_model,
-      openrouter_timeout_s=settings.openrouter_timeout_s,
+      google_ai_model=settings.google_ai_model,
+      google_ai_timeout_s=settings.google_ai_timeout_s,
       reachable=False,
       latency_ms=None,
     )
@@ -44,13 +44,13 @@ def get_ai_health(_: dict = Depends(get_current_user)) -> AIHealthOut:
   # send a provider request, so it must never claim that a key is reachable.
   return AIHealthOut(
     status="configured",
-    detail="OpenRouter credentials are configured; provider reachability has not been probed.",
-    openrouter_enabled=True,
+    detail="Google AI Studio credentials are configured; provider reachability has not been probed.",
+    google_ai_enabled=True,
     configured=True,
     reachability="unknown",
     ai_async_enabled=settings.ai_async_enabled,
-    openrouter_model=settings.openrouter_model,
-    openrouter_timeout_s=settings.openrouter_timeout_s,
+    google_ai_model=settings.google_ai_model,
+    google_ai_timeout_s=settings.google_ai_timeout_s,
     reachable=False,
     latency_ms=None,
   )

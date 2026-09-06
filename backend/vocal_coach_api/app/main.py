@@ -30,12 +30,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
   ai_worker: AIEvaluationWorker | None = None
   snippet_cleanup_worker: AudioSnippetCleanupWorker | None = None
   logger.info(
-    "runtime_config env=%s auth_bypass=%s firestore_enabled=%s openrouter_enabled=%s openrouter_model=%s prompt_version=%s ai_async_enabled=%s ai_worker_enabled=%s audio_snippet_storage_backend=%s audio_snippet_retention_days=%s audio_snippet_cleanup_worker_enabled=%s audio_snippet_cleanup_interval_sec=%s",
+    "runtime_config env=%s auth_bypass=%s firestore_enabled=%s google_ai_enabled=%s google_ai_keys_configured=%s google_ai_model=%s prompt_version=%s ai_async_enabled=%s ai_worker_enabled=%s audio_snippet_storage_backend=%s audio_snippet_retention_days=%s audio_snippet_cleanup_worker_enabled=%s audio_snippet_cleanup_interval_sec=%s",
     settings.app_env,
     settings.auth_bypass,
     settings.firestore_enabled,
-    settings.openrouter_enabled,
-    settings.openrouter_model,
+    settings.google_ai_enabled,
+    bool(settings.google_api_keys),
+    settings.google_ai_model,
     settings.prompt_version,
     settings.ai_async_enabled,
     settings.ai_worker_enabled,

@@ -36,7 +36,7 @@ changes are preferred over broad rewrites that are difficult to validate.
 
 - Use strict request models for public input and version changes that affect persisted data.
 - Tests should assert behavior and user-visible contracts, not private implementation details.
-- Prefer deterministic fakes for Firebase, Firestore, OpenRouter, LRCLIB, and audio providers.
+- Prefer deterministic fakes for Firebase, Firestore, Google AI Studio, LRCLIB, and audio providers.
 - Coverage is reported by risk area; a global 100% threshold is not a substitute for authorization, isolation, fallback, and lifecycle tests.
 
 ## Design rules

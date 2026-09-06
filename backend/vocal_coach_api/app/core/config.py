@@ -62,12 +62,20 @@ def _cors_allowed_origins_from_env() -> list[str]:
   return origins
 
 
-def _openrouter_api_keys_from_env() -> list[str]:
-  """Read the plural key first, while safely supporting the legacy singular name."""
-  plural = _as_csv("OPENROUTER_API_KEYS", "")
+def _google_api_keys_from_env() -> list[str]:
+  """Read comma-separated Google AI Studio keys without exposing their values."""
+  plural = _as_csv("GOOGLE_API_KEYS", "")
   if plural:
     return plural
-  return _as_csv("OPENROUTER_API_KEY", "")
+  return _as_csv("GOOGLE_API_KEY", "")
+
+
+def _google_ai_enabled_default() -> bool:
+  return bool(_google_api_keys_from_env())
+
+
+def _google_ai_fallback_models_from_env() -> list[str]:
+  return _as_csv("GOOGLE_AI_FALLBACK_MODELS", "gemini-2.5-flash")
 
 
 def _auth_bypass_enabled() -> bool:
@@ -123,12 +131,14 @@ class Settings:
 
   prompt_version: str = os.getenv("PROMPT_VERSION", "v1")
 
-  openrouter_enabled: bool = _as_bool("OPENROUTER_ENABLED", False)
-  openrouter_api_keys: list[str] = field(default_factory=_openrouter_api_keys_from_env)
-  openrouter_model: str = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
-  openrouter_timeout_s: int = _as_int("OPENROUTER_TIMEOUT_S", 20, minimum=1, maximum=60)
-  openrouter_max_total_time_s: float = _as_float("OPENROUTER_MAX_TOTAL_TIME_S", 20.0, minimum=1.0, maximum=90.0)
-  openrouter_temperature: float = _as_float("OPENROUTER_TEMPERATURE", 0.2, minimum=0.0, maximum=2.0)
+  google_ai_enabled: bool = _as_bool("GOOGLE_AI_ENABLED", _google_ai_enabled_default())
+  google_api_keys: list[str] = field(default_factory=_google_api_keys_from_env)
+  google_ai_model: str = os.getenv("GOOGLE_AI_MODEL", "gemini-2.5-flash-lite")
+  google_ai_fallback_models: list[str] = field(default_factory=_google_ai_fallback_models_from_env)
+  google_ai_timeout_s: int = _as_int("GOOGLE_AI_TIMEOUT_S", 20, minimum=1, maximum=60)
+  google_ai_max_total_time_s: float = _as_float("GOOGLE_AI_MAX_TOTAL_TIME_S", 20.0, minimum=1.0, maximum=90.0)
+  google_ai_temperature: float = _as_float("GOOGLE_AI_TEMPERATURE", 0.2, minimum=0.0, maximum=1.0)
+  google_ai_max_output_tokens: int = _as_int("GOOGLE_AI_MAX_OUTPUT_TOKENS", 256, minimum=32, maximum=1024)
 
 
 settings = Settings()

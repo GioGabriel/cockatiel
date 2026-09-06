@@ -14,6 +14,8 @@ def test_feedback_orchestrator_uses_google_ai_only_for_the_summary(monkeypatch):
     def generate_json(self, *, system_prompt: str, user_prompt: str):
       assert system_prompt
       assert user_prompt
+      assert "pitch_accuracy" in user_prompt
+      assert "evidence_quality" in user_prompt
       return {"summary": "Your pitch stayed connected."}, 12
 
   monkeypatch.setattr(
@@ -47,8 +49,20 @@ def test_feedback_orchestrator_uses_google_ai_only_for_the_summary(monkeypatch):
       "vibrato_consistency": 70,
       "note_transition_smoothness": 76,
     },
+    score_breakdown={
+      "metric_mode": "voice",
+      "focus_metrics": ["pitch_accuracy", "timing_accuracy"],
+      "metric_scores": {"pitch_accuracy": 86, "timing_accuracy": 78},
+      "weighted_components": {"pitch_accuracy": 25.8, "timing_accuracy": 15.6},
+      "scoring_version": "2.0",
+      "sample_count": 128,
+      "evidence_quality": "reliable",
+    },
   )
 
   assert feedback.summary == "Your pitch stayed connected."
   assert feedback.model_used == "google-ai-studio:gemini-test-model"
   assert feedback.overall_score == 82
+  assert feedback.score_breakdown is not None
+  assert feedback.score_breakdown["metric_scores"]["pitch_accuracy"] == 86
+  assert feedback.score_breakdown["evidence_quality"] == "reliable"

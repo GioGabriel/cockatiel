@@ -57,3 +57,26 @@ def test_breathing_feedback_handles_interrupted_cycles():
   assert improvements
   assert next_exercises
   assert any("interruption" in item.lower() for item in improvements)
+
+
+def test_fallback_summary_explains_the_score_and_lowest_measured_area():
+  summary = CoachingLogicEngine.generate_fallback_summary(
+    overall_score=7,
+    exercise_type="warmup_pitch",
+    metric_summary={
+      "metric_mode": "voice",
+      "sample_count": 180,
+      "pitch_accuracy": 7,
+      "timing_accuracy": 19,
+      "breath_control": 24,
+      "pitch_stability": 18,
+      "vibrato_consistency": 12,
+      "note_transition_smoothness": 15,
+    },
+    strengths=["Your practice has a clear baseline"],
+    improvements=["Several notes drifted above or below the target"],
+  )
+
+  assert "7/100" in summary
+  assert "pitch accuracy" in summary.lower()
+  assert "7/100" in summary.lower().split("pitch accuracy", 1)[1]

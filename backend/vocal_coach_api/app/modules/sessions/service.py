@@ -16,17 +16,23 @@ from app.modules.training.service import build_ai_feedback_context, build_traini
 
 
 def finalize_session_logic(session_id: str, user_id: str) -> dict[str, Any]:
-  overall_score = evaluate_score(session_id)
+  session = get_session(session_id, user_id)
   metric_summary = summarize_metrics(session_id)
   feedback_context = get_ai_feedback_context(session_id=session_id, user_id=user_id)
+  scoring = score_training_attempt(
+    exercise_id=str(session.get("exercise_id") or session.get("exercise_type") or "training"),
+    metric_summary=metric_summary,
+  )
+  overall_score = float(scoring["overall_score"])
   
   from app.ai_engine.orchestrator.service import generate_feedback
   feedback = generate_feedback(
     session_id=session_id,
     overall_score=overall_score,
-    exercise_type=get_session(session_id, user_id)["exercise_type"],
+    exercise_type=session["exercise_type"],
     metric_summary=metric_summary,
     session_context=feedback_context,
+    score_breakdown=scoring["score_breakdown"],
   )
   completed_session = complete_session(session_id=session_id, user_id=user_id, feedback=feedback)
   

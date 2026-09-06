@@ -7,9 +7,12 @@ Pipeline stages:
 3. The deterministic Coaching Logic Engine evaluates metrics and remains authoritative.
 4. If configured, Google AI Studio is used only for a bounded natural-language summary.
 5. The backend tries configured Gemini models/keys until a valid structured payload is produced.
-6. Google AI Studio is asked for `application/json` with a schema containing one
-   bounded `summary` string; Pydantic validates the returned payload before it
-   can replace the deterministic summary.
+6. Google AI Studio receives the deterministic score breakdown, evidence quality,
+   sample count, strengths, and improvements so it can explain the result in
+   plain language. It is asked for `application/json` with a schema containing
+   one bounded `summary` string; Pydantic validates the returned payload before
+   it can replace the deterministic summary. It never receives raw audio and
+   cannot change the numeric score.
 7. On any provider failure or malformed output, the orchestrator applies deterministic fallback feedback.
 8. Response metadata is persisted with `model_used`, `prompt_version`, and `latency_ms`.
 

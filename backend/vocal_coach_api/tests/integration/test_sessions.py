@@ -55,6 +55,9 @@ def test_sessions_vertical_slice_flow(client, auth_headers, expected_feedback_mo
   assert finalize_payload["feedback"]["session_id"] == session_id
   assert finalize_payload["feedback"]["model_used"] == "coaching-logic-engine"
   assert finalize_payload["feedback"]["prompt_version"] in {"v1", "v1a", "v1b"}
+  assert finalize_payload["feedback"]["overall_score"] <= 100
+  assert finalize_payload["feedback"]["score_breakdown"]["evidence_quality"] == "insufficient"
+  assert "pitch_accuracy" in finalize_payload["feedback"]["score_breakdown"]["metric_scores"]
 
   session_response = client.get(f"/v1/sessions/{session_id}", headers=auth_headers)
   assert session_response.status_code == 200

@@ -80,7 +80,7 @@ class _QueueJobCard extends StatelessWidget {
   Future<void> _openFeedback(BuildContext context) async {
     try {
       final session = await apiClient.fetchSession(sessionId: job.sessionId);
-      CoachingFeedback? feedback = session.feedback;
+      CoachingFeedback? feedback = session.feedbackForDisplay;
       if (feedback == null && session.status == 'completed') {
         feedback = await apiClient.fetchFeedback(sessionId: job.sessionId);
       }

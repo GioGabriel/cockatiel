@@ -10,6 +10,7 @@ from app.ai_engine.providers.google_ai_client import GoogleAiStudioClient
 from app.ai_engine.schemas.feedback_payload import LlmFeedbackPayload
 from app.ai_engine.orchestrator.coaching_engine import CoachingLogicEngine
 from app.core.config import settings
+from app.modules.training.scoring import score_training_attempt
 from app.observability.metrics.registry import increment, observe
 
 logger = logging.getLogger("vocal-coach-api.ai")
@@ -48,9 +49,16 @@ def generate_feedback(
   exercise_type: str,
   metric_summary: dict[str, float | int],
   session_context: dict[str, Any] | None = None,
+  score_breakdown: dict[str, Any] | None = None,
 ) -> CoachingFeedback:
   increment("ai_feedback_requests_total")
   start = perf_counter()
+
+  if score_breakdown is None:
+    score_breakdown = score_training_attempt(
+      exercise_id=exercise_type,
+      metric_summary=metric_summary,
+    )["score_breakdown"]
 
   # 1. Deterministic Coaching Logic Engine
   strengths, improvements, next_exercises = CoachingLogicEngine.evaluate(
@@ -74,6 +82,7 @@ def generate_feedback(
       overall_score=overall_score,
       strengths=strengths,
       improvements=improvements,
+      score_breakdown=score_breakdown,
     )
     prompt_version = resolved_prompt_version
     prompt_metric_suffix = _metric_name_for_prompt_version(prompt_version)
@@ -142,4 +151,5 @@ def generate_feedback(
     model_used=model_used,
     prompt_version=prompt_version,
     latency_ms=total_latency_ms,
+    score_breakdown=score_breakdown,
   )

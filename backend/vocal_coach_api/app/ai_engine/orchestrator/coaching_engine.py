@@ -68,6 +68,19 @@ _BREATHING_GUIDANCE = {
   },
 }
 
+_METRIC_LABELS = {
+  "pitch_accuracy": "pitch accuracy",
+  "timing_accuracy": "timing",
+  "breath_control": "breath control",
+  "pitch_stability": "note steadiness",
+  "vibrato_consistency": "vibrato control",
+  "note_transition_smoothness": "note transitions",
+  "phase_completion_rate": "breathing phases",
+  "pace_adherence": "breathing pace",
+  "cycle_consistency": "cycle consistency",
+  "completion_rate": "routine completion",
+}
+
 
 def _safe_score(value: Any) -> float:
   try:
@@ -161,13 +174,29 @@ class CoachingLogicEngine:
     if _sample_count(metric_summary) <= 0:
       return "We could not capture enough practice data for a reliable score. Check your microphone and try a short take."
 
-    parts = [f"You achieved an overall score of {score_int}% on this {mode_label}."]
-    if strengths:
-      parts.append(f"Your primary strength was your {strengths[0].lower()}.")
+    parts = [f"Your practice score was {score_int}/100 for this {mode_label}."]
+    weakest_metric = CoachingLogicEngine._weakest_metric(metric_summary)
+    if weakest_metric is not None:
+      weakest_field, weakest_score = weakest_metric
+      parts.append(
+        f"Your first focus area is {_METRIC_LABELS.get(weakest_field, weakest_field)} at "
+        f"{int(round(weakest_score))}/100 in this take."
+      )
     if improvements:
-      parts.append(f"For your next take, focus on {improvements[0].lower()}.")
+      parts.append(f"Next step: {improvements[0].rstrip('.')}.")
     parts.append("Short, regular practice will help these skills feel more natural.")
     return " ".join(parts)
+
+  @staticmethod
+  def _weakest_metric(metrics: dict[str, Any]) -> tuple[str, float] | None:
+    guidance = _BREATHING_GUIDANCE if metrics.get("metric_mode") == "breathing" else _VOICE_GUIDANCE
+    candidates: list[tuple[str, float]] = []
+    for field in guidance:
+      if field == "vibrato_consistency" and field not in metrics:
+        continue
+      if field in metrics:
+        candidates.append((field, _safe_score(metrics.get(field))))
+    return min(candidates, key=lambda item: item[1]) if candidates else None
 
   @staticmethod
   def _evaluate_voice(

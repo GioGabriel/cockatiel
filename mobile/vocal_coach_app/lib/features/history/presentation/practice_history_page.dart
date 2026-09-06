@@ -314,12 +314,12 @@ class _SessionLogCardState extends State<_SessionLogCard> {
     HapticFeedback.lightImpact();
 
     try {
-      CoachingFeedback? feedback = widget.session.feedback;
+      CoachingFeedback? feedback = widget.session.feedbackForDisplay;
       if (feedback == null) {
         final fullSession = await widget.apiClient.fetchSession(
           sessionId: widget.session.sessionId,
         );
-        feedback = fullSession.feedback;
+        feedback = fullSession.feedbackForDisplay;
         if (feedback == null && fullSession.status == 'completed') {
           feedback = await widget.apiClient.fetchFeedback(
             sessionId: widget.session.sessionId,

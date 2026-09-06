@@ -72,6 +72,78 @@ class MetricsAcceptedResponse {
   }
 }
 
+class FeedbackScoreBreakdown {
+  FeedbackScoreBreakdown({
+    required this.metricMode,
+    required this.focusMetrics,
+    required this.metricScores,
+    required this.weightedComponents,
+    required this.scoringVersion,
+    required this.sampleCount,
+    required this.evidenceQuality,
+  });
+
+  final String metricMode;
+  final List<String> focusMetrics;
+  final Map<String, double> metricScores;
+  final Map<String, double> weightedComponents;
+  final String scoringVersion;
+  final int sampleCount;
+  final String evidenceQuality;
+
+  factory FeedbackScoreBreakdown.fromJson(Map<String, dynamic> json) {
+    final rawMetricScores =
+        json['metric_scores'] as Map<String, dynamic>? ?? const {};
+    final rawWeightedComponents =
+        json['weighted_components'] as Map<String, dynamic>? ?? const {};
+
+    return FeedbackScoreBreakdown(
+      metricMode: (json['metric_mode'] as String?) ?? 'voice',
+      focusMetrics:
+          (json['focus_metrics'] as List<dynamic>? ?? const <dynamic>[])
+              .whereType<String>()
+              .toList(),
+      metricScores: rawMetricScores.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      ),
+      weightedComponents: rawWeightedComponents.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      ),
+      scoringVersion: (json['scoring_version'] as String?) ?? 'unknown',
+      sampleCount: (json['sample_count'] as num?)?.toInt() ?? 0,
+      evidenceQuality: (json['evidence_quality'] as String?) ?? 'unknown',
+    );
+  }
+
+  static FeedbackScoreBreakdown? fromTrainingAttempt(TrainingAttempt attempt) {
+    final attemptBreakdown = attempt.scoreBreakdown;
+    if (attemptBreakdown == null) return null;
+
+    final sampleCount = attemptBreakdown.sampleCount > 0
+        ? attemptBreakdown.sampleCount
+        : attempt.metricSummary.sampleCount;
+    final evidenceQuality = attemptBreakdown.evidenceQuality == 'unknown'
+        ? _evidenceQualityForSampleCount(sampleCount)
+        : attemptBreakdown.evidenceQuality;
+
+    return FeedbackScoreBreakdown(
+      metricMode: attempt.metricSummary.metricMode,
+      focusMetrics: attemptBreakdown.focusMetrics,
+      metricScores: attemptBreakdown.metricScores,
+      weightedComponents: attemptBreakdown.weightedComponents,
+      scoringVersion: attemptBreakdown.scoringVersion,
+      sampleCount: sampleCount,
+      evidenceQuality: evidenceQuality,
+    );
+  }
+
+  static String _evidenceQualityForSampleCount(int sampleCount) {
+    if (sampleCount < 16) return 'insufficient';
+    if (sampleCount < 128) return 'limited';
+    return 'reliable';
+  }
+}
+
 class CoachingFeedback {
   CoachingFeedback({
     required this.sessionId,
@@ -83,6 +155,7 @@ class CoachingFeedback {
     this.summary,
     this.promptVersion,
     this.latencyMs,
+    this.scoreBreakdown,
   });
 
   final String sessionId;
@@ -94,6 +167,7 @@ class CoachingFeedback {
   final String modelUsed;
   final String? promptVersion;
   final int? latencyMs;
+  final FeedbackScoreBreakdown? scoreBreakdown;
 
   factory CoachingFeedback.fromJson(Map<String, dynamic> json) {
     return CoachingFeedback(
@@ -106,6 +180,26 @@ class CoachingFeedback {
       modelUsed: json['model_used'] as String,
       promptVersion: json['prompt_version'] as String?,
       latencyMs: (json['latency_ms'] as num?)?.toInt(),
+      scoreBreakdown: json['score_breakdown'] == null
+          ? null
+          : FeedbackScoreBreakdown.fromJson(
+              json['score_breakdown'] as Map<String, dynamic>,
+            ),
+    );
+  }
+
+  CoachingFeedback copyWith({FeedbackScoreBreakdown? scoreBreakdown}) {
+    return CoachingFeedback(
+      sessionId: sessionId,
+      overallScore: overallScore,
+      strengths: strengths,
+      improvements: improvements,
+      nextExercises: nextExercises,
+      summary: summary,
+      modelUsed: modelUsed,
+      promptVersion: promptVersion,
+      latencyMs: latencyMs,
+      scoreBreakdown: scoreBreakdown ?? this.scoreBreakdown,
     );
   }
 }
@@ -348,11 +442,17 @@ class TrainingAttemptScoreBreakdown {
     required this.focusMetrics,
     required this.metricScores,
     required this.weightedComponents,
+    this.scoringVersion = 'unknown',
+    this.sampleCount = 0,
+    this.evidenceQuality = 'unknown',
   });
 
   final List<String> focusMetrics;
   final Map<String, double> metricScores;
   final Map<String, double> weightedComponents;
+  final String scoringVersion;
+  final int sampleCount;
+  final String evidenceQuality;
 
   factory TrainingAttemptScoreBreakdown.fromJson(Map<String, dynamic> json) {
     final rawMetricScores =
@@ -370,6 +470,9 @@ class TrainingAttemptScoreBreakdown {
       weightedComponents: rawWeighted.map(
         (key, value) => MapEntry(key, (value as num).toDouble()),
       ),
+      scoringVersion: (json['scoring_version'] as String?) ?? 'unknown',
+      sampleCount: (json['sample_count'] as num?)?.toInt() ?? 0,
+      evidenceQuality: (json['evidence_quality'] as String?) ?? 'unknown',
     );
   }
 }
@@ -542,6 +645,30 @@ class SessionDetailsResponse {
   final List<TrainingAttempt>? attempts;
   final int? createdAt;
   final int? completedAt;
+
+  CoachingFeedback? get feedbackForDisplay {
+    final currentFeedback = feedback;
+    if (currentFeedback == null || currentFeedback.scoreBreakdown != null) {
+      return currentFeedback;
+    }
+
+    final savedAttempts = attempts ?? const <TrainingAttempt>[];
+    TrainingAttempt? bestAttempt;
+    for (final attempt in savedAttempts) {
+      if (attempt.isBest) {
+        bestAttempt = attempt;
+        break;
+      }
+    }
+    bestAttempt ??= savedAttempts.isEmpty ? null : savedAttempts.first;
+
+    final derivedBreakdown = bestAttempt == null
+        ? null
+        : FeedbackScoreBreakdown.fromTrainingAttempt(bestAttempt);
+    return derivedBreakdown == null
+        ? currentFeedback
+        : currentFeedback.copyWith(scoreBreakdown: derivedBreakdown);
+  }
 
   factory SessionDetailsResponse.fromJson(Map<String, dynamic> json) {
     return SessionDetailsResponse(

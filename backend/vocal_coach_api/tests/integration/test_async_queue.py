@@ -62,6 +62,8 @@ def test_async_finalize_processes_queue_job(client, auth_headers, monkeypatch, e
   session_payload = session_response.json()
   assert session_payload["status"] == "completed"
   assert session_payload["feedback"]["model_used"] in {"coaching-logic-engine", "google-ai-studio:gemini-2.5-flash-lite"}
+  assert session_payload["feedback"]["score_breakdown"]["metric_mode"] == "voice"
+  assert session_payload["feedback"]["score_breakdown"]["metric_scores"]["pitch_accuracy"] == 72
   assert session_payload["ai_job"]["state"] == "completed"
 
   feedback_response = client.get(f"/v1/sessions/{session_id}/feedback", headers=auth_headers)

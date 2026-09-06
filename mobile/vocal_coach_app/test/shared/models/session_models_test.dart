@@ -53,6 +53,21 @@ void main() {
         'model_used': 'gemini-pro',
         'prompt_version': 'v2',
         'latency_ms': 1200,
+        'score_breakdown': {
+          'metric_mode': 'voice',
+          'focus_metrics': ['pitch_accuracy', 'timing_accuracy'],
+          'metric_scores': {
+            'pitch_accuracy': 86.0,
+            'timing_accuracy': 78.0,
+          },
+          'weighted_components': {
+            'pitch_accuracy': 25.8,
+            'timing_accuracy': 15.6,
+          },
+          'scoring_version': '2.0',
+          'sample_count': 128,
+          'evidence_quality': 'reliable',
+        },
       };
 
       final feedback = CoachingFeedback.fromJson(json);
@@ -67,6 +82,9 @@ void main() {
       expect(feedback.modelUsed, 'gemini-pro');
       expect(feedback.promptVersion, 'v2');
       expect(feedback.latencyMs, 1200);
+      expect(feedback.scoreBreakdown, isNotNull);
+      expect(feedback.scoreBreakdown!.metricScores['pitch_accuracy'], 86.0);
+      expect(feedback.scoreBreakdown!.evidenceQuality, 'reliable');
     });
 
     test('fromJson parses correctly without optional fields', () {
@@ -84,6 +102,69 @@ void main() {
       expect(feedback.promptVersion, isNull);
       expect(feedback.latencyMs, isNull);
       expect(feedback.summary, isNull);
+      expect(feedback.scoreBreakdown, isNull);
+    });
+
+    test(
+        'session feedback derives a breakdown from an older saved best attempt',
+        () {
+      final session = SessionDetailsResponse.fromJson({
+        'session_id': 'session-1',
+        'user_id': 'user-1',
+        'mode': 'training',
+        'exercise_type': 'warmup_pitch',
+        'status': 'completed',
+        'feedback': {
+          'session_id': 'session-1',
+          'overall_score': 7,
+          'strengths': ['Baseline recorded'],
+          'improvements': ['Pitch'],
+          'next_exercises': ['Pitch drill'],
+          'model_used': 'coaching-logic-engine',
+          'prompt_version': 'v1',
+          'latency_ms': 10,
+        },
+        'attempts': [
+          {
+            'attempt_id': 'attempt-1',
+            'attempt_index': 1,
+            'difficulty': 'beginner',
+            'duration_sec': 20,
+            'score': 7,
+            'metric_summary': {
+              'metric_mode': 'voice',
+              'sample_count': 180,
+              'pitch_accuracy': 7,
+              'timing_accuracy': 19,
+              'breath_control': 24,
+              'pitch_stability': 18,
+              'vibrato_consistency': 12,
+              'note_transition_smoothness': 15,
+              'overall_score': 7,
+            },
+            'score_breakdown': {
+              'metric_mode': 'voice',
+              'focus_metrics': ['pitch_accuracy', 'timing_accuracy'],
+              'metric_scores': {'pitch_accuracy': 7},
+              'weighted_components': {'pitch_accuracy': 2.1},
+              'scoring_version': '2.0',
+              'sample_count': 180,
+              'evidence_quality': 'reliable',
+            },
+            'strongest_metric': 'breath_control',
+            'weakest_metric': 'pitch_accuracy',
+            'passed_threshold': false,
+            'saved_at': 1,
+            'is_best': true,
+          },
+        ],
+      });
+
+      expect(session.feedbackForDisplay!.scoreBreakdown, isNotNull);
+      expect(
+          session.feedbackForDisplay!.scoreBreakdown!
+              .metricScores['pitch_accuracy'],
+          7);
     });
   });
 }

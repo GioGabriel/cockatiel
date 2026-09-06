@@ -4,7 +4,8 @@ from time import time
 
 from app.ai_engine.orchestrator.service import generate_feedback
 from app.modules.analytics.service import record_completed_session
-from app.modules.sessions.service import complete_session, evaluate_score, get_ai_feedback_context, get_session, mark_failed, summarize_metrics, upsert_ai_job
+from app.modules.sessions.service import complete_session, get_ai_feedback_context, get_session, mark_failed, summarize_metrics, upsert_ai_job
+from app.modules.training.scoring import score_training_attempt
 from app.observability.metrics.registry import increment, observe
 from app.queue.tasks.ai_evaluation_queue import dequeue, requeue, size
 
@@ -60,8 +61,12 @@ def process_next_ai_evaluation_job() -> bool:
       increment("ai_queue_job_skipped_total")
       return True
 
-    overall_score = evaluate_score(session_id)
     metric_summary = summarize_metrics(session_id)
+    scoring = score_training_attempt(
+      exercise_id=str(session.get("exercise_id") or session.get("exercise_type") or "training"),
+      metric_summary=metric_summary,
+    )
+    overall_score = float(scoring["overall_score"])
     feedback_context = get_ai_feedback_context(session_id=session_id, user_id=user_id)
     feedback = generate_feedback(
       session_id=session_id,
@@ -69,6 +74,7 @@ def process_next_ai_evaluation_job() -> bool:
       exercise_type=str(session.get("exercise_type", "training")),
       metric_summary=metric_summary,
       session_context=feedback_context,
+      score_breakdown=scoring["score_breakdown"],
     )
     completed = complete_session(session_id=session_id, user_id=user_id, feedback=feedback)
     record_completed_session(user_id, completed)

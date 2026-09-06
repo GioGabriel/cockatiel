@@ -157,6 +157,7 @@ class CoachingFeedback(BaseModel):
   model_used: str
   prompt_version: str
   latency_ms: int = Field(ge=0)
+  score_breakdown: dict[str, Any] | None = None
 
 
 class SessionOut(BaseModel):

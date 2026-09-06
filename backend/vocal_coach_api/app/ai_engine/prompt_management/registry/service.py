@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.ai_engine.prompt_management.templates import v1
 
 _PROMPT_RENDERERS = {
@@ -15,6 +17,7 @@ def resolve_feedback_prompts(
   overall_score: float,
   strengths: list[str],
   improvements: list[str],
+  score_breakdown: dict[str, Any] | None = None,
 ) -> tuple[str, str, str]:
   resolved_version = _resolve_prompt_version(prompt_version, session_id)
   renderer = _PROMPT_RENDERERS[resolved_version]
@@ -25,5 +28,6 @@ def resolve_feedback_prompts(
     exercise_type=exercise_type,
     strengths=strengths,
     improvements=improvements,
+    score_breakdown=score_breakdown,
   )
   return system_prompt, user_prompt, resolved_version

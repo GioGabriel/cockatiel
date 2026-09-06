@@ -102,7 +102,7 @@ class _AuthGatePageState extends State<AuthGatePage> {
 
     try {
       final session = await widget.apiClient.fetchSession(sessionId: sessionId);
-      CoachingFeedback? feedback = session.feedback;
+      CoachingFeedback? feedback = session.feedbackForDisplay;
       if (feedback == null && session.status == 'completed') {
         feedback = await widget.apiClient.fetchFeedback(sessionId: sessionId);
       }

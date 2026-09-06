@@ -105,21 +105,24 @@ class _AuthGatePageState extends State<AuthGatePage> {
         return AnimatedBuilder(
           animation: widget.appState,
           builder: (_, __) {
+            late final Widget content;
+            late final String contentKey;
             if (snapshot.connectionState == ConnectionState.waiting ||
                 widget.appState.isBootstrapping ||
                 !_onboardingChecked) {
-              return const _BootstrappingPage();
-            }
-            if (_showOnboarding) {
-              return OnboardingPage(onComplete: _onOnboardingComplete);
-            }
-            if (widget.appState.isAuthenticated) {
+              contentKey = 'bootstrap';
+              content = const _BootstrappingPage();
+            } else if (_showOnboarding) {
+              contentKey = 'onboarding';
+              content = OnboardingPage(onComplete: _onOnboardingComplete);
+            } else if (widget.appState.isAuthenticated) {
               final profile = widget.appState.currentUser;
               final shouldShowVoiceSetup = profile != null &&
                   profile.vocalPreferences == null &&
                   _voiceSetupDismissedForUid != profile.uid;
               if (shouldShowVoiceSetup) {
-                return VoiceProfileSetupPage(
+                contentKey = 'voice-setup-${profile.uid}';
+                content = VoiceProfileSetupPage(
                   appState: widget.appState,
                   apiClient: widget.apiClient,
                   onFinished: () {
@@ -129,15 +132,46 @@ class _AuthGatePageState extends State<AuthGatePage> {
                     });
                   },
                 );
+              } else {
+                contentKey = 'main-${profile?.uid ?? 'authenticated'}';
+                content = MainShellPage(
+                  appState: widget.appState,
+                  apiClient: widget.apiClient,
+                );
               }
-              return MainShellPage(
+            } else {
+              contentKey = 'authentication';
+              content = AuthenticationPage(
                 appState: widget.appState,
                 apiClient: widget.apiClient,
               );
             }
-            return AuthenticationPage(
-              appState: widget.appState,
-              apiClient: widget.apiClient,
+
+            final motionDisabled =
+                MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+            return AnimatedSwitcher(
+              duration: motionDisabled
+                  ? Duration.zero
+                  : const Duration(milliseconds: 260),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offset = Tween<Offset>(
+                  begin: const Offset(0, 0.025),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: offset,
+                    child: child,
+                  ),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(contentKey),
+                child: content,
+              ),
             );
           },
         );

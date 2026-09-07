@@ -6,8 +6,10 @@ Core metrics:
 - AI per prompt version: `ai_feedback_success_prompt_<version>_total`, `ai_feedback_fallback_prompt_<version>_total`
 - AI per model: `ai_model_usage_<model>`
 - AI failure reasons: `ai_feedback_model_failure_reason_<reason>_total`, `ai_feedback_fallback_reason_<reason>_total`
+- Cache read reduction: `cache_<resource>_{hit,miss,singleflight_wait,load,load_error,invalidate,invalidate_all,eviction}_total`
 
 Guidelines:
 - Include `trace_id` in every request log and error envelope.
 - Persist `model_used`, `prompt_version`, and `latency_ms` for each feedback response.
 - Use prompt-version counters to compare `v1a` vs `v1b` outcomes during A/B tests.
+- Cache counters contain aggregate counts only; never add user IDs, document contents, credentials, raw audio, or provider payloads to cache observability.

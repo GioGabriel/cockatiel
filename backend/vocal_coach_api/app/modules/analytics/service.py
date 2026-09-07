@@ -3,6 +3,7 @@ from time import time
 from typing import Any
 
 from app.modules.training.scoring import BREATHING_METRIC_FIELDS, VOICE_METRIC_FIELDS
+from app.repositories.cache.ttl_singleflight import BoundedTtlSingleFlightCache
 from app.repositories.provider import get_analytics_repository, get_session_repository
 
 _RANGE_DAYS = (7, 30, 90)
@@ -512,25 +513,36 @@ def build_dashboard(user_id: str) -> dict[str, Any]:
   }
 
 
-_DASHBOARD_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
-_TRENDS_CACHE: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
 _CACHE_TTL_SEC = 300.0
+_DASHBOARD_CACHE = BoundedTtlSingleFlightCache[str, dict[str, Any]](
+  ttl_seconds=_CACHE_TTL_SEC,
+  max_entries=512,
+  name="analytics_dashboard",
+)
+_TRENDS_CACHE = BoundedTtlSingleFlightCache[
+  tuple[str, str],
+  dict[str, Any],
+](
+  ttl_seconds=_CACHE_TTL_SEC,
+  max_entries=1024,
+  name="analytics_trends",
+)
+
+
+def reset_analytics_caches() -> None:
+  """Clear process-local analytics caches after a config or test reset."""
+  _DASHBOARD_CACHE.clear()
+  _TRENDS_CACHE.clear()
 
 
 def _invalidate_analytics_cache(user_id: str) -> None:
-  _DASHBOARD_CACHE.pop(user_id, None)
-  keys_to_remove = [k for k in _TRENDS_CACHE if k[0] == user_id]
-  for k in keys_to_remove:
-    _TRENDS_CACHE.pop(k, None)
+  _DASHBOARD_CACHE.invalidate(user_id)
+  for range_key in _RANGE_DAY_MAP:
+    _TRENDS_CACHE.invalidate((user_id, range_key))
 
 
-def build_trends(user_id: str, range_key: str) -> dict[str, Any]:
+def _build_trends_uncached(user_id: str, normalized_range: str) -> dict[str, Any]:
   now = time()
-  normalized_range = (range_key or "30d").lower().strip()
-  cache_key = (user_id, normalized_range)
-  cached = _TRENDS_CACHE.get(cache_key)
-  if cached and (now - cached[0]) < _CACHE_TTL_SEC:
-    return cached[1]
 
   now_ms = int(now * 1000)
   days = _RANGE_DAY_MAP.get(normalized_range, 30)
@@ -589,31 +601,47 @@ def build_trends(user_id: str, range_key: str) -> dict[str, Any]:
     "points": points,
     "generated_at": now_ms,
   }
-  _TRENDS_CACHE[cache_key] = (now, result)
   return result
+
+
+def build_trends(user_id: str, range_key: str) -> dict[str, Any]:
+  normalized_range = (range_key or "30d").lower().strip()
+  if normalized_range not in _RANGE_DAY_MAP:
+    normalized_range = "30d"
+  cache_key = (user_id, normalized_range)
+  return _TRENDS_CACHE.get_or_load(
+    cache_key,
+    lambda: _build_trends_uncached(user_id, normalized_range),
+  )
+
+
+def _rebuild_dashboard_uncached(user_id: str) -> dict[str, Any]:
+  dashboard = build_dashboard(user_id)
+  repository = get_analytics_repository()
+  return repository.upsert_dashboard(user_id, dashboard)
 
 
 def rebuild_dashboard(user_id: str) -> dict[str, Any]:
   _invalidate_analytics_cache(user_id)
-  dashboard = build_dashboard(user_id)
-  repository = get_analytics_repository()
-  res = repository.upsert_dashboard(user_id, dashboard)
-  _DASHBOARD_CACHE[user_id] = (time(), res)
-  return res
+  return _DASHBOARD_CACHE.get_or_load(
+    user_id,
+    lambda: _rebuild_dashboard_uncached(user_id),
+  )
 
 
-def get_or_build_dashboard(user_id: str) -> dict[str, Any]:
-  now = time()
-  cached = _DASHBOARD_CACHE.get(user_id)
-  if cached and (now - cached[0]) < _CACHE_TTL_SEC:
-    return cached[1]
-
+def _build_dashboard_on_cache_miss(user_id: str) -> dict[str, Any]:
   repository = get_analytics_repository()
   existing = repository.get_dashboard(user_id)
   if existing:
-    _DASHBOARD_CACHE[user_id] = (now, existing)
     return existing
-  return rebuild_dashboard(user_id)
+  return _rebuild_dashboard_uncached(user_id)
+
+
+def get_or_build_dashboard(user_id: str) -> dict[str, Any]:
+  return _DASHBOARD_CACHE.get_or_load(
+    user_id,
+    lambda: _build_dashboard_on_cache_miss(user_id),
+  )
 
 
 def record_completed_session(user_id: str, session: dict[str, Any]) -> dict[str, Any]:

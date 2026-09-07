@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -82,6 +84,61 @@ void main() {
     await client.fetchCurrentUser();
 
     expect(request.headers.containsKey('authorization'), isFalse);
+  });
+
+  test('sends selected training key, octave, difficulty, and pattern settings',
+      () async {
+    late http.BaseRequest request;
+    final client = ApiClient(
+      config: _config(),
+      tokenProvider: _FakeTokenProvider('test-token'),
+      httpClient: MockClient((incoming) async {
+        request = incoming;
+        return http.Response(
+            '{"session_id":"session-1","status":"started"}', 201);
+      }),
+    );
+
+    final created = await client.createSession(
+      mode: 'training',
+      exerciseType: 'warmup_pitch',
+      trainingConfig: {
+        'difficulty': 'beginner',
+        'key': 'D',
+        'octave': 4,
+        'target_pattern': 'warmup_ladder',
+        'pace': 'slow',
+        'phrase_mode': 'short',
+      },
+    );
+
+    final body =
+        jsonDecode((request as http.Request).body) as Map<String, dynamic>;
+    expect(created.sessionId, 'session-1');
+    expect(body['training_config'], {
+      'difficulty': 'beginner',
+      'key': 'D',
+      'octave': 4,
+      'target_pattern': 'warmup_ladder',
+      'pace': 'slow',
+      'phrase_mode': 'short',
+    });
+  });
+
+  test('force refresh requests bypass the server session-list cache', () async {
+    late Uri requestUri;
+    final client = ApiClient(
+      config: _config(),
+      tokenProvider: _FakeTokenProvider('test-token'),
+      httpClient: MockClient((incoming) async {
+        requestUri = incoming.url;
+        return http.Response('[]', 200);
+      }),
+    );
+
+    await client.listSessions(forceRefresh: true);
+
+    expect(requestUri.queryParameters['force_refresh'], 'true');
   });
 
   test('explains when the server is too old for voice calibration metadata',

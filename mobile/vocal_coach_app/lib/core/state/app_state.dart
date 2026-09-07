@@ -28,6 +28,27 @@ UserProfileFull buildLocalProfile({
   );
 }
 
+/// Returns whether the client needs another status check for AI feedback.
+/// Terminal jobs are retained in memory for the queue screen, but they do not
+/// justify a background request once processing has finished.
+bool shouldPollAIJobs(Iterable<AIJob> jobs) {
+  return jobs.any(
+    (job) =>
+        job.state == 'pending_enqueue' ||
+        job.state == 'queued' ||
+        job.state == 'processing',
+  );
+}
+
+/// Prevents an async response started for one Firebase account from being
+/// applied after sign-out or account switching.
+bool isCurrentAccountRequest({
+  required String? requestUid,
+  required String? currentUid,
+}) {
+  return requestUid != null && requestUid == currentUid;
+}
+
 class AppState extends ChangeNotifier {
   AppState({
     FirebaseAuth? firebaseAuth,
@@ -226,7 +247,11 @@ class AppState extends ChangeNotifier {
 
   Future<void> refreshAIJobs() async {
     final apiClient = _apiClient;
-    if (apiClient == null || !isAuthenticated || _isRefreshingAIJobs) {
+    final requestUid = _firebaseAuth.currentUser?.uid;
+    if (apiClient == null ||
+        !isAuthenticated ||
+        requestUid == null ||
+        _isRefreshingAIJobs) {
       return;
     }
 
@@ -236,7 +261,19 @@ class AppState extends ChangeNotifier {
     try {
       final previousById = {for (final item in _aiJobs) item.jobId: item};
       final latest = await apiClient.fetchAIJobs();
+      if (!isCurrentAccountRequest(
+        requestUid: requestUid,
+        currentUid: _firebaseAuth.currentUser?.uid,
+      )) {
+        return;
+      }
       _aiJobs = latest;
+
+      if (shouldPollAIJobs(latest)) {
+        _startAIJobsPolling();
+      } else {
+        _stopAIJobsPolling();
+      }
 
       for (final job in latest) {
         final previous = previousById[job.jobId];
@@ -354,7 +391,8 @@ class AppState extends ChangeNotifier {
       _authError = null;
       _authNotice = null;
 
-      _startAIJobsPolling();
+      // Fetch once after profile bootstrap. A recurring timer is started only
+      // when the response contains an active queued/processing job.
       unawaited(refreshAIJobs());
     } on ApiException catch (error) {
       if (!_isCurrentFirebaseUser(user.uid)) {
@@ -381,7 +419,10 @@ class AppState extends ChangeNotifier {
   }
 
   bool _isCurrentFirebaseUser(String uid) {
-    return _firebaseAuth.currentUser?.uid == uid;
+    return isCurrentAccountRequest(
+      requestUid: uid,
+      currentUid: _firebaseAuth.currentUser?.uid,
+    );
   }
 
   String _accountDataMessage(ApiException error) {
@@ -397,9 +438,12 @@ class AppState extends ChangeNotifier {
   }
 
   void _startAIJobsPolling() {
+    if (_aiJobsPollTimer != null) {
+      return;
+    }
     _aiJobsPollTimer?.cancel();
     _aiJobsPollTimer = Timer.periodic(
-      const Duration(seconds: 10),
+      const Duration(seconds: 15),
       (_) => refreshAIJobs(),
     );
   }

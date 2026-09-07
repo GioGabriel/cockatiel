@@ -20,6 +20,7 @@ class SessionRepository(Protocol):
     ...
 
   def update(self, session_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
+    """Write fields and return those fields, or None when not found."""
     ...
 
   def append_metrics(self, session_id: str, metrics: list[dict[str, Any]]) -> int:
@@ -28,7 +29,7 @@ class SessionRepository(Protocol):
   def list_metrics(self, session_id: str) -> list[dict[str, Any]]:
     ...
 
-  def list_by_user(self, user_id: str) -> list[dict[str, Any]]:
+  def list_by_user(self, user_id: str, *, force_refresh: bool = False) -> list[dict[str, Any]]:
     ...
 
 

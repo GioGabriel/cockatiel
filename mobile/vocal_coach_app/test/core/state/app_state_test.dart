@@ -43,5 +43,24 @@ void main() {
       expect(profile.accessTier, AccessTier.registered);
       expect(profile.vocalPreferences, isNull);
     });
+
+    test('stale async responses are rejected after account changes', () {
+      expect(
+        isCurrentAccountRequest(requestUid: 'user-1', currentUid: 'user-1'),
+        isTrue,
+      );
+      expect(
+        isCurrentAccountRequest(requestUid: 'user-1', currentUid: 'user-2'),
+        isFalse,
+      );
+      expect(
+        isCurrentAccountRequest(requestUid: 'user-1', currentUid: null),
+        isFalse,
+      );
+      expect(
+        isCurrentAccountRequest(requestUid: null, currentUid: 'user-1'),
+        isFalse,
+      );
+    });
   });
 }

@@ -22,7 +22,9 @@ class InMemorySessionRepository:
       return None
     session.update(updates)
     self._sessions[session_id] = session
-    return dict(session)
+    # Match FirestoreSessionRepository: callers receive the fields written,
+    # not a read-after-write document snapshot.
+    return dict(updates)
 
   def append_metrics(self, session_id: str, metrics: list[dict[str, Any]]) -> int:
     self._metrics_by_session[session_id].extend(metrics)
@@ -32,7 +34,8 @@ class InMemorySessionRepository:
     metrics = self._metrics_by_session.get(session_id, [])
     return [dict(item) for item in metrics]
 
-  def list_by_user(self, user_id: str) -> list[dict[str, Any]]:
+  def list_by_user(self, user_id: str, *, force_refresh: bool = False) -> list[dict[str, Any]]:
+    del force_refresh
     sessions = [dict(item) for item in self._sessions.values() if item.get("user_id") == user_id]
     return sorted(
       sessions,

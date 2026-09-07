@@ -107,9 +107,13 @@ def create_session(
   return repository.create(record)
 
 
-def list_sessions_for_user(user_id: str) -> list[dict[str, Any]]:
+def list_sessions_for_user(
+  user_id: str,
+  *,
+  force_refresh: bool = False,
+) -> list[dict[str, Any]]:
   repository = get_session_repository()
-  sessions = repository.list_by_user(user_id)
+  sessions = repository.list_by_user(user_id, force_refresh=force_refresh)
   normalized: list[dict[str, Any]] = []
   for session in sessions:
     feedback = session.get("feedback")
@@ -251,6 +255,10 @@ def complete_session(session_id: str, user_id: str, feedback: CoachingFeedback) 
   )
   if not updated:
     raise ApiError(code="SESSION_NOT_FOUND", message="Session not found.", status_code=404)
+  # Firestore updates now return the fields written instead of spending an
+  # extra read to reconstruct the document. We already loaded the session and
+  # can safely build the complete in-memory result needed by analytics.
+  updated = {**session, **updates}
   updated["feedback"] = feedback
   return updated
 
@@ -281,16 +289,16 @@ def mark_failed(session_id: str, user_id: str, reason: str) -> dict[str, Any]:
   )
   if not updated:
     raise ApiError(code="SESSION_NOT_FOUND", message="Session not found.", status_code=404)
-  return updated
+  return {**session, **updates}
 
 
 def mark_processing(session_id: str, user_id: str) -> dict[str, Any]:
   repository = get_session_repository()
-  get_session(session_id, user_id)
+  session = get_session(session_id, user_id)
   updated = repository.update(session_id, {"status": "processing"})
   if not updated:
     raise ApiError(code="SESSION_NOT_FOUND", message="Session not found.", status_code=404)
-  return updated
+  return {**session, "status": "processing"}
 
 
 def upsert_ai_job(session_id: str, user_id: str, fields: dict[str, Any]) -> dict[str, Any]:
@@ -301,7 +309,7 @@ def upsert_ai_job(session_id: str, user_id: str, fields: dict[str, Any]) -> dict
   updated = repository.update(session_id, {"ai_job": merged})
   if not updated:
     raise ApiError(code="SESSION_NOT_FOUND", message="Session not found.", status_code=404)
-  return updated
+  return {**session, "ai_job": merged}
 
 
 def save_training_attempt(

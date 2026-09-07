@@ -1,7 +1,7 @@
 import asyncio
 from time import time
 from uuid import uuid4
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from fastapi.concurrency import run_in_threadpool
 
@@ -52,10 +52,15 @@ async def start_session(
 
 @router.get("", response_model=list[SessionOut])
 async def list_sessions(
+  force_refresh: bool = Query(default=False),
   current_user: dict = Depends(get_current_user),
   svc: SessionService = Depends(get_session_service),
 ) -> list[SessionOut]:
-  sessions = await run_in_threadpool(svc.list_sessions_for_user, user_id=current_user["uid"])
+  sessions = await run_in_threadpool(
+    svc.list_sessions_for_user,
+    user_id=current_user["uid"],
+    force_refresh=force_refresh,
+  )
   return [SessionOut(**session) for session in sessions]
 
 

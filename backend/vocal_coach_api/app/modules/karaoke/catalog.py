@@ -3,9 +3,42 @@ from copy import deepcopy
 from typing import Any
 
 from app.core.config import settings
+from app.repositories.cache.ttl_singleflight import BoundedTtlSingleFlightCache
 from app.repositories.firestore.client import build_firestore_client
 
 logger = logging.getLogger("vocal-coach-api.karaoke.catalog")
+
+_CATALOG_CACHE_TTL_SEC = 600.0
+_catalog_cache = BoundedTtlSingleFlightCache[
+  tuple[str, bool, str | None],
+  dict[str, Any],
+](
+  ttl_seconds=_CATALOG_CACHE_TTL_SEC,
+  max_entries=8,
+  name="karaoke_catalog",
+)
+_drill_cache = BoundedTtlSingleFlightCache[
+  tuple[tuple[str, bool, str | None], str],
+  dict[str, Any] | None,
+](
+  ttl_seconds=_CATALOG_CACHE_TTL_SEC,
+  max_entries=512,
+  name="karaoke_drill",
+)
+
+
+def reset_catalog_cache() -> None:
+  """Clear process-local catalog caches after a catalog/config change."""
+  _catalog_cache.clear()
+  _drill_cache.clear()
+
+
+def _cache_context() -> tuple[str, bool, str | None]:
+  return (
+    str(settings.app_env).strip().lower(),
+    bool(settings.firestore_enabled),
+    settings.firestore_project_id,
+  )
 
 
 def _is_production_environment() -> bool:
@@ -161,37 +194,42 @@ def get_catalog() -> dict[str, Any]:
     logger.info("Firestore is disabled. Returning metadata-only local karaoke catalog.")
     return _local_fallback_catalog()
 
-  try:
-    db = build_firestore_client()
-    docs = db.collection("karaoke_songs").stream()
-    categories_map: dict[str, dict[str, Any]] = {}
+  context = _cache_context()
 
-    for doc in docs:
-      raw_data = doc.to_dict() or {}
-      drill = _apply_drill_defaults(doc.id, raw_data)
-      style_label = str(drill["style_category"])
-      category_id = style_label.lower().replace(" ", "_")
-      categories_map.setdefault(
-        category_id,
-        {
-          "category_id": category_id,
-          "style_label": style_label,
-          "description": f"{style_label} songs emphasizing vocal control.",
-          "drills": [],
-        },
-      )["drills"].append(drill)
+  def load_catalog() -> dict[str, Any]:
+    try:
+      db = build_firestore_client()
+      docs = db.collection("karaoke_songs").stream()
+      categories_map: dict[str, dict[str, Any]] = {}
 
-    base_catalog["categories"] = list(categories_map.values())
-    if base_catalog["categories"] or _is_production_environment():
-      if not base_catalog["categories"]:
-        logger.warning("Karaoke catalog is empty in production.")
-      return base_catalog
-    return _local_fallback_catalog()
-  except Exception as exc:
-    logger.warning("Failed to fetch karaoke catalog from Firestore: %s", type(exc).__name__)
-    if _is_production_environment():
-      raise RuntimeError("Karaoke catalog unavailable in production.") from exc
-    return _local_fallback_catalog()
+      for doc in docs:
+        raw_data = doc.to_dict() or {}
+        drill = _apply_drill_defaults(doc.id, raw_data)
+        style_label = str(drill["style_category"])
+        category_id = style_label.lower().replace(" ", "_")
+        categories_map.setdefault(
+          category_id,
+          {
+            "category_id": category_id,
+            "style_label": style_label,
+            "description": f"{style_label} songs emphasizing vocal control.",
+            "drills": [],
+          },
+        )["drills"].append(drill)
+
+      base_catalog["categories"] = list(categories_map.values())
+      if base_catalog["categories"] or _is_production_environment():
+        if not base_catalog["categories"]:
+          logger.warning("Karaoke catalog is empty in production.")
+        return base_catalog
+      return _local_fallback_catalog()
+    except Exception as exc:
+      logger.warning("Failed to fetch karaoke catalog from Firestore: %s", type(exc).__name__)
+      if _is_production_environment():
+        raise RuntimeError("Karaoke catalog unavailable in production.") from exc
+      return _local_fallback_catalog()
+
+  return _catalog_cache.get_or_load(context, load_catalog)
 
 
 def get_drill_by_id(drill_id: str) -> dict[str, Any] | None:
@@ -206,21 +244,40 @@ def get_drill_by_id(drill_id: str) -> dict[str, Any] | None:
           return deepcopy(drill)
     return None
 
-  try:
-    db = build_firestore_client()
-    doc = db.collection("karaoke_songs").document(drill_id).get()
-    if doc.exists:
-      return _apply_drill_defaults(doc.id, doc.to_dict() or {})
-  except Exception as exc:
-    logger.warning("Failed to fetch karaoke drill %s from Firestore: %s", drill_id, type(exc).__name__)
-    if _is_production_environment():
-      raise RuntimeError("Karaoke catalog unavailable in production.") from exc
+  context = _cache_context()
+  cache_key = (context, drill_id)
 
-  if _is_production_environment():
+  # The catalog screen normally loads the full catalog before a singer opens
+  # a drill. Reuse that snapshot instead of issuing a second point read for
+  # the same metadata.
+  catalog_found, catalog = _catalog_cache.lookup(context)
+  if catalog_found and catalog is not None:
+    for category in catalog.get("categories", []):
+      for drill in category.get("drills", []):
+        if drill.get("drill_id") != drill_id:
+          continue
+        return deepcopy(drill)
+    _drill_cache.get_or_load(cache_key, lambda: None)
     return None
 
-  for category in _local_fallback_catalog()["categories"]:
-    for drill in category["drills"]:
-      if drill["drill_id"] == drill_id:
-        return deepcopy(drill)
-  return None
+  def load_drill() -> dict[str, Any] | None:
+    try:
+      db = build_firestore_client()
+      doc = db.collection("karaoke_songs").document(drill_id).get()
+      if doc.exists:
+        return _apply_drill_defaults(doc.id, doc.to_dict() or {})
+    except Exception as exc:
+      logger.warning("Failed to fetch karaoke drill %s from Firestore: %s", drill_id, type(exc).__name__)
+      if _is_production_environment():
+        raise RuntimeError("Karaoke catalog unavailable in production.") from exc
+
+    if _is_production_environment():
+      return None
+
+    for category in _local_fallback_catalog()["categories"]:
+      for drill in category["drills"]:
+        if drill["drill_id"] == drill_id:
+          return deepcopy(drill)
+    return None
+
+  return _drill_cache.get_or_load(cache_key, load_drill)

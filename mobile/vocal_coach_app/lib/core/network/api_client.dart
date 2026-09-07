@@ -166,9 +166,14 @@ class ApiClient {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<List<SessionDetailsResponse>> listSessions() async {
+  Future<List<SessionDetailsResponse>> listSessions({
+    bool forceRefresh = false,
+  }) async {
     final response = await _httpClient.get(
-      _apiUri('sessions'),
+      _apiUri(
+        'sessions',
+        queryParameters: forceRefresh ? {'force_refresh': 'true'} : null,
+      ),
       headers: await _headers(),
     );
     _throwIfError(response);

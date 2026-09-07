@@ -10,6 +10,7 @@ import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/glass_card.dart';
 import '../../../shared/widgets/shimmer_skeleton.dart';
 import '../../ai_feedback_display/presentation/feedback_page.dart';
+import '../domain/history_polling_policy.dart';
 import '../../vocal_training/presentation/training_session_page.dart';
 
 class PracticeHistoryPage extends StatefulWidget {
@@ -33,6 +34,7 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
   bool _isLoading = true;
   String? _error;
   Timer? _refreshTimer;
+  bool _refreshInFlight = false;
 
   @override
   void initState() {
@@ -45,10 +47,8 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
     });
     _fetchHistory();
     // Auto refresh periodically in case jobs are processing
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      if (mounted &&
-          _sessions
-              .any((s) => s.status == 'processing' || s.status == 'queued')) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted && shouldRefreshPracticeHistory(_sessions)) {
         _fetchHistory(silent: true);
       }
     });
@@ -61,7 +61,12 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
     super.dispose();
   }
 
-  Future<void> _fetchHistory({bool silent = false}) async {
+  Future<void> _fetchHistory({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (_refreshInFlight) return;
+    _refreshInFlight = true;
     if (!silent) {
       setState(() {
         _isLoading = true;
@@ -70,7 +75,9 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
     }
 
     try {
-      final list = await widget.apiClient.listSessions();
+      final list = await widget.apiClient.listSessions(
+        forceRefresh: forceRefresh,
+      );
       // Sort newest first
       list.sort((a, b) {
         final aTime = a.completedAt ?? a.createdAt ?? 0;
@@ -98,6 +105,8 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
           _isLoading = false;
         });
       }
+    } finally {
+      _refreshInFlight = false;
     }
   }
 
@@ -129,7 +138,7 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
           IconButton(
             onPressed: () {
               HapticFeedback.lightImpact();
-              _fetchHistory();
+              _fetchHistory(forceRefresh: true);
             },
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh logs',
@@ -219,7 +228,7 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: _fetchHistory,
+                onPressed: () => _fetchHistory(forceRefresh: true),
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Try Again'),
               ),
@@ -242,12 +251,12 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
         body:
             'Start a vocal exercise or karaoke song to build your history and receive understandable coaching feedback.',
         ctaLabel: 'Refresh',
-        onCtaTap: _fetchHistory,
+        onCtaTap: () => _fetchHistory(forceRefresh: true),
       );
     }
 
     return RefreshIndicator(
-      onRefresh: () => _fetchHistory(),
+      onRefresh: () => _fetchHistory(forceRefresh: true),
       color: colorScheme.primary,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -259,7 +268,7 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
             session: session,
             apiClient: widget.apiClient,
             appState: widget.appState,
-            onChanged: () => _fetchHistory(silent: true),
+            onChanged: () => _fetchHistory(silent: true, forceRefresh: true),
           );
         },
       ),

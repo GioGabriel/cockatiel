@@ -35,6 +35,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
   TrainingRecommendations? _recommendations;
   bool _loadingDashboard = true;
   bool _loadingRecommendations = true;
+  String? _dashboardError;
   Timer? _refreshTimer;
 
   @override
@@ -58,8 +59,13 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
     try {
       final result = await widget.apiClient.fetchAnalyticsDashboard();
       if (!mounted) return;
-      setState(() => _dashboard = result);
-    } catch (_) {}
+      setState(() {
+        _dashboard = result;
+        _dashboardError = null;
+      });
+    } catch (_) {
+      // Keep the last known dashboard visible during a background outage.
+    }
     try {
       final result = await widget.apiClient.fetchTrainingRecommendations();
       if (!mounted) return;
@@ -78,11 +84,22 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
       if (!mounted) return;
       setState(() {
         _dashboard = result;
+        _dashboardError = null;
+        _loadingDashboard = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _dashboardError = _dashboardErrorMessage(error);
         _loadingDashboard = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loadingDashboard = false);
+      setState(() {
+        _dashboardError =
+            'We could not load your progress right now. Please try again shortly.';
+        _loadingDashboard = false;
+      });
     }
   }
 
@@ -179,6 +196,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
           setState(() {
             _loadingDashboard = true;
             _loadingRecommendations = true;
+            _dashboardError = null;
           });
           await _loadData();
         },
@@ -188,6 +206,11 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
             // Welcome greeting
             _buildWelcomeSection(user, theme),
             const SizedBox(height: 16),
+
+            if (widget.appState.accountDataNotice != null) ...[
+              _buildAccountDataNotice(theme),
+              const SizedBox(height: 16),
+            ],
 
             // Recent Activity Shortcut
             _buildRecentActivityShortcut(theme),
@@ -300,6 +323,60 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
     );
   }
 
+  Widget _buildAccountDataNotice(ThemeData theme) {
+    return Card(
+      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.cloud_sync_rounded,
+              color: theme.colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Account data is still syncing',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.appState.accountDataNotice!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () async {
+                      await widget.appState.retryAccountData();
+                      if (mounted) {
+                        await _loadData();
+                      }
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onSecondaryContainer,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('Retry account data'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProgressSection(ThemeData theme) {
     if (_loadingDashboard) {
       return ShimmerSkeleton(
@@ -309,6 +386,49 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
 
     final dashboard = _dashboard;
     if (dashboard == null) {
+      if (_dashboardError != null) {
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 40,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Progress temporarily unavailable',
+                  style: theme.textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _dashboardError!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  onPressed: () {
+                    setState(() {
+                      _loadingDashboard = true;
+                      _dashboardError = null;
+                    });
+                    _fetchDashboard();
+                  },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Try again'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -414,6 +534,18 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
         ),
       ),
     );
+  }
+
+  String _dashboardErrorMessage(ApiException error) {
+    switch (error.code) {
+      case 'STORAGE_QUOTA_EXCEEDED':
+        return 'Your account is signed in, but the progress service is temporarily busy. Your saved sessions are safe.';
+      case 'NETWORK_ERROR':
+      case 'NETWORK_TIMEOUT':
+        return 'Check your connection, then try again. Your saved sessions are safe.';
+      default:
+        return 'We could not load your progress right now. Please try again shortly.';
+    }
   }
 
   void _switchToTab(int index) {

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vocal_coach_app/core/state/app_state.dart';
 import 'package:vocal_coach_app/shared/models/user_models.dart';
 
 // Since mocking FirebaseAuth requires heavy dependencies, we'll test the pure
@@ -26,6 +27,21 @@ void main() {
       expect(accessTierToString(AccessTier.premium), 'premium');
       expect(accessTierToString(AccessTier.registered), 'registered');
       expect(accessTierToString(AccessTier.guest), 'guest');
+    });
+
+    test('local profile keeps Firebase identity available during a data outage',
+        () {
+      final profile = buildLocalProfile(
+        uid: 'firebase-user-1',
+        email: 'singer@example.com',
+        displayName: 'Singer',
+      );
+
+      expect(profile.uid, 'firebase-user-1');
+      expect(profile.email, 'singer@example.com');
+      expect(profile.name, 'Singer');
+      expect(profile.accessTier, AccessTier.registered);
+      expect(profile.vocalPreferences, isNull);
     });
   });
 }

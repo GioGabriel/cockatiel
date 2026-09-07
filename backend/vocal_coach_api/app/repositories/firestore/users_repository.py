@@ -12,17 +12,24 @@ class FirestoreUserRepository:
     uid = identity["uid"]
     now = datetime.now(timezone.utc).isoformat()
     doc_ref = self._db.collection(self.collection_name).document(uid)
+    user = {
+      "uid": uid,
+      "email": identity.get("email", ""),
+      "name": identity.get("name", ""),
+    }
     doc_ref.set(
       {
-        "uid": uid,
-        "email": identity.get("email", ""),
-        "name": identity.get("name", ""),
+        **user,
         "updated_at": now,
       },
       merge=True,
     )
-    snap = doc_ref.get()
-    return snap.to_dict() or {"uid": uid, "email": "", "name": ""}
+
+    # /auth/me only needs the authenticated identity. Reading the document
+    # back after every login doubled the Firestore traffic and made auth fail
+    # when the project's read quota was exhausted. The profile endpoint reads
+    # the canonical document when profile data is actually needed.
+    return user
 
   def get(self, uid: str) -> dict[str, Any] | None:
     doc_ref = self._db.collection(self.collection_name).document(uid)

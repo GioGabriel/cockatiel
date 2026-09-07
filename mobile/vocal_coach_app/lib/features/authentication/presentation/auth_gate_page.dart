@@ -144,7 +144,8 @@ class _AuthGatePageState extends State<AuthGatePage> {
               content = OnboardingPage(onComplete: _onOnboardingComplete);
             } else if (widget.appState.isAuthenticated) {
               final profile = widget.appState.currentUser;
-              final shouldShowVoiceSetup = profile != null &&
+              final shouldShowVoiceSetup = widget.appState.isProfileReady &&
+                  profile != null &&
                   profile.vocalPreferences == null &&
                   _voiceSetupDismissedForUid != profile.uid;
               if (shouldShowVoiceSetup) {

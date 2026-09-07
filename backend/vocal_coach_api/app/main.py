@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
 from app.core.config import settings, validate_runtime_settings
 from app.core.exceptions import ApiError, error_envelope
+from app.core.storage_errors import is_storage_quota_exhausted
 from app.observability.logging.setup import configure_logging
 from app.observability.metrics.registry import increment, observe, snapshot
 from app.workers.ai_evaluation_worker import AIEvaluationWorker
@@ -23,6 +24,20 @@ from app.workers.audio_snippet_cleanup_worker import AudioSnippetCleanupWorker
 
 configure_logging()
 logger = logging.getLogger("vocal-coach-api")
+
+
+def _storage_quota_response(trace_id: str) -> JSONResponse:
+  response = JSONResponse(
+    status_code=503,
+    content=error_envelope(
+      "STORAGE_QUOTA_EXCEEDED",
+      "Account data is temporarily unavailable. Please try again shortly.",
+      trace_id,
+      {"retry_after_seconds": 60},
+    ),
+  )
+  response.headers["Retry-After"] = "60"
+  return response
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -119,7 +134,17 @@ async def request_context_middleware(request: Request, call_next):
     )
     response.headers["x-request-id"] = trace_id
     return response
-  except Exception:
+  except Exception as exc:
+    if is_storage_quota_exhausted(exc):
+      logger.warning(
+        "storage_quota_exhausted trace_id=%s method=%s path=%s",
+        trace_id,
+        request.method,
+        request.url.path,
+      )
+      response = _storage_quota_response(trace_id)
+      response.headers["x-request-id"] = trace_id
+      return response
     increment("api_requests_failed_total")
     raise
 
@@ -154,6 +179,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
   trace_id = getattr(request.state, "trace_id", str(uuid4()))
+  if is_storage_quota_exhausted(exc):
+    logger.warning(
+      "storage_quota_exhausted trace_id=%s method=%s path=%s",
+      trace_id,
+      request.method,
+      request.url.path,
+    )
+    return _storage_quota_response(trace_id)
+
   logger.error(
     "unhandled_request trace_id=%s method=%s path=%s error_type=%s",
     trace_id,

@@ -8,6 +8,26 @@ import '../network/api_client.dart';
 import '../notifications/notification_service.dart';
 import '../../shared/models/user_models.dart';
 
+/// Builds the minimum local account model available from Firebase Auth.
+///
+/// Authentication and persistent profile storage are separate dependencies.
+/// Keeping this fallback lets a user reach the app during a temporary API or
+/// Firestore outage without inventing progress, preferences, or scores.
+UserProfileFull buildLocalProfile({
+  required String uid,
+  String? email,
+  String? displayName,
+}) {
+  final normalizedEmail = (email ?? '').trim();
+  final normalizedName = (displayName ?? '').trim();
+  return UserProfileFull(
+    uid: uid,
+    email: normalizedEmail,
+    name: normalizedName.isEmpty ? 'Singer' : normalizedName,
+    accessTier: AccessTier.registered,
+  );
+}
+
 class AppState extends ChangeNotifier {
   AppState({
     FirebaseAuth? firebaseAuth,
@@ -27,22 +47,28 @@ class AppState extends ChangeNotifier {
   bool _isAuthenticating = false;
   bool _isSendingPasswordReset = false;
   bool _isRefreshingAIJobs = false;
+  bool _isProfileReady = false;
   UserProfileFull? _currentUser;
   AccessTier _accessTier = AccessTier.registered; // ignore: prefer_final_fields
   String? _authError;
   String? _authNotice;
+  String? _accountDataNotice;
   List<AIJob> _aiJobs = const [];
+  Future<void>? _syncInFlight;
+  String? _syncInFlightUid;
 
   bool get isBootstrapping => _isBootstrapping;
   bool get isAuthenticating => _isAuthenticating;
   bool get isSendingPasswordReset => _isSendingPasswordReset;
   bool get isAuthenticated => _currentUser != null;
+  bool get isProfileReady => _isProfileReady;
   bool get isGuest => !isAuthenticated;
   bool get isRefreshingAIJobs => _isRefreshingAIJobs;
   UserProfileFull? get currentUser => _currentUser;
   AccessTier get accessTier => isAuthenticated ? _accessTier : AccessTier.guest;
   String? get authError => _authError;
   String? get authNotice => _authNotice;
+  String? get accountDataNotice => _accountDataNotice;
   List<AIJob> get aiJobs => List.unmodifiable(_aiJobs);
   int get pendingAIJobsCount => _aiJobs
       .where((job) => job.state == 'queued' || job.state == 'processing')
@@ -55,6 +81,8 @@ class AppState extends ChangeNotifier {
   void updateCurrentUserProfile(UserProfileFull profile) {
     _currentUser = profile;
     _accessTier = profile.accessTier;
+    _isProfileReady = true;
+    _accountDataNotice = null;
     notifyListeners();
   }
 
@@ -71,7 +99,7 @@ class AppState extends ChangeNotifier {
 
     _authSubscription = _firebaseAuth.authStateChanges().listen(
       (user) {
-        _syncCurrentUser(user, apiClient);
+        unawaited(_syncCurrentUser(user, apiClient));
       },
     );
 
@@ -97,7 +125,12 @@ class AppState extends ChangeNotifier {
         email: email.trim(),
         password: password,
       );
-      await _syncCurrentUser(credential.user, apiClient);
+      // Firebase Auth is the login authority. Do not keep the user staring at
+      // a spinner while a secondary profile store is rate-limited or slow.
+      await _syncCurrentUser(credential.user, apiClient).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {},
+      );
     } on FirebaseAuthException catch (error) {
       _currentUser = null;
       _authError = _authMessageForCode(error.code);
@@ -134,7 +167,10 @@ class AppState extends ChangeNotifier {
       if (trimmedName.isNotEmpty) {
         await credential.user?.updateDisplayName(trimmedName);
       }
-      await _syncCurrentUser(credential.user, apiClient);
+      await _syncCurrentUser(credential.user, apiClient).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {},
+      );
     } on FirebaseAuthException catch (error) {
       _currentUser = null;
       _authError = _authMessageForCode(error.code);
@@ -181,6 +217,8 @@ class AppState extends ChangeNotifier {
     _authNotice = null;
     await _firebaseAuth.signOut();
     _currentUser = null;
+    _isProfileReady = false;
+    _accountDataNotice = null;
     _aiJobs = const [];
     _stopAIJobsPolling();
     notifyListeners();
@@ -225,9 +263,46 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> _syncCurrentUser(User? user, ApiClient apiClient) async {
+  /// Re-attempts the server-side profile without signing the user out.
+  Future<void> retryAccountData() async {
+    final apiClient = _apiClient;
+    if (apiClient == null) return;
+    await _syncCurrentUser(_firebaseAuth.currentUser, apiClient);
+  }
+
+  Future<void> _syncCurrentUser(User? user, ApiClient apiClient) {
+    final uid = user?.uid;
+    if (_syncInFlight != null && _syncInFlightUid == uid) {
+      return _syncInFlight!;
+    }
+
+    final future = _syncCurrentUserInternal(user, apiClient);
+    _syncInFlight = future;
+    _syncInFlightUid = uid;
+    unawaited(
+      future.then<void>(
+        (_) {
+          if (identical(_syncInFlight, future)) {
+            _syncInFlight = null;
+            _syncInFlightUid = null;
+          }
+        },
+        onError: (_, __) {
+          if (identical(_syncInFlight, future)) {
+            _syncInFlight = null;
+            _syncInFlightUid = null;
+          }
+        },
+      ),
+    );
+    return future;
+  }
+
+  Future<void> _syncCurrentUserInternal(User? user, ApiClient apiClient) async {
     if (user == null) {
       _currentUser = null;
+      _isProfileReady = false;
+      _accountDataNotice = null;
       _aiJobs = const [];
       _stopAIJobsPolling();
       _isBootstrapping = false;
@@ -235,12 +310,29 @@ class AppState extends ChangeNotifier {
       return;
     }
 
+    // Publish the Firebase identity immediately. The persistent profile is a
+    // second phase and must never turn a valid password into a login failure.
+    _currentUser = buildLocalProfile(
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+    );
+    _accessTier = AccessTier.registered;
+    _isProfileReady = false;
+    _accountDataNotice = null;
+    _authError = null;
+    notifyListeners();
+
     try {
       // First, hit /auth/me to guarantee the user is upserted in the backend database
       await apiClient.fetchCurrentUser();
 
       // Then fetch the full profile which contains vocal_preferences
       final profile = await apiClient.fetchFullProfile();
+
+      if (!_isCurrentFirebaseUser(user.uid)) {
+        return;
+      }
 
       final effectiveName = (user.displayName ?? '').trim().isNotEmpty
           ? user.displayName!.trim()
@@ -258,27 +350,49 @@ class AppState extends ChangeNotifier {
         premiumExpiresAt: profile.premiumExpiresAt,
       );
       _accessTier = _currentUser!.accessTier;
+      _isProfileReady = true;
       _authError = null;
       _authNotice = null;
 
       _startAIJobsPolling();
-      await refreshAIJobs();
+      unawaited(refreshAIJobs());
     } on ApiException catch (error) {
+      if (!_isCurrentFirebaseUser(user.uid)) {
+        return;
+      }
       _authError = _safeApiErrorMessage(error);
-      _currentUser = null;
-      _accessTier = AccessTier.registered;
+      _accountDataNotice = _accountDataMessage(error);
       _aiJobs = const [];
       _stopAIJobsPolling();
     } catch (_) {
-      _authError =
-          'We could not load your account right now. Please try again.';
-      _currentUser = null;
-      _accessTier = AccessTier.registered;
+      if (!_isCurrentFirebaseUser(user.uid)) {
+        return;
+      }
+      _accountDataNotice =
+          'You are signed in, but saved account data is temporarily unavailable. Please try again shortly.';
       _aiJobs = const [];
       _stopAIJobsPolling();
     } finally {
-      _isBootstrapping = false;
-      notifyListeners();
+      if (_isCurrentFirebaseUser(user.uid)) {
+        _isBootstrapping = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  bool _isCurrentFirebaseUser(String uid) {
+    return _firebaseAuth.currentUser?.uid == uid;
+  }
+
+  String _accountDataMessage(ApiException error) {
+    switch (error.code) {
+      case 'STORAGE_QUOTA_EXCEEDED':
+        return 'You are signed in, but saved progress is temporarily unavailable. Your data has not been deleted. Please try again shortly.';
+      case 'NETWORK_ERROR':
+      case 'NETWORK_TIMEOUT':
+        return 'You are signed in, but we cannot reach the account service. Check your connection and try again.';
+      default:
+        return 'You are signed in, but saved account data is temporarily unavailable. Please try again shortly.';
     }
   }
 

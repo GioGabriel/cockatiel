@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:vocal_coach_app/app/theme/app_theme.dart';
 import 'package:vocal_coach_app/app/theme/app_theme_tokens.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   test('dark theme exposes semantic tokens through the shared theme', () {
     final theme = AppTheme.dark();

@@ -43,6 +43,67 @@ def _classify_model_exception(exc: Exception) -> str:
   return "unknown_error"
 
 
+def _ground_provider_improvements(
+  provider_items: list[dict[str, Any]],
+  deterministic_items: list[dict[str, Any]],
+  score_breakdown: dict[str, Any],
+) -> list[dict[str, Any]]:
+  """Keep AI wording, but keep evidence and locations deterministic.
+
+  The model is allowed to explain a measured result. It is not allowed to
+  introduce a new metric, timestamp, segment, or evidence number that the
+  scorer did not produce.
+  """
+  sources = {
+    str(item.get("metric_key")): item
+    for item in deterministic_items
+    if isinstance(item, dict) and item.get("metric_key")
+  }
+  allowed_metrics = set((score_breakdown.get("metric_scores") or {}).keys())
+  segments = {
+    str(item.get("segment_id")): item
+    for item in (score_breakdown.get("segments") or [])
+    if isinstance(item, dict) and item.get("segment_id")
+  }
+  grounded: list[dict[str, Any]] = []
+  for item in provider_items:
+    metric_key = str(item.get("metric_key") or "")
+    source = sources.get(metric_key)
+    if metric_key not in allowed_metrics or source is None:
+      raise ValueError("Google AI returned an improvement without deterministic evidence.")
+
+    requested_segment_id = item.get("segment_id")
+    if requested_segment_id is not None:
+      requested_segment_id = str(requested_segment_id)
+      if requested_segment_id not in segments:
+        raise ValueError("Google AI returned an unknown evidence segment.")
+      source_segment_id = source.get("segment_id")
+      if source_segment_id and requested_segment_id != source_segment_id:
+        raise ValueError("Google AI returned a segment that does not match the deterministic focus.")
+
+    for field in ("start_ms", "end_ms"):
+      requested_value = item.get(field)
+      source_value = source.get(field)
+      if requested_value is not None and requested_value != source_value:
+        raise ValueError("Google AI returned an evidence timestamp not present in the score report.")
+
+    merged = dict(item)
+    for field in (
+      "evidence",
+      "evidence_quality",
+      "limitation",
+      "segment_id",
+      "start_ms",
+      "end_ms",
+    ):
+      if field in source:
+        merged[field] = source[field]
+      elif field in {"segment_id", "start_ms", "end_ms"}:
+        merged.pop(field, None)
+    grounded.append(merged)
+  return grounded
+
+
 def generate_feedback(
   session_id: str,
   overall_score: float,
@@ -65,6 +126,7 @@ def generate_feedback(
     overall_score=overall_score,
     exercise_type=exercise_type,
     metric_summary=metric_summary,
+    score_status=score_breakdown.get("score_status"),
   )
 
   model_used = "coaching-logic-engine"
@@ -105,13 +167,14 @@ def generate_feedback(
       )
       payload, model_latency_ms = client.generate_json(system_prompt=system_prompt, user_prompt=user_prompt)
       validated_payload = LlmFeedbackPayload.model_validate(payload)
-      allowed_metric_keys = set((score_breakdown.get("metric_scores") or {}).keys())
-      provider_improvements = [
-        item.model_dump()
-        for item in validated_payload.detailed_improvements
-      ]
-      if any(item["metric_key"] not in allowed_metric_keys for item in provider_improvements):
-        raise ValueError("Google AI returned an improvement for an unknown metric.")
+      provider_improvements = _ground_provider_improvements(
+        [
+          item.model_dump()
+          for item in validated_payload.detailed_improvements
+        ],
+        detailed_improvements,
+        score_breakdown,
+      )
       summary = validated_payload.summary
       detailed_improvements = provider_improvements
       model_used = f"google-ai-studio:{client.model}"

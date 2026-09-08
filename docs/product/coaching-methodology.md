@@ -32,7 +32,7 @@ Each guided exercise should make the same sequence visible to the user:
 
 The app does not treat every exercise as a scale lesson:
 
-- The Basic Ladder teaches the complete beginner sequence: `Do, Re, Mi, Fa, Sol`.
+- The Basic Ladder teaches the five-note beginner foundation: `Do, Re, Mi, Fa, Sol`.
 - A warm-up ladder now uses the same five notes so beginners do not see a
   misleading partial scale.
 - Beginner resonance, warm-up, transition, and ladder exercises all present the
@@ -43,6 +43,23 @@ The app does not treat every exercise as a scale lesson:
   and its teaching note explains that the goal is accurate landing rather than
   scale memorization. Advanced transition practice still starts with the full
   five-note ladder before adding its control variation.
+
+## Pacing and breathing boundaries
+
+The old `beats` field is now an explainable allocation input, not a claim that
+the phone is measuring musical beat accuracy. Runtime plans distribute the
+requested duration across note windows and explicit rests. Beginner voice
+patterns receive a larger rest interval after each target; intermediate and
+advanced patterns receive shorter resets, and the final target has no forced
+rest after it. A visible rest is a cue to relax and reset, not an instruction to
+hold one breath through the ladder.
+
+The 20/30/45-second attempt values remain product usability heuristics pending
+calibration. The briefing screen also offers a slower pace, which expands the
+guided block by 25%, and a beginner short-phrase option that uses `Do–Re–Mi`.
+These controls are product pacing decisions, not medical or universal
+vocal-duration prescriptions. Users should stop immediately if they feel strain,
+dizziness, or discomfort.
 
 The API returns this teaching purpose with every runtime pattern, and the
 mobile briefing/session surfaces it before and during practice. This keeps a

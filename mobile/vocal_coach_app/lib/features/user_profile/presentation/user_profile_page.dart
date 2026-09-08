@@ -35,7 +35,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    final cachedProfile =
+        widget.appState.isProfileReady ? widget.appState.currentUser : null;
+    if (cachedProfile != null) {
+      _profile = cachedProfile;
+      _isLoading = false;
+    } else {
+      _loadProfile();
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -109,6 +116,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
         .then((result) {
       if (result is UserProfileFull) {
         widget.appState.updateCurrentUserProfile(result);
+        if (mounted) {
+          setState(() {
+            _profile = result;
+            _isLoading = false;
+          });
+        }
+        return;
       }
       _loadProfile();
     });

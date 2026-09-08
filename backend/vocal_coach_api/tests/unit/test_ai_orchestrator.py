@@ -25,7 +25,7 @@ def test_feedback_orchestrator_uses_google_ai_for_evidence_backed_detail(monkeyp
             "metric_key": "pitch_accuracy",
             "priority": "high",
             "finding": "Pitch accuracy was not measurable in this take.",
-            "evidence": "0 target-note comparison frames were captured.",
+            "evidence": "999 target-note comparison frames were captured at 3140 ms.",
             "why_it_matters": "Without a target, the app cannot tell whether the note was matched.",
             "action": "Start the guided note and sing after the target appears.",
             "practice_plan": "Repeat one target note for 10 seconds with the guide visible.",
@@ -95,3 +95,5 @@ def test_feedback_orchestrator_uses_google_ai_for_evidence_backed_detail(monkeyp
   assert feedback.score_breakdown["metric_scores"]["pitch_accuracy"] == 86
   assert feedback.score_breakdown["evidence_quality"] == "reliable"
   assert feedback.detailed_improvements[0].metric_key == "pitch_accuracy"
+  assert "999" not in feedback.detailed_improvements[0].evidence
+  assert "No target-note comparison frames" in feedback.detailed_improvements[0].evidence

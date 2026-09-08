@@ -37,13 +37,14 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   AnalyticsTrends? _trends;
   TrainingProgress? _trainingProgress;
   Timer? _liveRefreshTimer;
+  bool _refreshInFlight = false;
 
   @override
   void initState() {
     super.initState();
     _loadAll();
     _liveRefreshTimer = Timer.periodic(
-      const Duration(seconds: 15),
+      const Duration(minutes: 5),
       (_) => _loadAll(showLoading: false),
     );
   }
@@ -55,14 +56,15 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   }
 
   Future<void> _loadAll({bool showLoading = true}) async {
-    if (_isLoading && !showLoading) return;
-
-    setState(() {
-      if (showLoading) _isLoading = true;
-      _error = null;
-    });
+    if (_refreshInFlight || (_isLoading && !showLoading)) return;
+    _refreshInFlight = true;
 
     try {
+      setState(() {
+        if (showLoading) _isLoading = true;
+        _error = null;
+      });
+
       final results = await Future.wait([
         widget.apiClient.fetchAnalyticsDashboard(),
         widget.apiClient.fetchAnalyticsTrends(range: _selectedRange),
@@ -82,6 +84,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       setState(() => _error = 'Could not load analytics. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+      _refreshInFlight = false;
     }
   }
 

@@ -23,9 +23,9 @@ _VOICE_GUIDANCE = {
   },
   "breath_control": {
     "strong": "Breath support stayed steady through the phrases",
-    "developing": "Breath support is developing; plan a relaxed breath before each phrase",
-    "needs_work": "Air ran low before some phrases ended",
-    "exercise": "Gentle 'sss' breath-pacing ladder",
+    "developing": "Continuity is developing; plan a relaxed breath before each phrase",
+    "needs_work": "The recorded voice signal stopped before some target windows ended",
+    "exercise": "Gentle, short continuity and phrase-pacing practice",
   },
   "note_transition_smoothness": {
     "strong": "Transitions between notes were smooth",
@@ -92,7 +92,7 @@ _TARGET_COMPARISON_METRICS = {
 _METRIC_DETAIL_ACTIONS = {
   "pitch_accuracy": "Match one target note at a time with the guide, then repeat the phrase slowly.",
   "timing_accuracy": "Wait for the target window, count the beat, and repeat the same phrase without rushing.",
-  "breath_control": "Take a relaxed breath before the phrase and keep the airflow steady until it ends.",
+  "breath_control": "Take a relaxed breath before the phrase and keep the recorded voice signal comfortably continuous until it ends.",
   "pitch_stability": "Hold a comfortable note for a few seconds and keep the sound even instead of pushing for volume.",
   "vibrato_consistency": "Make the sustained note steady first, then add a gentle, natural vibrato.",
   "note_transition_smoothness": "Slow the two-note change down and connect the next target without sliding past it.",
@@ -118,6 +118,14 @@ def _sample_count(metrics: dict[str, Any]) -> int:
     return max(int(metrics.get("sample_count") or 0), 0)
   except (TypeError, ValueError):
     return 0
+
+
+def _safe_number(value: Any) -> int:
+  try:
+    parsed = float(value)
+  except (TypeError, ValueError):
+    return 0
+  return max(0, int(parsed)) if math.isfinite(parsed) else 0
 
 
 def _append_unique(items: list[str], value: str) -> None:
@@ -149,7 +157,7 @@ class CoachingLogicEngine:
     exercise_type: str,
     metric_summary: dict[str, Any],
     score_breakdown: dict[str, Any],
-  ) -> list[dict[str, str]]:
+  ) -> list[dict[str, Any]]:
     """Build a useful fallback plan from evidence, not generic encouragement."""
     is_breathing = metric_summary.get("metric_mode") == "breathing"
     guidance = _BREATHING_GUIDANCE if is_breathing else _VOICE_GUIDANCE
@@ -171,7 +179,7 @@ class CoachingLogicEngine:
       return (1, _safe_score(metric_scores.get(field)))
 
     ordered = sorted(metric_keys, key=priority)
-    improvements: list[dict[str, str]] = []
+    improvements: list[dict[str, Any]] = []
     for field in ordered:
       if len(improvements) >= 3:
         break
@@ -206,15 +214,48 @@ class CoachingLogicEngine:
         practice_plan = metric_guidance.get("exercise") or action
         why_it_matters = f"This area contributed {score:.0f}/100 to the measured take and is a useful next target for practice."
 
-      improvements.append({
+      segment = None
+      evidence = reason
+      limitation = None
+      if field in _TARGET_COMPARISON_METRICS:
+        candidate_segments = [
+          item for item in (score_breakdown.get("segments") or [])
+          if isinstance(item, dict) and str(item.get("status") or "") != "not_measurable"
+        ]
+        if candidate_segments:
+          segment = min(candidate_segments, key=lambda item: _safe_score(item.get("score")))
+          label = str(segment.get("label") or segment.get("segment_id") or "target")
+          start_ms = _safe_number(segment.get("start_ms"))
+          end_ms = _safe_number(segment.get("end_ms"))
+          segment_range = f"{start_ms / 1000:.1f}–{end_ms / 1000:.1f}s"
+          evidence = f"{reason} Weakest measured segment: {label}, {segment_range}, score {_safe_score(segment.get('score')):.0f}/100."
+          if status == "measured":
+            practice_plan = f"Repeat {label} alone for three short attempts at a slower pace, then return to the full phrase."
+      if status in {"not_measurable", "partial"} or score_breakdown.get("score_status") in {"partial", "legacy"}:
+        limitation = (
+          "This is an acoustic practice estimate; the phone microphone does not directly measure airflow, resonance, tension, or vocal-fold health."
+          if field == "breath_control"
+          else "Use this as a practice estimate; noisy, quiet, or missing target frames limit the conclusion."
+        )
+
+      improvement: dict[str, Any] = {
         "metric_key": field,
         "priority": priority_label,
         "finding": finding,
-        "evidence": reason,
+        "evidence": evidence,
         "why_it_matters": why_it_matters,
         "action": action,
         "practice_plan": practice_plan,
-      })
+        "evidence_quality": str(score_breakdown.get("score_status") or score_breakdown.get("evidence_quality") or "unknown"),
+        "limitation": limitation,
+      }
+      if segment is not None:
+        improvement.update({
+          "segment_id": str(segment.get("segment_id") or "segment"),
+          "start_ms": _safe_number(segment.get("start_ms")),
+          "end_ms": _safe_number(segment.get("end_ms")),
+        })
+      improvements.append(improvement)
 
     if not improvements:
       improvements.append({
@@ -225,6 +266,8 @@ class CoachingLogicEngine:
         "why_it_matters": "A longer, guided recording will make the next review more specific.",
         "action": "Record the exercise again with the microphone and target guide active.",
         "practice_plan": "Use one short phrase and wait for the live target before singing.",
+        "evidence_quality": str(score_breakdown.get("score_status") or score_breakdown.get("evidence_quality") or "unknown"),
+        "limitation": "A longer, guided recording is needed before a metric-specific conclusion is safe.",
       })
     return improvements
 
@@ -233,6 +276,7 @@ class CoachingLogicEngine:
     overall_score: float,
     exercise_type: str,
     metric_summary: dict[str, Any],
+    score_status: str | None = None,
   ) -> tuple[list[str], list[str], list[str]]:
     strengths: list[str] = []
     improvements: list[str] = []
@@ -246,6 +290,12 @@ class CoachingLogicEngine:
         for field in (_BREATHING_GUIDANCE if is_breathing else _VOICE_GUIDANCE)
       ))
     )
+
+    if score_status in {"not_scorable", "insufficient_evidence"}:
+      strengths.append("The recording signal was received, but the target comparison was not sufficient for a fair score.")
+      improvements.append("This take is inconclusive; start the target guide and record a complete short phrase.")
+      next_exercises.append("Repeat one guided target with the microphone and target indicator active")
+      return strengths, improvements, next_exercises
 
     if not has_data:
       strengths.append("You started a practice attempt; the next take can give us clearer guidance.")
@@ -295,10 +345,21 @@ class CoachingLogicEngine:
     score_int = int(round(_safe_score(overall_score)))
     mode_label = "Karaoke song performance" if "karaoke" in exercise_type.lower() else "Vocal Coach training session"
 
+    score_status = str((score_breakdown or {}).get("score_status") or "")
+    if score_status in {"not_scorable", "insufficient_evidence"}:
+      reason = "The target-note comparison was not available."
+      for detail in ((score_breakdown or {}).get("metric_details") or {}).values():
+        if isinstance(detail, dict) and detail.get("status") == "not_measurable":
+          reason = str(detail.get("reason") or reason)
+          break
+      return f"We could not produce a reliable practice score for this take. {reason} Try one short guided phrase and wait for the target before singing."
+
     if _sample_count(metric_summary) <= 0:
       return "We could not capture enough practice data for a reliable score. Check your microphone and try a short take."
 
     parts = [f"Your practice score was {score_int}/100 for this {mode_label}."]
+    if score_status in {"partial", "legacy"}:
+      parts.append("Some detailed evidence was limited, so treat this as a practice estimate rather than a formal rating.")
     weakest_metric = CoachingLogicEngine._weakest_metric(metric_summary)
     if score_breakdown:
       detailed = score_breakdown.get("metric_details") or {}

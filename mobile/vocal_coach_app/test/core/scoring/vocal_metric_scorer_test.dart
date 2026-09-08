@@ -53,6 +53,9 @@ void main() {
     expect(summary.evidence['target_coverage_pct'], 100);
     expect(summary.evidence['on_target_rate_pct'], greaterThan(99));
     expect(summary.evidence['segments'], hasLength(1));
+    final segment = summary.evidence['segments'].single as Map<String, dynamic>;
+    expect(segment['target_frequency_hz'], 440);
+    expect(segment['pitch_stddev_cents'], 0);
   });
 
   test(

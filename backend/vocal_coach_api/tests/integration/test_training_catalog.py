@@ -101,6 +101,8 @@ def test_training_session_stores_category_and_config(client, auth_headers):
         "difficulty": "intermediate",
         "key": "D",
         "octave": 4,
+        "pace": "slow",
+        "phrase_mode": "full",
       },
     },
   )
@@ -113,14 +115,19 @@ def test_training_session_stores_category_and_config(client, auth_headers):
   assert session_payload["category_id"] == "vocal_training"
   assert session_payload["exercise_id"] == "resonance_placement"
   assert session_payload["training_config"]["difficulty"] == "intermediate"
-  assert session_payload["training_config"]["duration_sec"] == 30
+  assert session_payload["training_config"]["pace"] == "slow"
+  assert session_payload["training_config"]["phrase_mode"] == "full"
+  assert session_payload["training_config"]["duration_sec"] == 38
   assert session_payload["training_config"]["max_attempts"] == 3
   assert session_payload["exercise_spec"]["objective"]
   assert session_payload["exercise_spec"]["what_you_do"]
   assert session_payload["runtime_plan"]["pattern_type"] == "sustain"
   assert "pentachord" in session_payload["runtime_plan"]["teaching_note"]
-  assert session_payload["runtime_plan"]["total_duration_sec"] == 30
+  assert session_payload["runtime_plan"]["total_duration_sec"] == 38
   assert session_payload["runtime_plan"]["stages"][0]["target_label"] == "Do"
+  assert session_payload["runtime_plan"]["stages"][0]["target"]["scale_degree"] == 1
+  assert session_payload["runtime_plan"]["stages"][0]["target"]["target_frequency_hz"] == 293.66
+  assert session_payload["runtime_plan"]["stages"][0]["rest_after_sec"] > 0
 
 
 def test_do_re_mi_session_resolves_jump_runtime_plan(client, auth_headers):

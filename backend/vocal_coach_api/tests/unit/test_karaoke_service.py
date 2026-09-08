@@ -15,6 +15,13 @@ from app.modules.karaoke.service import get_karaoke_catalog, get_drill_by_id, ge
 from app.modules.karaoke import catalog as karaoke_catalog
 
 
+@pytest.fixture(autouse=True)
+def _reset_catalog_cache() -> None:
+  karaoke_catalog.reset_catalog_cache()
+  yield  # type: ignore[misc]
+  karaoke_catalog.reset_catalog_cache()
+
+
 class TestKaraokeCatalogStructure:
   def test_catalog_has_minimum_3_categories(self) -> None:
     catalog = get_karaoke_catalog()
@@ -168,3 +175,96 @@ class TestCatalogPreview:
       assert "style_label" in cat
       assert "drill_count" in cat
       assert cat["drill_count"] >= 1
+
+
+def test_firestore_catalog_is_cached_for_repeated_requests(monkeypatch) -> None:
+  class Document:
+    id = "song-1"
+
+    def to_dict(self):
+      return {
+        "title": "Test Song",
+        "style_category": "Pop Ballad",
+        "difficulty": "beginner",
+      }
+
+  class Collection:
+    def __init__(self):
+      self.stream_calls = 0
+
+    def stream(self):
+      self.stream_calls += 1
+      return [Document()]
+
+  class Database:
+    def __init__(self):
+      self.collection_ref = Collection()
+
+    def collection(self, _name):
+      return self.collection_ref
+
+  database = Database()
+  production_settings = replace(
+    karaoke_catalog.settings,
+    app_env="production",
+    firestore_enabled=True,
+    firestore_project_id="test-project",
+  )
+  monkeypatch.setattr(karaoke_catalog, "settings", production_settings)
+  monkeypatch.setattr(karaoke_catalog, "build_firestore_client", lambda: database)
+
+  first = karaoke_catalog.get_catalog()
+  second = karaoke_catalog.get_catalog()
+
+  assert first == second
+  assert database.collection_ref.stream_calls == 1
+
+
+def test_drill_lookup_reuses_loaded_firestore_catalog(monkeypatch) -> None:
+  class Document:
+    id = "song-1"
+
+    def to_dict(self):
+      return {
+        "title": "Test Song",
+        "style_category": "Pop Ballad",
+        "difficulty": "beginner",
+      }
+
+    def get(self):
+      raise AssertionError("a loaded catalog should satisfy drill lookup without a point read")
+
+  class Collection:
+    def __init__(self):
+      self.stream_calls = 0
+
+    def stream(self):
+      self.stream_calls += 1
+      return [Document()]
+
+    def document(self, _drill_id):
+      raise AssertionError("a loaded catalog should satisfy drill lookup without a point read")
+
+  class Database:
+    def __init__(self):
+      self.collection_ref = Collection()
+
+    def collection(self, _name):
+      return self.collection_ref
+
+  database = Database()
+  production_settings = replace(
+    karaoke_catalog.settings,
+    app_env="production",
+    firestore_enabled=True,
+    firestore_project_id="test-project",
+  )
+  monkeypatch.setattr(karaoke_catalog, "settings", production_settings)
+  monkeypatch.setattr(karaoke_catalog, "build_firestore_client", lambda: database)
+
+  karaoke_catalog.get_catalog()
+  drill = karaoke_catalog.get_drill_by_id("song-1")
+
+  assert drill is not None
+  assert drill["title"] == "Test Song"
+  assert database.collection_ref.stream_calls == 1

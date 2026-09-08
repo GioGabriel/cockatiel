@@ -81,6 +81,7 @@ class FeedbackScoreBreakdown {
     required this.scoringVersion,
     required this.sampleCount,
     required this.evidenceQuality,
+    this.scoreStatus = 'unknown',
     this.recordingEvidence = const <String, dynamic>{},
     this.metricDetails = const <String, FeedbackMetricDetail>{},
     this.segments = const <FeedbackSegmentEvidence>[],
@@ -93,6 +94,7 @@ class FeedbackScoreBreakdown {
   final String scoringVersion;
   final int sampleCount;
   final String evidenceQuality;
+  final String scoreStatus;
   final Map<String, dynamic> recordingEvidence;
   final Map<String, FeedbackMetricDetail> metricDetails;
   final List<FeedbackSegmentEvidence> segments;
@@ -121,6 +123,7 @@ class FeedbackScoreBreakdown {
       scoringVersion: (json['scoring_version'] as String?) ?? 'unknown',
       sampleCount: (json['sample_count'] as num?)?.toInt() ?? 0,
       evidenceQuality: (json['evidence_quality'] as String?) ?? 'unknown',
+      scoreStatus: (json['score_status'] as String?) ?? 'unknown',
       recordingEvidence:
           _mapFromJson(json['recording_evidence']) ?? const <String, dynamic>{},
       metricDetails: rawMetricDetails.map(
@@ -161,6 +164,7 @@ class FeedbackScoreBreakdown {
       scoringVersion: attemptBreakdown.scoringVersion,
       sampleCount: sampleCount,
       evidenceQuality: evidenceQuality,
+      scoreStatus: attemptBreakdown.scoreStatus,
       recordingEvidence: attemptBreakdown.recordingEvidence,
       metricDetails: attemptBreakdown.metricDetails,
       segments: attemptBreakdown.segments,
@@ -210,6 +214,11 @@ class FeedbackSegmentEvidence {
     required this.score,
     required this.status,
     required this.reason,
+    this.pitchBiasCents = 0,
+    this.targetFrequencyHz,
+    this.pitchStddevCents = 0,
+    this.interrupted = false,
+    this.recommendation,
   });
 
   final String segmentId;
@@ -219,6 +228,11 @@ class FeedbackSegmentEvidence {
   final double score;
   final String status;
   final String reason;
+  final double pitchBiasCents;
+  final double? targetFrequencyHz;
+  final double pitchStddevCents;
+  final bool interrupted;
+  final String? recommendation;
 
   factory FeedbackSegmentEvidence.fromJson(Map<String, dynamic> json) {
     return FeedbackSegmentEvidence(
@@ -230,6 +244,11 @@ class FeedbackSegmentEvidence {
       status: (json['status'] as String?) ?? 'measured',
       reason:
           (json['reason'] as String?) ?? 'Measured from this target window.',
+      pitchBiasCents: (json['pitch_bias_cents'] as num?)?.toDouble() ?? 0,
+      targetFrequencyHz: (json['target_frequency_hz'] as num?)?.toDouble(),
+      pitchStddevCents: (json['pitch_stddev_cents'] as num?)?.toDouble() ?? 0,
+      interrupted: (json['interrupted'] as bool?) ?? false,
+      recommendation: json['recommendation'] as String?,
     );
   }
 }
@@ -243,6 +262,11 @@ class DetailedImprovement {
     required this.whyItMatters,
     required this.action,
     required this.practicePlan,
+    this.evidenceQuality = 'unknown',
+    this.limitation,
+    this.segmentId,
+    this.startMs,
+    this.endMs,
   });
 
   final String metricKey;
@@ -252,6 +276,11 @@ class DetailedImprovement {
   final String whyItMatters;
   final String action;
   final String practicePlan;
+  final String evidenceQuality;
+  final String? limitation;
+  final String? segmentId;
+  final int? startMs;
+  final int? endMs;
 
   factory DetailedImprovement.fromJson(Map<String, dynamic> json) {
     return DetailedImprovement(
@@ -267,6 +296,11 @@ class DetailedImprovement {
           'Repeat the exercise slowly and focus on this area.',
       practicePlan: (json['practice_plan'] as String?) ??
           'Repeat a short guided phrase and review the result.',
+      evidenceQuality: (json['evidence_quality'] as String?) ?? 'unknown',
+      limitation: json['limitation'] as String?,
+      segmentId: json['segment_id'] as String?,
+      startMs: (json['start_ms'] as num?)?.toInt(),
+      endMs: (json['end_ms'] as num?)?.toInt(),
     );
   }
 }
@@ -373,6 +407,8 @@ class TrainingSessionConfig {
     required this.key,
     required this.octave,
     this.targetPattern,
+    this.pace = 'standard',
+    this.phraseMode = 'full',
     required this.durationSec,
     required this.maxAttempts,
   });
@@ -381,6 +417,8 @@ class TrainingSessionConfig {
   final String key;
   final int octave;
   final String? targetPattern;
+  final String pace;
+  final String phraseMode;
   final int durationSec;
   final int maxAttempts;
 
@@ -390,8 +428,61 @@ class TrainingSessionConfig {
       key: (json['key'] as String?) ?? 'C',
       octave: (json['octave'] as num?)?.toInt() ?? 4,
       targetPattern: json['target_pattern'] as String?,
+      pace: (json['pace'] as String?) ?? 'standard',
+      phraseMode: (json['phrase_mode'] as String?) ?? 'full',
       durationSec: (json['duration_sec'] as num?)?.toInt() ?? 20,
       maxAttempts: (json['max_attempts'] as num?)?.toInt() ?? 3,
+    );
+  }
+}
+
+class TrainingTarget {
+  TrainingTarget({
+    required this.targetId,
+    required this.solfege,
+    required this.scaleDegree,
+    required this.midiNote,
+    required this.frequencyHz,
+    required this.key,
+    required this.octave,
+    required this.startSec,
+    required this.endSec,
+    required this.intendedNoteDurationSec,
+    required this.restAfterSec,
+    required this.targetType,
+    required this.breathCue,
+  });
+
+  final String targetId;
+  final String solfege;
+  final int? scaleDegree;
+  final int? midiNote;
+  final double? frequencyHz;
+  final String key;
+  final int octave;
+  final double startSec;
+  final double endSec;
+  final double intendedNoteDurationSec;
+  final double restAfterSec;
+  final String targetType;
+  final bool breathCue;
+
+  factory TrainingTarget.fromJson(Map<String, dynamic> json) {
+    return TrainingTarget(
+      targetId: (json['target_id'] as String?) ?? 'target',
+      solfege: (json['solfege'] as String?) ?? 'Target',
+      scaleDegree: (json['scale_degree'] as num?)?.toInt(),
+      midiNote: (json['midi_note'] as num?)?.toInt(),
+      frequencyHz: (json['target_frequency_hz'] as num?)?.toDouble(),
+      key: (json['key'] as String?) ?? 'C',
+      octave: (json['octave'] as num?)?.toInt() ?? 4,
+      startSec: (json['start_sec'] as num?)?.toDouble() ?? 0,
+      endSec: (json['end_sec'] as num?)?.toDouble() ?? 0,
+      intendedNoteDurationSec:
+          (json['intended_note_duration_sec'] as num?)?.toDouble() ?? 0,
+      restAfterSec: (json['rest_after_sec'] as num?)?.toDouble() ?? 0,
+      targetType: (json['target_type'] as String?) ?? 'sustained_note',
+      breathCue: (json['breath_cue'] as bool?) ?? false,
     );
   }
 }
@@ -405,7 +496,26 @@ class TrainingRuntimeStage {
     required this.durationSec,
     required this.startSec,
     required this.endSec,
-  });
+    double? restAfterSec,
+    double? restEndSec,
+    String? targetType,
+    bool? breathCue,
+    TrainingTarget? target,
+  })  : restAfterSec = restAfterSec ?? 0,
+        restEndSec = restEndSec ?? endSec,
+        targetType = targetType ?? 'sustained_note',
+        breathCue = breathCue ?? false,
+        target = target ??
+            TrainingTarget.fromJson({
+              'target_id': stageId,
+              'solfege': targetLabel,
+              'target_frequency_hz': double.tryParse(targetLabel),
+              'start_sec': startSec,
+              'end_sec': endSec,
+              'rest_after_sec': restAfterSec ?? 0,
+              'target_type': targetType ?? 'sustained_note',
+              'breath_cue': breathCue ?? false,
+            });
 
   final String stageId;
   final String title;
@@ -414,12 +524,37 @@ class TrainingRuntimeStage {
   final double durationSec;
   final double startSec;
   final double endSec;
+  final double restAfterSec;
+  final double restEndSec;
+  final String targetType;
+  final bool breathCue;
+  final TrainingTarget target;
 
   factory TrainingRuntimeStage.fromJson(Map<String, dynamic> json) {
     final targetLabel = (json['target_label'] as String?) ??
         (json['solfege'] as String?) ??
         (json['title'] as String?) ??
         'Target';
+    final rawTarget = json['target'] is Map
+        ? Map<String, dynamic>.from(json['target'] as Map)
+        : <String, dynamic>{};
+    rawTarget.addAll({
+      'target_id': rawTarget['target_id'] ?? json['stage_id'],
+      'solfege': rawTarget['solfege'] ?? targetLabel,
+      'scale_degree': rawTarget['scale_degree'] ?? json['scale_degree'],
+      'midi_note': rawTarget['midi_note'] ?? json['midi_note'],
+      'target_frequency_hz':
+          rawTarget['target_frequency_hz'] ?? json['target_frequency_hz'],
+      'key': rawTarget['key'] ?? json['key'],
+      'octave': rawTarget['octave'] ?? json['octave'],
+      'start_sec': rawTarget['start_sec'] ?? json['start_sec'],
+      'end_sec': rawTarget['end_sec'] ?? json['end_sec'],
+      'intended_note_duration_sec': rawTarget['intended_note_duration_sec'] ??
+          json['intended_note_duration_sec'],
+      'rest_after_sec': rawTarget['rest_after_sec'] ?? json['rest_after_sec'],
+      'target_type': rawTarget['target_type'] ?? json['target_type'],
+      'breath_cue': rawTarget['breath_cue'] ?? json['breath_cue'],
+    });
     return TrainingRuntimeStage(
       stageId: json['stage_id'] as String,
       title: json['title'] as String,
@@ -428,6 +563,12 @@ class TrainingRuntimeStage {
       durationSec: (json['duration_sec'] as num).toDouble(),
       startSec: (json['start_sec'] as num).toDouble(),
       endSec: (json['end_sec'] as num).toDouble(),
+      restAfterSec: (json['rest_after_sec'] as num?)?.toDouble() ?? 0,
+      restEndSec: (json['rest_end_sec'] as num?)?.toDouble() ??
+          (json['end_sec'] as num).toDouble(),
+      targetType: (json['target_type'] as String?) ?? 'sustained_note',
+      breathCue: (json['breath_cue'] as bool?) ?? false,
+      target: TrainingTarget.fromJson(rawTarget),
     );
   }
 }
@@ -443,6 +584,10 @@ class TrainingRuntimePlan {
     required this.octave,
     required this.totalDurationSec,
     required this.stages,
+    this.pacingModel = 'legacy',
+    this.pacingBasis,
+    this.pace = 'standard',
+    this.phraseMode = 'full',
   });
 
   final String patternId;
@@ -454,6 +599,10 @@ class TrainingRuntimePlan {
   final int octave;
   final int totalDurationSec;
   final List<TrainingRuntimeStage> stages;
+  final String pacingModel;
+  final String? pacingBasis;
+  final String pace;
+  final String phraseMode;
 
   factory TrainingRuntimePlan.fromJson(Map<String, dynamic> json) {
     return TrainingRuntimePlan(
@@ -466,6 +615,10 @@ class TrainingRuntimePlan {
       key: json['key'] as String,
       octave: (json['octave'] as num).toInt(),
       totalDurationSec: (json['total_duration_sec'] as num).toInt(),
+      pacingModel: (json['pacing_model'] as String?) ?? 'legacy',
+      pacingBasis: json['pacing_basis'] as String?,
+      pace: (json['pace'] as String?) ?? 'standard',
+      phraseMode: (json['phrase_mode'] as String?) ?? 'full',
       stages: (json['stages'] as List<dynamic>? ?? const <dynamic>[])
           .map(
             (item) =>
@@ -583,6 +736,32 @@ class TrainingAttemptMetricSummary {
   }
 }
 
+// The hosted API can be one deployment behind the local contract while a
+// Render rollout is in progress. Keep the request projection at the older
+// segment shape so an updated client can still save attempts against that
+// server. The scorer and response models retain the richer fields locally;
+// this only protects the wire request from strict `extra=forbid` validation.
+const Set<String> _legacyCompatibleSegmentKeys = <String>{
+  'segment_id',
+  'label',
+  'start_ms',
+  'end_ms',
+  'frame_count',
+  'voiced_frame_count',
+  'target_frame_count',
+  'voiced_coverage_pct',
+  'target_coverage_pct',
+  'on_target_rate_pct',
+  'mean_confidence',
+  'mean_abs_cents',
+  'p95_abs_cents',
+  'onset_delay_ms',
+  'settling_time_ms',
+  'score',
+  'status',
+  'reason',
+};
+
 Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
   final normalized = Map<String, dynamic>.from(source);
   normalized['p95_abs_cents'] = _finiteNumberOrZero(
@@ -595,7 +774,12 @@ Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
       if (item is! Map) {
         return item;
       }
-      final segment = Map<String, dynamic>.from(item);
+      final rawSegment = Map<String, dynamic>.from(item);
+      final segment = <String, dynamic>{
+        for (final entry in rawSegment.entries)
+          if (_legacyCompatibleSegmentKeys.contains(entry.key))
+            entry.key: entry.value,
+      };
       segment['p95_abs_cents'] = _finiteNumberOrZero(
         segment['p95_abs_cents'],
       );
@@ -631,6 +815,7 @@ class TrainingAttemptScoreBreakdown {
     this.scoringVersion = 'unknown',
     this.sampleCount = 0,
     this.evidenceQuality = 'unknown',
+    this.scoreStatus = 'unknown',
     this.recordingEvidence = const <String, dynamic>{},
     this.metricDetails = const <String, FeedbackMetricDetail>{},
     this.segments = const <FeedbackSegmentEvidence>[],
@@ -642,6 +827,7 @@ class TrainingAttemptScoreBreakdown {
   final String scoringVersion;
   final int sampleCount;
   final String evidenceQuality;
+  final String scoreStatus;
   final Map<String, dynamic> recordingEvidence;
   final Map<String, FeedbackMetricDetail> metricDetails;
   final List<FeedbackSegmentEvidence> segments;
@@ -668,6 +854,7 @@ class TrainingAttemptScoreBreakdown {
       scoringVersion: (json['scoring_version'] as String?) ?? 'unknown',
       sampleCount: (json['sample_count'] as num?)?.toInt() ?? 0,
       evidenceQuality: (json['evidence_quality'] as String?) ?? 'unknown',
+      scoreStatus: (json['score_status'] as String?) ?? 'unknown',
       recordingEvidence:
           _mapFromJson(json['recording_evidence']) ?? const <String, dynamic>{},
       metricDetails: rawMetricDetails.map(

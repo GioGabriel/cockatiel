@@ -8,10 +8,13 @@ from app.modules.training.catalog import (
   get_exercise,
   resolve_duration_sec,
 )
+from app.modules.training.targets import canonical_training_target
 from app.repositories.provider import get_session_repository
 
 _VALID_DIFFICULTIES = {"beginner", "intermediate", "advanced"}
 _VALID_KEYS = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+_VALID_PACES = {"standard", "slow"}
+_VALID_PHRASE_MODES = {"full", "short"}
 
 
 def get_training_catalog() -> dict[str, Any]:
@@ -45,6 +48,50 @@ def _normalize_octave(raw_value: Any) -> int:
   except (TypeError, ValueError):
     octave = 4
   return max(2, min(octave, 6))
+
+
+def _normalize_pace(raw_value: Any) -> str:
+  pace = str(raw_value or "standard").lower().strip()
+  return pace if pace in _VALID_PACES else "standard"
+
+
+def _normalize_phrase_mode(raw_value: Any, *, difficulty: str, is_voice_pattern: bool) -> str:
+  phrase_mode = str(raw_value or "full").lower().strip()
+  if phrase_mode not in _VALID_PHRASE_MODES:
+    return "full"
+  # Short phrases are deliberately a beginner voice affordance. Breathing timers
+  # and higher-level patterns retain their authored progression.
+  if phrase_mode == "short" and (difficulty != "beginner" or not is_voice_pattern):
+    return "full"
+  return phrase_mode
+
+
+def _shorten_beginner_pattern(pattern: dict[str, Any], *, phrase_mode: str) -> dict[str, Any]:
+  if phrase_mode != "short":
+    return pattern
+
+  stages = list(pattern.get("stages") or [])
+  if not stages:
+    return pattern
+
+  shortened = dict(pattern)
+  selected_stages = stages[:3]
+  labels = [
+    str(stage.get("target_label") or stage.get("solfege") or stage.get("title") or "Target")
+    for stage in selected_stages
+  ]
+  if len(stages) > 3:
+    shortened["pattern_id"] = f"{pattern.get('pattern_id') or 'pattern'}_short"
+  shortened["summary"] = (
+    "Short three-note phrase for a comfortable repeat: "
+    f"{', '.join(labels)}."
+  )
+  shortened["teaching_note"] = (
+    "Short phrase mode uses the first guided targets so you can reset your breath "
+    "between repetitions before returning to the full beginner foundation."
+  )
+  shortened["stages"] = selected_stages
+  return shortened
 
 
 def _build_exercise_spec(exercise: dict[str, Any]) -> dict[str, Any]:
@@ -98,28 +145,76 @@ def resolve_training_runtime(
   octave: int,
   duration_sec: int,
   requested_pattern: str | None = None,
+  pace: str = "standard",
+  phrase_mode: str = "full",
 ) -> dict[str, Any]:
   exercise = get_training_validation(exercise_id)
-  pattern = _resolve_pattern(exercise, difficulty, requested_pattern)
+  is_voice_pattern = str(exercise.get("exercise_mode") or "voice") == "voice"
+  normalized_pace = _normalize_pace(pace)
+  normalized_phrase_mode = _normalize_phrase_mode(
+    phrase_mode,
+    difficulty=difficulty,
+    is_voice_pattern=is_voice_pattern,
+  )
+  pattern = _shorten_beginner_pattern(
+    _resolve_pattern(exercise, difficulty, requested_pattern),
+    phrase_mode=normalized_phrase_mode,
+  )
   raw_stages = list(pattern.get("stages") or [])
 
-  total_beats = max(sum(int(stage.get("beats") or 1) for stage in raw_stages), 1)
-  assigned_duration = 0
-  start_sec = 0
-  stages: list[dict[str, Any]] = []
+  pattern_type = str(pattern.get("pattern_type") or "default")
+  default_rest_beats = 0.5 if difficulty == "beginner" else 0.25
+  stage_units: list[tuple[int, float]] = []
   for index, stage in enumerate(raw_stages):
     beats = max(int(stage.get("beats") or 1), 1)
-    remaining_stages = len(raw_stages) - index
-    if remaining_stages == 1:
-      stage_duration_sec = max(duration_sec - assigned_duration, 1)
+    if not is_voice_pattern or index == len(raw_stages) - 1:
+      rest_beats = 0.0
     else:
-      proportional_duration = round((beats / total_beats) * duration_sec)
-      stage_duration_sec = max(proportional_duration, 1)
-      max_allowed = duration_sec - assigned_duration - (remaining_stages - 1)
-      stage_duration_sec = min(stage_duration_sec, max_allowed)
+      try:
+        rest_beats = max(float(stage.get("rest_after_beats", default_rest_beats)), 0.0)
+      except (TypeError, ValueError):
+        rest_beats = default_rest_beats
+    stage_units.append((beats, rest_beats))
 
-    end_sec = start_sec + stage_duration_sec
+  total_units = max(sum(beats + rest for beats, rest in stage_units), 1.0)
+  seconds_per_unit = duration_sec / total_units
+  cursor_sec = 0.0
+  stages: list[dict[str, Any]] = []
+  for index, stage in enumerate(raw_stages):
+    beats, rest_beats = stage_units[index]
+    start_sec = round(cursor_sec, 2)
+    is_last_stage = index == len(raw_stages) - 1
+    if is_last_stage:
+      stage_duration_sec = max(round(duration_sec - start_sec, 2), 0.1)
+      rest_after_sec = 0.0
+    else:
+      stage_duration_sec = max(round(beats * seconds_per_unit, 2), 0.1)
+      rest_after_sec = round(rest_beats * seconds_per_unit, 2)
+    end_sec = round(start_sec + stage_duration_sec, 2)
+    rest_end_sec = round(min(end_sec + rest_after_sec, duration_sec), 2)
     target_label = str(stage.get("target_label") or stage.get("solfege") or "Target")
+    target_type = str(
+      stage.get("target_type")
+      or (
+        "breathing_phase"
+        if not is_voice_pattern
+        else "transition"
+        if index > 0 and pattern_type in {"transition", "jump"}
+        else "sustained_note"
+      )
+    )
+    breath_cue = bool(stage.get("breath_cue", is_voice_pattern and rest_after_sec >= 0.5))
+    target = canonical_training_target(
+      target_id=str(stage.get("stage_id") or f"stage_{index + 1}"),
+      solfege=target_label,
+      key=key,
+      octave=octave,
+      start_sec=start_sec,
+      end_sec=end_sec,
+      rest_after_sec=rest_after_sec,
+      target_type=target_type,
+      breath_cue=breath_cue,
+    )
     stages.append(
       {
         "stage_id": str(stage.get("stage_id") or f"stage_{index + 1}"),
@@ -130,20 +225,37 @@ def resolve_training_runtime(
         "duration_sec": stage_duration_sec,
         "start_sec": start_sec,
         "end_sec": end_sec,
+        "rest_after_sec": rest_after_sec,
+        "rest_end_sec": rest_end_sec,
+        "target_type": target_type,
+        "breath_cue": breath_cue,
+        "target_frequency_hz": target["target_frequency_hz"],
+        "scale_degree": target["scale_degree"],
+        "midi_note": target["midi_note"],
+        "target": target,
       }
     )
-    assigned_duration += stage_duration_sec
-    start_sec = end_sec
+    cursor_sec = rest_end_sec
 
   return {
     "pattern_id": str(pattern.get("pattern_id") or f"{exercise_id}_{difficulty}"),
-    "pattern_type": str(pattern.get("pattern_type") or "default"),
+    "pattern_type": pattern_type,
     "summary": str(pattern.get("summary") or exercise.get("description") or ""),
     "teaching_note": str(pattern.get("teaching_note") or "Follow the guided steps and use the live cue as your next action."),
     "difficulty": difficulty,
     "key": key,
     "octave": octave,
     "total_duration_sec": duration_sec,
+    "pace": normalized_pace,
+    "phrase_mode": normalized_phrase_mode,
+    "pacing_model": "guided_note_windows_with_phrase_rests" if is_voice_pattern else "guided_phase_windows",
+    "pacing_basis": (
+      "Stage beats allocate note windows; explicit rests create comfortable phrase breaks. "
+      f"The {'slower' if normalized_pace == 'slow' else 'standard'} pace is a product pacing choice. "
+      "Timing is measured against target-window entry and coverage, not a musical beat grid."
+      if is_voice_pattern
+      else "Stage beats allocate guided breathing phases; the timer measures phase completion and pacing only."
+    ),
     "stages": stages,
   }
 
@@ -159,6 +271,13 @@ def build_training_session_metadata(
   difficulty = _normalize_difficulty(config.get("difficulty"), str(exercise.get("default_difficulty") or "beginner"))
   key = _normalize_key(config.get("key"))
   octave = _normalize_octave(config.get("octave"))
+  is_voice_pattern = str(exercise.get("exercise_mode") or "voice") == "voice"
+  pace = _normalize_pace(config.get("pace"))
+  phrase_mode = _normalize_phrase_mode(
+    config.get("phrase_mode"),
+    difficulty=difficulty,
+    is_voice_pattern=is_voice_pattern,
+  )
 
   attempt_policy = default_attempt_policy()
   requested_attempts = config.get("max_attempts")
@@ -166,6 +285,8 @@ def build_training_session_metadata(
     attempt_policy["max_attempts"] = max(1, min(requested_attempts, 10))
 
   duration_sec = resolve_duration_sec(difficulty)
+  if pace == "slow" and not isinstance(config.get("duration_sec"), int):
+    duration_sec = round(duration_sec * 1.25)
   if isinstance(config.get("duration_sec"), int):
     duration_sec = max(10, min(int(config["duration_sec"]), 300))
 
@@ -176,6 +297,8 @@ def build_training_session_metadata(
     octave=octave,
     duration_sec=duration_sec,
     requested_pattern=str(config.get("target_pattern") or "default"),
+    pace=pace,
+    phrase_mode=phrase_mode,
   )
 
   return {
@@ -187,6 +310,8 @@ def build_training_session_metadata(
       "key": key,
       "octave": octave,
       "target_pattern": str(runtime_plan["pattern_id"]),
+      "pace": pace,
+      "phrase_mode": phrase_mode,
       "duration_sec": duration_sec,
       "max_attempts": int(attempt_policy["max_attempts"]),
     },
@@ -221,6 +346,8 @@ def build_ai_feedback_context(session: dict[str, Any]) -> dict[str, Any]:
     "key": training_config.get("key"),
     "octave": training_config.get("octave"),
     "target_pattern": training_config.get("target_pattern"),
+    "pace": training_config.get("pace"),
+    "phrase_mode": training_config.get("phrase_mode"),
     "runtime_pattern": dict(session.get("runtime_plan") or {}),
     "selected_best_attempt": {
       "attempt_index": best_attempt.get("attempt_index"),

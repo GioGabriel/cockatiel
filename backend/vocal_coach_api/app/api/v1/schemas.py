@@ -7,6 +7,8 @@ from app.core.safe_errors import public_ai_failure_message
 
 SessionMode = Literal["karaoke", "training"]
 TrainingDifficulty = Literal["beginner", "intermediate", "advanced"]
+TrainingPace = Literal["standard", "slow"]
+TrainingPhraseMode = Literal["full", "short"]
 KaraokeDifficulty = Literal["beginner", "intermediate", "advanced"]
 AccessTier = Literal["guest", "registered", "premium"]
 VocalRange = Literal["soprano", "mezzo-soprano", "alto", "tenor", "baritone", "bass"]
@@ -24,6 +26,8 @@ class TrainingSessionConfigIn(BaseModel):
   key: str | None = Field(default=None, min_length=1, max_length=2)
   octave: int | None = Field(default=None, ge=2, le=6)
   target_pattern: str | None = Field(default=None, min_length=1, max_length=64)
+  pace: TrainingPace = "standard"
+  phrase_mode: TrainingPhraseMode = "full"
   max_attempts: int | None = Field(default=None, ge=1, le=10)
   duration_sec: int | None = Field(default=None, ge=10, le=300)
 
@@ -40,14 +44,19 @@ class MetricSegmentEvidence(BaseModel):
   frame_count: int = Field(default=0, ge=0)
   voiced_frame_count: int = Field(default=0, ge=0)
   target_frame_count: int = Field(default=0, ge=0)
+  target_frequency_hz: float | None = Field(default=None, gt=0)
   voiced_coverage_pct: float = Field(default=0, ge=0, le=100)
   target_coverage_pct: float = Field(default=0, ge=0, le=100)
   on_target_rate_pct: float = Field(default=0, ge=0, le=100)
   mean_confidence: float = Field(default=0, ge=0, le=1)
   mean_abs_cents: float = Field(default=0, ge=0, le=1200)
   p95_abs_cents: float = Field(default=0, ge=0, le=1200)
+  pitch_stddev_cents: float = Field(default=0, ge=0, le=1200)
+  pitch_bias_cents: float = Field(default=0, ge=-1200, le=1200)
   onset_delay_ms: int | None = Field(default=None, ge=0)
   settling_time_ms: int | None = Field(default=None, ge=0)
+  interrupted: bool = False
+  recommendation: str | None = Field(default=None, max_length=320)
   score: float = Field(default=0, ge=0, le=100)
   status: Literal["measured", "partial", "not_measurable", "not_applicable"] = "measured"
   reason: str | None = Field(default=None, max_length=280)
@@ -236,7 +245,7 @@ class SessionCreateOut(BaseModel):
 class AIJobOut(BaseModel):
   job_id: str
   session_id: str
-  state: Literal["queued", "processing", "completed", "failed"]
+  state: Literal["pending_enqueue", "queued", "processing", "completed", "failed"]
   attempt: int = Field(ge=0)
   max_attempts: int = Field(ge=1)
   queued_at: int = Field(ge=0)
@@ -265,6 +274,21 @@ class DetailedImprovement(BaseModel):
   why_it_matters: str = Field(min_length=1, max_length=320)
   action: str = Field(min_length=1, max_length=320)
   practice_plan: str = Field(min_length=1, max_length=320)
+  evidence_quality: Literal[
+    "measured",
+    "partial",
+    "reliable",
+    "limited",
+    "insufficient",
+    "legacy",
+    "not_scorable",
+    "insufficient_evidence",
+    "unknown",
+  ] = "unknown"
+  limitation: str | None = Field(default=None, max_length=320)
+  segment_id: str | None = Field(default=None, max_length=80)
+  start_ms: int | None = Field(default=None, ge=0)
+  end_ms: int | None = Field(default=None, ge=0)
 
 
 class CoachingFeedback(BaseModel):
@@ -354,6 +378,9 @@ class TrainingPatternStageTemplateOut(BaseModel):
   solfege: str | None = None
   instruction: str
   beats: int = Field(ge=1)
+  target_type: str | None = None
+  rest_after_beats: float | None = Field(default=None, ge=0)
+  breath_cue: bool = False
 
 
 class TrainingPatternTemplateOut(BaseModel):

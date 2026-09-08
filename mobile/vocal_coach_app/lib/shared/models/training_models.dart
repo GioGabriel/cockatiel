@@ -73,6 +73,9 @@ class TrainingPatternStageTemplate {
     required this.targetLabel,
     required this.instruction,
     required this.beats,
+    this.targetType,
+    this.restAfterBeats,
+    this.breathCue = false,
   });
 
   final String stageId;
@@ -80,6 +83,9 @@ class TrainingPatternStageTemplate {
   final String targetLabel;
   final String instruction;
   final int beats;
+  final String? targetType;
+  final double? restAfterBeats;
+  final bool breathCue;
 
   factory TrainingPatternStageTemplate.fromJson(Map<String, dynamic> json) {
     final targetLabel = (json['target_label'] as String?) ??
@@ -92,6 +98,9 @@ class TrainingPatternStageTemplate {
       targetLabel: targetLabel,
       instruction: json['instruction'] as String,
       beats: (json['beats'] as num).toInt(),
+      targetType: json['target_type'] as String?,
+      restAfterBeats: (json['rest_after_beats'] as num?)?.toDouble(),
+      breathCue: (json['breath_cue'] as bool?) ?? false,
     );
   }
 }

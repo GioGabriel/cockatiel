@@ -15,8 +15,9 @@ def test_score_breakdown_reports_scoring_version_and_evidence_quality():
     },
   )
 
-  assert result["score_breakdown"]["scoring_version"] == "2.1"
+  assert result["score_breakdown"]["scoring_version"] == "2.2"
   assert result["score_breakdown"]["evidence_quality"] == "insufficient"
+  assert result["score_breakdown"]["score_status"] == "insufficient_evidence"
   assert result["score_breakdown"]["sample_count"] == 6
 
 
@@ -91,6 +92,27 @@ def test_score_breakdown_explains_zero_metrics_without_target_evidence():
   assert "target-note" in breakdown["metric_details"]["pitch_accuracy"]["reason"]
   assert breakdown["metric_details"]["timing_accuracy"]["status"] == "not_measurable"
   assert breakdown["metric_details"]["breath_control"]["status"] == "partial"
+  assert breakdown["score_status"] == "not_scorable"
+  assert breakdown["score_reliability"] == "not_scorable"
+
+
+def test_legacy_score_is_marked_without_rewriting_old_numeric_results():
+  result = score_training_attempt(
+    exercise_id="warmup_pitch",
+    metric_summary={
+      "sample_count": 180,
+      "pitch_accuracy": 72,
+      "timing_accuracy": 68,
+      "breath_control": 80,
+      "pitch_stability": 74,
+      "vibrato_consistency": 70,
+      "note_transition_smoothness": 65,
+    },
+  )
+
+  assert result["overall_score"] > 0
+  assert result["score_breakdown"]["score_status"] == "legacy"
+  assert result["score_breakdown"]["legacy_evidence"] is True
 
 
 def test_score_breakdown_keeps_segment_evidence_for_location_specific_feedback():
@@ -114,6 +136,7 @@ def test_score_breakdown_keeps_segment_evidence_for_location_specific_feedback()
           {
             "segment_id": "stage_2",
             "label": "Mi",
+            "target_frequency_hz": 329.63,
             "start_ms": 4000,
             "end_ms": 8000,
             "frame_count": 64,
@@ -125,6 +148,7 @@ def test_score_breakdown_keeps_segment_evidence_for_location_specific_feedback()
             "mean_confidence": 0.77,
             "mean_abs_cents": 81.0,
             "p95_abs_cents": 124.0,
+            "pitch_stddev_cents": 18.0,
             "score": 39.0,
             "status": "measured",
             "reason": "Most confident frames were more than 50 cents from the target.",
@@ -136,6 +160,8 @@ def test_score_breakdown_keeps_segment_evidence_for_location_specific_feedback()
 
   segment = result["score_breakdown"]["segments"][0]
   assert segment["label"] == "Mi"
+  assert segment["target_frequency_hz"] == 329.63
+  assert segment["pitch_stddev_cents"] == 18.0
   assert segment["score"] == 39.0
   assert result["score_breakdown"]["metric_details"]["pitch_accuracy"]["status"] == "measured"
 

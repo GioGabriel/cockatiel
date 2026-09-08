@@ -37,13 +37,15 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
   bool _loadingRecommendations = true;
   String? _dashboardError;
   Timer? _refreshTimer;
+  bool _refreshInFlight = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    // Auto-refresh analytics every 30 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    // Keep the dashboard reasonably fresh without repeatedly scanning session
+    // history while the user is idle. Pull-to-refresh remains available.
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       if (mounted) _loadDataSilently();
     });
   }
@@ -56,26 +58,42 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
 
   /// Silent refresh — doesn't show loading spinners
   Future<void> _loadDataSilently() async {
+    if (_refreshInFlight) return;
+    _refreshInFlight = true;
     try {
-      final result = await widget.apiClient.fetchAnalyticsDashboard();
-      if (!mounted) return;
-      setState(() {
-        _dashboard = result;
-        _dashboardError = null;
-      });
-    } catch (_) {
-      // Keep the last known dashboard visible during a background outage.
+      try {
+        final result = await widget.apiClient.fetchAnalyticsDashboard();
+        if (!mounted) return;
+        setState(() {
+          _dashboard = result;
+          _dashboardError = null;
+        });
+      } catch (_) {
+        // Keep the last known dashboard visible during a background outage.
+      }
+      try {
+        final result = await widget.apiClient.fetchTrainingRecommendations();
+        if (!mounted) return;
+        setState(() => _recommendations = result);
+      } catch (_) {
+        // Keep the last known recommendations visible during a background outage.
+      }
+    } finally {
+      _refreshInFlight = false;
     }
-    try {
-      final result = await widget.apiClient.fetchTrainingRecommendations();
-      if (!mounted) return;
-      setState(() => _recommendations = result);
-    } catch (_) {}
   }
 
   Future<void> _loadData() async {
-    _fetchDashboard();
-    _fetchRecommendations();
+    if (_refreshInFlight) return;
+    _refreshInFlight = true;
+    try {
+      await Future.wait([
+        _fetchDashboard(),
+        _fetchRecommendations(),
+      ]);
+    } finally {
+      _refreshInFlight = false;
+    }
   }
 
   Future<void> _fetchDashboard() async {

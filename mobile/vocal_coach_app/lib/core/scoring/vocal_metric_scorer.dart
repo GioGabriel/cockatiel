@@ -209,6 +209,7 @@ class VocalMetricAccumulator {
   final List<double> _transitionScores = <double>[];
   final Map<String, _SegmentAccumulator> _segments =
       <String, _SegmentAccumulator>{};
+  String? _lastSegmentId;
 
   int get sampleCount => _sampleCount;
 
@@ -257,6 +258,7 @@ class VocalMetricAccumulator {
     _centsTimestampsMs.clear();
     _transitionScores.clear();
     _segments.clear();
+    _lastSegmentId = null;
   }
 
   void addFrame(VocalMetricFrame frame) {
@@ -270,6 +272,9 @@ class VocalMetricAccumulator {
         _streamGapCount += 1;
         _currentVoicedRun = 0;
         _previousWasVoiced = false;
+        final previousSegment =
+            _lastSegmentId == null ? null : _segments[_lastSegmentId!];
+        previousSegment?.markInterrupted();
       }
     }
     _previousTimestampMs = frame.timestampMs;
@@ -330,6 +335,7 @@ class VocalMetricAccumulator {
     }
     final segmentId = frame.targetId?.trim();
     if (segmentId != null && segmentId.isNotEmpty) {
+      _lastSegmentId = segmentId;
       final segment = _segments.putIfAbsent(
         segmentId,
         () => _SegmentAccumulator(
@@ -770,6 +776,10 @@ class _SegmentAccumulator {
   double _confidenceTotal = 0;
   double _scoreTotal = 0;
   double _absCentsTotal = 0;
+  double _centsTotal = 0;
+  double _centsSquaredTotal = 0;
+  double? _targetFrequencyHz;
+  bool _interrupted = false;
   final List<double> _absCents = <double>[];
   int? _firstVoicedTimestampMs;
   int? _firstOnTargetTimestampMs;
@@ -794,6 +804,7 @@ class _SegmentAccumulator {
     if (targetHz == null || targetHz <= 0 || frequencyHz == null) {
       return;
     }
+    _targetFrequencyHz ??= targetHz;
     final cents = _centsDifference(frequencyHz, targetHz);
     final absCents = cents.abs();
     _targetFrameCount += 1;
@@ -803,7 +814,13 @@ class _SegmentAccumulator {
     }
     _scoreTotal += _frameScore(absCents);
     _absCentsTotal += absCents;
+    _centsTotal += cents;
+    _centsSquaredTotal += cents * cents;
     _absCents.add(absCents);
+  }
+
+  void markInterrupted() {
+    _interrupted = true;
   }
 
   bool get hasTimingEvidence => _targetFrameCount > 0;
@@ -852,9 +869,25 @@ class _SegmentAccumulator {
             .clamp(0.0, 100.0)
             .toDouble();
     final measured = _targetFrameCount > 0;
+    final pitchBiasCents = measured ? _centsTotal / _targetFrameCount : 0.0;
+    final pitchVariance = measured
+        ? math.max(
+            0,
+            (_centsSquaredTotal / _targetFrameCount) -
+                (pitchBiasCents * pitchBiasCents),
+          )
+        : 0.0;
+    final recommendation = !measured
+        ? 'Wait for the target guide, then sing after the note appears.'
+        : pitchBiasCents > 20
+            ? 'Start a little lower and let the pitch settle before holding it.'
+            : pitchBiasCents < -20
+                ? 'Aim a little higher and let the pitch settle before holding it.'
+                : 'Repeat this target and keep the center steady.';
     return {
       'segment_id': segmentId,
       'label': label,
+      'target_frequency_hz': _targetFrequencyHz,
       'start_ms': _startMs ?? 0,
       'end_ms': _endMs ?? _startMs ?? 0,
       'frame_count': _frameCount,
@@ -871,6 +904,8 @@ class _SegmentAccumulator {
         measured ? _absCentsTotal / _targetFrameCount : 0,
       ),
       'p95_abs_cents': _roundNumber(_percentile(_absCents, 0.95)),
+      'pitch_bias_cents': _roundNumber(pitchBiasCents),
+      'pitch_stddev_cents': _roundNumber(math.sqrt(pitchVariance)),
       'onset_delay_ms': onsetDelayMs,
       'settling_time_ms': settlingTimeMs,
       'score': _roundNumber(measured ? _scoreTotal / _targetFrameCount : 0),
@@ -880,6 +915,8 @@ class _SegmentAccumulator {
       'reason': measured
           ? '${onTargetRate.round()}% of the confident target frames were on target.'
           : 'No confident target-note frames were captured in this segment.',
+      'interrupted': _interrupted,
+      'recommendation': recommendation,
     };
   }
 

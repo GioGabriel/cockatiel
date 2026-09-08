@@ -19,7 +19,7 @@ BREATHING_METRIC_FIELDS = (
   "completion_rate",
 )
 
-SCORING_VERSION = "2.1"
+SCORING_VERSION = "2.2"
 MIN_EVIDENCE_SAMPLES = 16
 RELIABLE_EVIDENCE_SAMPLES = 128
 
@@ -34,7 +34,7 @@ _TARGET_COMPARISON_METRICS = {
 _METRIC_DETAIL_ACTIONS = {
   "pitch_accuracy": "Match one target note at a time with the guide, then repeat the phrase slowly.",
   "timing_accuracy": "Wait for the target window, count the beat, and repeat the same phrase without rushing.",
-  "breath_control": "Take a relaxed breath before the phrase and keep the airflow steady until it ends.",
+  "breath_control": "Take a relaxed breath before the phrase and keep the recorded voice signal comfortably continuous until it ends.",
   "pitch_stability": "Hold a comfortable note for a few seconds and keep the sound even instead of pushing for volume.",
   "vibrato_consistency": "Make the sustained note steady first, then add a gentle, natural vibrato.",
   "note_transition_smoothness": "Slow the two-note change down and connect the next target without sliding past it.",
@@ -101,6 +101,46 @@ def _evidence_quality(metric_summary: dict[str, Any]) -> str:
   if sample_count < RELIABLE_EVIDENCE_SAMPLES:
     return "limited"
   return "reliable"
+
+
+def _score_status(
+  *,
+  metric_mode: str,
+  evidence_quality: str,
+  evidence: dict[str, Any],
+  has_detailed_evidence: bool,
+) -> str:
+  """Classify whether a numeric result is safe to present as a score.
+
+  Numeric components remain in the response for backward compatibility, but
+  this status is authoritative for presentation and coaching language. A
+  zero target comparison is missing evidence, not evidence of poor singing.
+  """
+
+  if evidence_quality == "insufficient":
+    return "insufficient_evidence"
+  if metric_mode == "breathing":
+    if has_detailed_evidence and _safe_int(evidence.get("phase_count")) <= 0:
+      return "not_scorable"
+    if has_detailed_evidence and _safe_float(evidence.get("phase_coverage_pct")) < 80:
+      return "partial"
+    return "measured" if has_detailed_evidence else "legacy"
+
+  target_count = _safe_int(evidence.get("target_frame_count"))
+  frame_count = _safe_int(evidence.get("frame_count"))
+  if has_detailed_evidence and target_count <= 0:
+    return "not_scorable"
+  if has_detailed_evidence and target_count < MIN_EVIDENCE_SAMPLES:
+    return "insufficient_evidence"
+  if not has_detailed_evidence:
+    return "legacy"
+  if (
+    _safe_float(evidence.get("target_coverage_pct")) < 80
+    or _safe_int(evidence.get("stream_gap_count")) > 0
+    or frame_count < RELIABLE_EVIDENCE_SAMPLES
+  ):
+    return "partial"
+  return "measured"
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
@@ -555,6 +595,12 @@ def score_training_attempt(
   }
   overall_score = round(sum(weighted_components.values()), 2)
   evidence_quality = _evidence_quality(metric_summary)
+  score_status = _score_status(
+    metric_mode=metric_mode,
+    evidence_quality=evidence_quality,
+    evidence=recording_evidence,
+    has_detailed_evidence=has_detailed_evidence,
+  )
 
   default_focus_metrics = list(metric_fields[:3])
   focus_metrics = [
@@ -581,7 +627,7 @@ def score_training_attempt(
     for field, value in dict(thresholds.get("metric_floors") or {}).items()
     if field in metric_fields
   }
-  passed_threshold = evidence_quality != "insufficient" and overall_score >= overall_threshold and all(
+  passed_threshold = score_status in {"measured", "legacy"} and overall_score >= overall_threshold and all(
     metric_scores.get(field, 0.0) >= value
     for field, value in metric_floors.items()
   )
@@ -598,6 +644,9 @@ def score_training_attempt(
       "scoring_version": SCORING_VERSION,
       "sample_count": max(0, int(_safe_float(metric_summary.get("sample_count"), 0.0))),
       "evidence_quality": evidence_quality,
+      "score_status": score_status,
+      "score_reliability": score_status,
+      "legacy_evidence": not has_detailed_evidence,
       "recording_evidence": recording_evidence,
       "metric_details": metric_details,
       "segments": segments,

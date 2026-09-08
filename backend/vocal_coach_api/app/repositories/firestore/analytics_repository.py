@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any
 
 
@@ -23,8 +24,7 @@ class FirestoreAnalyticsRepository:
   def upsert_dashboard(self, user_id: str, dashboard: dict[str, Any]) -> dict[str, Any]:
     doc_ref = self._doc_ref(user_id)
     doc_ref.set(dashboard, merge=True)
-    snap = doc_ref.get()
-    return snap.to_dict() or dict(dashboard)
+    return deepcopy(dashboard)
 
   def get_daily_rollup(self, user_id: str, date_key: str) -> dict[str, Any] | None:
     snap = self._daily_rollups_ref(user_id).document(date_key).get()
@@ -35,8 +35,7 @@ class FirestoreAnalyticsRepository:
   def upsert_daily_rollup(self, user_id: str, date_key: str, rollup: dict[str, Any]) -> dict[str, Any]:
     doc_ref = self._daily_rollups_ref(user_id).document(date_key)
     doc_ref.set(rollup, merge=True)
-    snap = doc_ref.get()
-    return snap.to_dict() or dict(rollup)
+    return deepcopy(rollup)
 
   def list_daily_rollups(self, user_id: str, since_date: str | None = None, until_date: str | None = None) -> list[dict[str, Any]]:
     query = self._daily_rollups_ref(user_id)

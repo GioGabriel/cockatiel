@@ -1,6 +1,12 @@
 from datetime import datetime, timezone
 from typing import Any
 
+try:
+  from google.api_core.exceptions import NotFound
+except ImportError:  # pragma: no cover - Firestore is an optional local dependency
+  class NotFound(Exception):
+    pass
+
 
 class FirestoreUserRepository:
   collection_name = "users"
@@ -40,11 +46,16 @@ class FirestoreUserRepository:
 
   def update(self, uid: str, updates: dict[str, Any]) -> dict[str, Any] | None:
     doc_ref = self._db.collection(self.collection_name).document(uid)
-    snap = doc_ref.get()
-    if not snap.exists:
-      return None
     now = datetime.now(timezone.utc).isoformat()
-    updates["updated_at"] = now
-    doc_ref.update(updates)
-    snap = doc_ref.get()
-    return snap.to_dict()
+    payload = {
+      **updates,
+      "updated_at": now,
+    }
+    try:
+      # Avoid a read-before/read-after pair for a write whose result is already
+      # known to the caller. A missing document is reported by Firestore's
+      # update operation instead of being detected with a billed read.
+      doc_ref.update(payload)
+    except NotFound:
+      return None
+    return dict(payload)

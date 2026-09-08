@@ -63,6 +63,8 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
   String _selectedKey = 'C';
   int _selectedOctave = 4;
   String _selectedRange = 'Tenor';
+  String _selectedPace = 'standard';
+  String _selectedPhraseMode = 'full';
   bool _isStarting = false;
   bool _isLoadingPreview = true;
   String? _error;
@@ -218,6 +220,17 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
         exercise.patternsByDifficulty.values.first;
   }
 
+  String get _shortPhraseLabel {
+    final labels = _selectedPattern?.stages
+        .take(3)
+        .map((stage) => stage.targetLabel)
+        .toList();
+    if (labels == null || labels.isEmpty) {
+      return 'Short phrase';
+    }
+    return 'Short · ${labels.join('–')}';
+  }
+
   Future<void> _loadExercisePreview() async {
     setState(() {
       _isLoadingPreview = true;
@@ -320,6 +333,15 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
       final session = await widget.apiClient.createSession(
         mode: 'training',
         exerciseType: widget.exercise.id,
+        trainingConfig: {
+          'difficulty': _selectedDifficulty,
+          'key': _selectedKey,
+          'octave': _selectedOctave,
+          'pace': _selectedPace,
+          'phrase_mode': _selectedPhraseMode,
+          if (_selectedPattern != null)
+            'target_pattern': _selectedPattern!.patternId,
+        },
       );
 
       if (!mounted) return;
@@ -561,8 +583,12 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                             ? null
                             : (selected) {
                                 if (selected) {
-                                  setState(
-                                      () => _selectedDifficulty = option.$1);
+                                  setState(() {
+                                    _selectedDifficulty = option.$1;
+                                    if (_selectedDifficulty != 'beginner') {
+                                      _selectedPhraseMode = 'full';
+                                    }
+                                  });
                                 }
                               },
                       ),
@@ -576,6 +602,85 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                     height: 1.35,
                   ),
                 ),
+                const SizedBox(height: 14),
+                Text('Guidance pace', style: theme.textTheme.titleSmall),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Standard'),
+                      selected: _selectedPace == 'standard',
+                      onSelected: _isStarting
+                          ? null
+                          : (selected) {
+                              if (selected) {
+                                setState(() => _selectedPace = 'standard');
+                              }
+                            },
+                    ),
+                    ChoiceChip(
+                      label: const Text('Slower · more breath room'),
+                      selected: _selectedPace == 'slow',
+                      onSelected: _isStarting
+                          ? null
+                          : (selected) {
+                              if (selected) {
+                                setState(() => _selectedPace = 'slow');
+                              }
+                            },
+                    ),
+                  ],
+                ),
+                Text(
+                  'Slower adds time to each guided window and rest; it does not change the scoring thresholds.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+                if (_requiresMicrophone &&
+                    _selectedDifficulty == 'beginner') ...[
+                  const SizedBox(height: 14),
+                  Text('Phrase length', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Full five-note foundation'),
+                        selected: _selectedPhraseMode == 'full',
+                        onSelected: _isStarting
+                            ? null
+                            : (selected) {
+                                if (selected) {
+                                  setState(() => _selectedPhraseMode = 'full');
+                                }
+                              },
+                      ),
+                      ChoiceChip(
+                        label: Text(_shortPhraseLabel),
+                        selected: _selectedPhraseMode == 'short',
+                        onSelected: _isStarting
+                            ? null
+                            : (selected) {
+                                if (selected) {
+                                  setState(() => _selectedPhraseMode = 'short');
+                                }
+                              },
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'Use the short phrase when you need to reset your breath between repetitions. It follows the first guided targets and is not a complete scale.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
                 if (_requiresMicrophone) ...[
                   const SizedBox(height: 24),
                   Text('Vocal Range', style: theme.textTheme.titleSmall),

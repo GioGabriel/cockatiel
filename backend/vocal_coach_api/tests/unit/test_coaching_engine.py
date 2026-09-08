@@ -136,3 +136,45 @@ def test_detailed_improvements_reference_the_measured_reason_and_action():
   assert "target-note" in improvements[0]["evidence"]
   assert improvements[0]["action"]
   assert improvements[0]["practice_plan"]
+
+
+def test_detailed_improvements_allow_insufficient_evidence_status():
+  from app.ai_engine.orchestrator.service import generate_feedback
+
+  feedback = generate_feedback(
+    session_id="short-take",
+    overall_score=0,
+    exercise_type="warmup_pitch",
+    metric_summary={
+      "metric_mode": "voice",
+      "sample_count": 2,
+      "pitch_accuracy": 0,
+      "timing_accuracy": 0,
+      "breath_control": 0,
+      "pitch_stability": 0,
+      "vibrato_consistency": 0,
+      "note_transition_smoothness": 0,
+    },
+    score_breakdown={
+      "metric_mode": "voice",
+      "metric_scores": {
+        "pitch_accuracy": 0,
+        "timing_accuracy": 0,
+        "breath_control": 0,
+        "pitch_stability": 0,
+        "vibrato_consistency": 0,
+        "note_transition_smoothness": 0,
+      },
+      "metric_details": {
+        "pitch_accuracy": {
+          "status": "not_measurable",
+          "reason": "Only two frames were captured.",
+        },
+      },
+      "score_status": "insufficient_evidence",
+      "evidence_quality": "insufficient",
+    },
+  )
+
+  assert feedback.detailed_improvements
+  assert feedback.detailed_improvements[0].evidence_quality == "insufficient_evidence"

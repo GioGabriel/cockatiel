@@ -31,34 +31,44 @@ class MainShellPage extends StatefulWidget {
 class _MainShellPageState extends State<MainShellPage> {
   int _currentIndex = 0;
 
-  late final List<Widget> _pages;
+  late final List<Widget?> _pages;
 
   @override
   void initState() {
     super.initState();
-    _pages = [
-      HomeDashboardPage(
-        appState: widget.appState,
-        apiClient: widget.apiClient,
-      ),
-      VocalTrainingPage(
-        apiClient: widget.apiClient,
-        appState: widget.appState,
-      ),
-      KaraokePracticePage(
-        apiClient: widget.apiClient,
-        appState: widget.appState,
-      ),
-      UserProfilePage(
-        appState: widget.appState,
-        apiClient: widget.apiClient,
-      ),
-    ];
+    // Keep only the visible tab mounted initially. IndexedStack preserves the
+    // state of pages that have been opened, while lazy construction avoids
+    // firing four independent API loads during authentication bootstrap.
+    _pages = List<Widget?>.filled(4, null);
+    _pages[0] = _buildPage(0);
+  }
+
+  Widget _buildPage(int index) {
+    return switch (index) {
+      0 => HomeDashboardPage(
+          appState: widget.appState,
+          apiClient: widget.apiClient,
+        ),
+      1 => VocalTrainingPage(
+          apiClient: widget.apiClient,
+          appState: widget.appState,
+        ),
+      2 => KaraokePracticePage(
+          apiClient: widget.apiClient,
+          appState: widget.appState,
+        ),
+      3 => UserProfilePage(
+          appState: widget.appState,
+          apiClient: widget.apiClient,
+        ),
+      _ => const SizedBox.shrink(),
+    };
   }
 
   void _onTabSelected(int index) {
     if (index == _currentIndex) return;
     setState(() {
+      _pages[index] ??= _buildPage(index);
       _currentIndex = index;
     });
   }
@@ -76,7 +86,9 @@ class _MainShellPageState extends State<MainShellPage> {
       child: Scaffold(
         body: IndexedStack(
           index: _currentIndex,
-          children: _pages,
+          children: [
+            for (final page in _pages) page ?? const SizedBox.shrink(),
+          ],
         ),
         extendBody: true,
         bottomNavigationBar: _FloatingNavBar(

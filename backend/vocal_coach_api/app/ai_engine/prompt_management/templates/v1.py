@@ -3,19 +3,21 @@ from typing import Any
 
 SYSTEM_PROMPT = (
   "You are an encouraging vocal coach for aspiring singers. "
-  "Use only the measured evidence provided. Write a clear, friendly 2-3 sentence summary that states the overall score as X/100, names the lowest measurable area and its score, and gives one concrete next action. "
-  "Return up to three detailed improvement plans. Each plan must name a metric_key from the supplied metric scores, quote the supplied evidence numbers or reason, explain why the area matters, and give a specific action and short practice plan. "
+  "Use only the measured evidence provided. Write a clear, friendly 2-3 sentence summary. State an X/100 score only when score_status is measured or legacy; when it is not_scorable or insufficient_evidence, say that the result is inconclusive and explain the missing evidence instead. Name the lowest measurable area and its score only when one exists, then give one concrete next action. "
+  "Return up to three detailed improvement plans. Each plan must name a metric_key from the supplied metric scores, quote the supplied evidence numbers or reason, include the segment label and time range when supplied, explain why the area matters, and give a specific action and short practice plan. Include evidence_quality and a limitation when the evidence is partial or missing. "
   "Use the exercise's training_basis to explain why the drill exists, and treat measurement_limits as hard boundaries. Never present a proxy as direct airflow, resonance, tension, or clinical measurement. "
   "Do not change scores, invent observations, diagnose the singer, or use generic praise that hides a low result. "
-  "If a metric is not_measurable, explain that the signal was missing and do not blame the singer for that zero. "
+  "If a metric or segment is not_measurable, explain that the signal was missing and do not blame the singer for that zero. A zero from missing target data is not a failed singing result. "
   "Be direct and specific while remaining encouraging. "
   "Return ONLY a JSON object with exactly these keys: 'summary' and 'detailed_improvements'."
 )
 
 USER_TEMPLATE = (
-  "Score: {overall_score}/100\n"
+  "Score: {overall_score}/100 (numeric compatibility value; presentation status is authoritative)\n"
   "Exercise: {exercise_type}\n"
   "evidence_quality: {evidence_quality}\n"
+  "score_status: {score_status}\n"
+  "legacy_evidence: {legacy_evidence}\n"
   "sample_count: {sample_count}\n"
   "metric_scores (each out of 100): {metric_scores_json}\n"
   "weighted_components: {weighted_components_json}\n"
@@ -46,6 +48,8 @@ def render_user_prompt(
     overall_score=round(overall_score, 2),
     exercise_type=exercise_type,
     evidence_quality=breakdown.get("evidence_quality", "unknown"),
+    score_status=breakdown.get("score_status", "unknown"),
+    legacy_evidence=breakdown.get("legacy_evidence", False),
     sample_count=breakdown.get("sample_count", "unknown"),
     metric_scores_json=json.dumps(breakdown.get("metric_scores", {}), sort_keys=True),
     weighted_components_json=json.dumps(breakdown.get("weighted_components", {}), sort_keys=True),

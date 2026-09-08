@@ -420,7 +420,7 @@ _VOCAL_COACH_CATALOG: dict[str, Any] = {
             "beginner": _pattern(
               "warmup_ladder",
               pattern_type="ladder",
-              summary="Complete Do Re Mi Fa Sol warmup ladder for clean, steady onset.",
+              summary="Five-note Do Re Mi Fa Sol warmup foundation for clean, steady onset.",
               stages=[
                 _stage(
                   "warmup_do",

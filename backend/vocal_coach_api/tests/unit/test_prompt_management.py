@@ -10,6 +10,7 @@ def test_feedback_prompt_includes_evidence_for_user_facing_coaching():
       "metric_scores": {"pitch_accuracy": 7},
       "weighted_components": {"pitch_accuracy": 2.1},
       "evidence_quality": "reliable",
+      "score_status": "not_scorable",
       "sample_count": 180,
       "focus_metrics": ["pitch_accuracy"],
       "recording_evidence": {
@@ -35,6 +36,7 @@ def test_feedback_prompt_includes_evidence_for_user_facing_coaching():
   assert "7/100" in prompt
   assert "pitch_accuracy" in prompt
   assert "reliable" in prompt
+  assert "not_scorable" in prompt
   assert "180" in prompt
   assert "not_measurable" in prompt
   assert "No target-note comparison" in prompt

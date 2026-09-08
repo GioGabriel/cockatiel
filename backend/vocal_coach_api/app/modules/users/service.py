@@ -147,15 +147,12 @@ def update_vocal_preferences(user_id: str, preferences: dict[str, Any]) -> dict[
     )
 
   repository = get_user_repository()
-  user = repository.get(user_id)
-  if user is None:
+  if repository.update(user_id, {"vocal_preferences": preferences}) is None:
     raise ApiError(
       code="USER_NOT_FOUND",
       message="User not found",
       status_code=404,
     )
-
-  repository.update(user_id, {"vocal_preferences": preferences})
 
   # Read the canonical profile after the write instead of returning the
   # repository's raw update result. Firestore documents created before
@@ -172,19 +169,17 @@ def upgrade_tier(user_id: str, target_tier: str = "premium") -> dict[str, Any]:
   Raises ApiError(404) if user not found.
   """
   repository = get_user_repository()
-  user = repository.get(user_id)
-  if user is None:
+  expires_at = int(time() * 1000) + (365 * 24 * 60 * 60 * 1000)
+  if repository.update(user_id, {
+    "access_tier": target_tier,
+    "premium_expires_at": expires_at,
+  }) is None:
     raise ApiError(
       code="USER_NOT_FOUND",
       message="User not found",
       status_code=404,
     )
 
-  expires_at = int(time() * 1000) + (365 * 24 * 60 * 60 * 1000)
-  repository.update(user_id, {
-    "access_tier": target_tier,
-    "premium_expires_at": expires_at,
-  })
   return get_user_profile(user_id)
 
 
@@ -204,17 +199,15 @@ def downgrade_tier(user_id: str) -> dict[str, Any]:
   Raises ApiError(404) if user not found.
   """
   repository = get_user_repository()
-  user = repository.get(user_id)
-  if user is None:
+  if repository.update(user_id, {
+    "access_tier": "registered",
+  }) is None:
     raise ApiError(
       code="USER_NOT_FOUND",
       message="User not found",
       status_code=404,
     )
 
-  repository.update(user_id, {
-    "access_tier": "registered",
-  })
   return get_user_profile(user_id)
 
 

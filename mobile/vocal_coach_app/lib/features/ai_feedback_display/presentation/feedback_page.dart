@@ -38,7 +38,8 @@ const _metricLabels = {
 const _metricDescriptions = {
   'pitch_accuracy': 'How closely you matched each target note.',
   'timing_accuracy': 'How closely your notes followed the expected timing.',
-  'breath_control': 'How steadily your airflow lasted through each phrase.',
+  'breath_control':
+      'A continuity and loudness proxy from the microphone, not direct airflow.',
   'pitch_stability': 'How steady each held note remained after you reached it.',
   'vibrato_consistency':
       'How even and controlled your natural pitch movement was.',
@@ -79,38 +80,49 @@ class FeedbackPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Your practice score',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              AnimatedScoreDisplay(
-                                score: feedback.overallScore.round(),
-                                style: Theme.of(context).textTheme.displaySmall,
-                              ),
-                              Text(
-                                'out of 100',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            feedback.scoreBreakdown == null
-                                ? 'Your score is measured out of 100.'
-                                : 'This score combines the measurable parts of this take. Lower areas below show where to focus first.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(height: 1.4),
-                          ),
+                          if (_isUnscorable(scoreBreakdown))
+                            Text(
+                              'Not enough evidence to score this take reliably',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            )
+                          else ...[
+                            Text(
+                              'Your practice score',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                AnimatedScoreDisplay(
+                                  score: feedback.overallScore.round(),
+                                  style:
+                                      Theme.of(context).textTheme.displaySmall,
+                                ),
+                                Text(
+                                  'out of 100',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              feedback.scoreBreakdown == null
+                                  ? 'Your score is measured out of 100.'
+                                  : 'This score combines the measurable parts of this take. Lower areas below show where to focus first.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(height: 1.4),
+                            ),
+                          ],
                           if (feedback.summary != null &&
                               feedback.summary!.trim().isNotEmpty) ...[
                             const SizedBox(height: 12),
@@ -246,7 +258,9 @@ class _ScoreBreakdownCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Your ${breakdown.metricMode == 'breathing' ? 'breathing' : 'voice'} score is a weighted combination of these measured areas.',
+              _isUnscorable(breakdown)
+                  ? 'The numeric components below are retained for diagnostics, but this take is not a fair overall score.'
+                  : 'Your ${breakdown.metricMode == 'breathing' ? 'breathing' : 'voice'} score is a weighted combination of these measured areas.',
               style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
@@ -292,6 +306,7 @@ class _ScoreBreakdownCard extends StatelessWidget {
               _RecordingEvidenceSummary(evidence: breakdown.recordingEvidence),
             ],
             if (weakestKey != null &&
+                !_isUnscorable(breakdown) &&
                 breakdown.evidenceQuality != 'insufficient') ...[
               const SizedBox(height: 12),
               Text(
@@ -372,6 +387,11 @@ class _ScoreBreakdownCard extends StatelessWidget {
               : next,
     );
   }
+}
+
+bool _isUnscorable(FeedbackScoreBreakdown? breakdown) {
+  final status = breakdown?.scoreStatus;
+  return status == 'not_scorable' || status == 'insufficient_evidence';
 }
 
 class _MetricScoreRow extends StatelessWidget {
@@ -481,7 +501,7 @@ class _MeasurementGapNotice extends StatelessWidget {
     final details = breakdown.metricDetails.values
         .where((detail) => detail.status == 'not_measurable')
         .toList(growable: false);
-    if (details.isEmpty) {
+    if (details.isEmpty && !_isUnscorable(breakdown)) {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);
@@ -507,7 +527,9 @@ class _MeasurementGapNotice extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            details.first.reason,
+            details.isEmpty
+                ? 'The recording did not contain enough usable target evidence for a fair score. This is an evidence gap, not a judgment about your singing.'
+                : details.first.reason,
             style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
           ),
         ],
@@ -584,7 +606,7 @@ class _SegmentsEvidenceCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '${segment.label ?? segment.segmentId}: ${_scoreText(segment.score)} — ${segment.reason}',
+                        '${segment.label ?? segment.segmentId} (${(segment.startMs / 1000).toStringAsFixed(1)}–${(segment.endMs / 1000).toStringAsFixed(1)}s): ${_scoreText(segment.score)}${segment.targetFrequencyHz == null ? '' : ' · target ${segment.targetFrequencyHz!.toStringAsFixed(1)} Hz'} — ${segment.reason}${segment.recommendation == null ? '' : ' ${segment.recommendation}'}',
                         style:
                             theme.textTheme.bodySmall?.copyWith(height: 1.35),
                       ),
@@ -702,10 +724,18 @@ class _ImprovementPlan extends StatelessWidget {
           const SizedBox(height: 8),
           Text(improvement.finding, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 6),
+          if (improvement.startMs != null && improvement.endMs != null)
+            _PlanLine(
+              label: 'Where',
+              value:
+                  '${improvement.segmentId ?? 'Target'} • ${(improvement.startMs! / 1000).toStringAsFixed(1)}–${(improvement.endMs! / 1000).toStringAsFixed(1)}s',
+            ),
           _PlanLine(label: 'Evidence', value: improvement.evidence),
           _PlanLine(label: 'Why it matters', value: improvement.whyItMatters),
           _PlanLine(label: 'Do this next', value: improvement.action),
           _PlanLine(label: 'Practice plan', value: improvement.practicePlan),
+          if (improvement.limitation != null)
+            _PlanLine(label: 'Limit', value: improvement.limitation!),
         ],
       ),
     );
@@ -815,7 +845,7 @@ String _practiceSuggestion(String metricKey) {
     case 'timing_accuracy':
       return 'Count the beat before each phrase and repeat the same section with a quiet metronome.';
     case 'breath_control':
-      return 'Take a relaxed breath before the phrase and aim to keep the airflow steady until it ends.';
+      return 'Take a relaxed breath before the phrase and aim for a comfortably continuous voice signal until it ends.';
     case 'pitch_stability':
       return 'Hold short notes comfortably, keeping the sound even instead of pushing for volume.';
     case 'vibrato_consistency':

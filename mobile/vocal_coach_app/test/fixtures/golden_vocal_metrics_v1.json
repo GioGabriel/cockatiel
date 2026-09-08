@@ -1,0 +1,10 @@
+[
+  {"id":"clean_target","offset_cents":0,"voiced":true,"has_target":true},
+  {"id":"slightly_flat","offset_cents":-10,"voiced":true,"has_target":true},
+  {"id":"slightly_sharp","offset_cents":10,"voiced":true,"has_target":true},
+  {"id":"quarter_tone_flat","offset_cents":-50,"voiced":true,"has_target":true},
+  {"id":"quarter_tone_sharp","offset_cents":50,"voiced":true,"has_target":true},
+  {"id":"semitone_error","offset_cents":100,"voiced":true,"has_target":true},
+  {"id":"silence","offset_cents":0,"voiced":false,"has_target":true},
+  {"id":"missing_target","offset_cents":0,"voiced":true,"has_target":false}
+]

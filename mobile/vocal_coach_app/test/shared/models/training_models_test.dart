@@ -89,6 +89,23 @@ void main() {
       final stage = TrainingPatternStageTemplate.fromJson(json);
       expect(stage.targetLabel, 'Stage 1');
     });
+
+    test('preserves explicit pacing and target type metadata', () {
+      final stage = TrainingPatternStageTemplate.fromJson({
+        'stage_id': 's1',
+        'title': 'Do',
+        'target_label': 'Do',
+        'instruction': 'Settle gently.',
+        'beats': 1,
+        'target_type': 'sustained_note',
+        'rest_after_beats': 0.5,
+        'breath_cue': true,
+      });
+
+      expect(stage.targetType, 'sustained_note');
+      expect(stage.restAfterBeats, 0.5);
+      expect(stage.breathCue, isTrue);
+    });
   });
 
   group('TrainingPatternTemplate', () {

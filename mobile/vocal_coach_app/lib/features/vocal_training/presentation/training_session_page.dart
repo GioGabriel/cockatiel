@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/audio/live_audio_analyzer.dart';
+import '../../../core/audio/pitch/live_pitch_guidance.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/scoring/vocal_metric_scorer.dart';
 import '../../../core/state/app_state.dart';
@@ -15,6 +16,7 @@ import '../../../shared/models/training_models.dart';
 import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/animated_score_display.dart';
 import '../../../shared/widgets/audio_waveform_visualizer.dart';
+import '../../../shared/widgets/coach_status_switcher.dart';
 import '../../../shared/widgets/glass_card.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../ai_feedback_display/presentation/feedback_page.dart';
@@ -130,6 +132,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   double? _bestAttemptScore;
   late final LiveAudioAnalyzer _liveAudioAnalyzer;
   late final VocalMetricAccumulator _metricAccumulator;
+  late final LivePitchGuidanceController _livePitchGuidance;
   late final BreathingAudioAccumulator _breathingAudioAccumulator;
   StreamSubscription<LiveAudioFrame>? _liveAudioSubscription;
   Timer? _tipsTimer;
@@ -180,6 +183,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       maxFrequencyHz: maxFreq,
     );
     _metricAccumulator = VocalMetricAccumulator();
+    _livePitchGuidance = LivePitchGuidanceController();
     _breathingAudioAccumulator = BreathingAudioAccumulator();
     WidgetsBinding.instance.addObserver(this);
     _startTipsRotation();
@@ -316,7 +320,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       return;
     }
 
-    final targetHz = _activeTargetFrequency();
+    final activeStage = _activeRuntimeStage;
+    final isRest = _activeStageIsRest;
+    final targetHz = isRest ? null : _activeTargetFrequency();
     var nextFrequency = _liveFrequencyHz;
     var nextDetectedLabel = _detectedNoteLabel;
     var nextCentsError = _currentCentsError;
@@ -327,7 +333,19 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       _calibrationLoudnessTotal += frame.loudnessDb;
     }
 
-    if (frame.frequencyHz != null && frame.voiced) {
+    final guidance = _livePitchGuidance.update(
+      isAttemptRunning: _isAttemptRunning,
+      hasTarget: targetHz != null,
+      voiced: frame.voiced && frame.frequencyHz != null,
+      confidence: frame.confidence,
+      loudnessDb: frame.loudnessDb,
+      centsError: targetHz == null || frame.frequencyHz == null
+          ? 0
+          : _centsDifference(frame.frequencyHz!, targetHz),
+      clippingRatio: frame.clippingRatio ?? 0,
+    );
+
+    if (frame.frequencyHz != null && frame.voiced && targetHz != null) {
       final frequencyHz = frame.frequencyHz!;
       final centsError = _centsDifference(frequencyHz, targetHz);
       final absCents = centsError.abs();
@@ -343,9 +361,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       if (_runtimePlan == null && _onTargetFrameStreak >= 4) {
         _solfegeIndex = (_solfegeIndex + 1) % _targetFrequenciesHz.length;
         _onTargetFrameStreak = 0;
-        nextStatus = 'Great lock. Move to ${_activeTargetLabel()}';
-      } else if (_runtimePlan != null && onPitch) {
-        nextStatus = _activeStageInstruction();
+        nextStatus = 'On target. Move to ${_activeTargetLabel()}';
+      } else {
+        nextStatus = guidance.message;
       }
 
       nextFrequency = frequencyHz;
@@ -353,13 +371,10 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       nextCentsError = centsError;
     } else {
       _onTargetFrameStreak = 0;
-      nextStatus = frame.loudnessDb < -50
-          ? 'Speak or sing a little louder to start detection.'
-          : 'Listening...';
+      nextStatus = guidance.message;
     }
 
     if (_isAttemptRunning && _attemptStopwatch.isRunning) {
-      final activeStage = _activeRuntimeStage;
       if (_isBreathingExercise) {
         _breathingAudioAccumulator.addFrame(
           timestampMs: frame.timestampMs,
@@ -369,8 +384,11 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         _metricAccumulator.addFrame(
           VocalMetricFrame(
             timestampMs: frame.timestampMs,
-            targetId: activeStage?.stageId ?? _activeTargetLabel(),
-            targetLabel: activeStage?.targetLabel ?? _activeTargetLabel(),
+            targetId:
+                isRest ? null : activeStage?.stageId ?? _activeTargetLabel(),
+            targetLabel: isRest
+                ? null
+                : activeStage?.targetLabel ?? _activeTargetLabel(),
             targetFrequencyHz: targetHz,
             frequencyHz: frame.frequencyHz,
             loudnessDb: frame.loudnessDb,
@@ -672,6 +690,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       _status =
           '$_attemptNoun ${_attempts.length + 1} running - ${_activeStageTitle()}';
     });
+    _livePitchGuidance.reset();
     unawaited(HapticFeedback.lightImpact());
     _resetMetricsWindow();
 
@@ -1011,7 +1030,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       return null;
     }
     for (final stage in runtimePlan.stages) {
-      if (elapsedSec < stage.endSec) {
+      if (elapsedSec < stage.restEndSec) {
         return stage;
       }
     }
@@ -1036,10 +1055,19 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     );
   }
 
+  bool get _activeStageIsRest {
+    final stage = _activeRuntimeStage;
+    if (stage == null) return false;
+    final elapsed = _isAttemptRunning && _attemptStopwatch.isRunning
+        ? _attemptStopwatch.elapsedMilliseconds / 1000.0
+        : _attemptElapsedSec.toDouble();
+    return elapsed >= stage.endSec && elapsed < stage.restEndSec;
+  }
+
   String _activeTargetLabel() {
     final runtimeStage = _activeRuntimeStage;
     if (runtimeStage != null) {
-      return runtimeStage.targetLabel;
+      return _activeStageIsRest ? 'Rest' : runtimeStage.targetLabel;
     }
     return _targetFrequenciesHz.keys.elementAt(
       _solfegeIndex % _targetFrequenciesHz.length,
@@ -1047,15 +1075,24 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   }
 
   String _activeStageTitle() {
+    if (_activeStageIsRest) return 'Relax and reset';
     return _activeRuntimeStage?.title ?? 'Live target';
   }
 
   String _activeStageInstruction() {
+    if (_activeStageIsRest) {
+      return 'Take a relaxed breath before the next note.';
+    }
     return _activeRuntimeStage?.instruction ??
         'Stay relaxed, centered, and connected to the target note.';
   }
 
   double _activeTargetFrequency() {
+    final runtimeStage = _activeRuntimeStage;
+    final canonicalFrequency = runtimeStage?.target.frequencyHz;
+    if (canonicalFrequency != null && canonicalFrequency > 0) {
+      return canonicalFrequency;
+    }
     return _targetFrequencyForLabel(_activeTargetLabel());
   }
 
@@ -1144,17 +1181,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     if (!_isAttemptRunning && coachCues != null) {
       return coachCues.ready;
     }
-    final absCents = _currentCentsError.abs();
-    if (_liveLoudnessDb < _loudnessFloorDb) {
-      return coachCues?.tooSoft ?? 'Too soft - support breath a little more.';
-    }
-    if (absCents <= 30) {
-      return coachCues?.onPitch ?? 'On pitch - hold steady!';
-    }
-    if (_currentCentsError < 0) {
-      return coachCues?.lowPitch ?? 'A bit low - lift placement slightly.';
-    }
-    return coachCues?.highPitch ?? 'A bit high - relax and settle lower.';
+    return _livePitchGuidance.current.message;
   }
 
   List<String> get _queueTips {
@@ -1310,6 +1337,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
           ? _activeStageTitle()
           : 'Get ready for the first breathing phase';
     }
+    if (_activeStageIsRest) {
+      return 'Take a relaxed breath';
+    }
     return _isAttemptRunning
         ? 'Sing ${_activeTargetLabel()}'
         : 'Start with ${_activeTargetLabel()}';
@@ -1346,6 +1376,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         ? 0.0
         : (_attemptDurationSec - _secondsRemaining) / _attemptDurationSec;
     final queueTips = _queueTips;
+    final liveCoachStatus = _liveCoachStatus();
     final exerciseTitle = _exerciseName.isNotEmpty
         ? _exerciseName
         : (widget.exerciseName ?? 'Session In Progress');
@@ -1474,8 +1505,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                               child: _HeroFocusTile(
                                 label: 'Target note',
                                 value: _activeTargetLabel(),
-                                supporting:
-                                    '${_activeTargetFrequency().toStringAsFixed(1)} Hz · Key $_selectedKey$_selectedOctave',
+                                supporting: _activeStageIsRest
+                                    ? 'Reset before the next note'
+                                    : '${_activeTargetFrequency().toStringAsFixed(1)} Hz · Key $_selectedKey$_selectedOctave',
                               ),
                             ),
                             if (_nextRuntimeStage != null) ...[
@@ -1569,16 +1601,12 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 250),
-                                child: Text(
-                                  _liveCoachStatus(),
-                                  key: ValueKey<String>(_liveCoachStatus()),
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.3,
-                                  ),
+                              child: CoachStatusSwitcher(
+                                status: liveCoachStatus,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.3,
                                 ),
                               ),
                             ),
@@ -1915,8 +1943,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                                   label: 'Key $_selectedKey$_selectedOctave',
                                 ),
                                 _CoachMiniChip(
-                                  label:
-                                      'Target ${_activeTargetFrequency().toStringAsFixed(1)} Hz',
+                                  label: _activeStageIsRest
+                                      ? 'Target: rest / breath'
+                                      : 'Target ${_activeTargetFrequency().toStringAsFixed(1)} Hz',
                                 ),
                                 _CoachMiniChip(
                                   label:

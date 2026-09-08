@@ -2,7 +2,7 @@
 
 ## Status
 
-Scoring version `2.1` is deterministic and reproducible. It is designed for
+Scoring version `2.2` is deterministic and reproducible. It is designed for
 coaching feedback and practice progress, not clinical diagnosis, audition
 certification, or a claim that a single recording measures a singer's complete
 ability.
@@ -22,6 +22,13 @@ ability.
    authority for the saved numeric score, explains metric status, and selects the
    best valid attempt.
 
+The runtime also carries one canonical target object for every guided window:
+solfège, scale degree, MIDI note, equal-tempered frequency, key, octave, note
+window, rest interval, target type, and breath cue. The client uses that object
+for the displayed target, reference pitch, visualizer, and submitted segment
+label; it does not rebuild a separate Do/Re/Mi frequency table when the server
+has supplied a target.
+
 The client does not use a language model to calculate a score. Google AI Studio,
 when configured, can only write the bounded natural-language summary.
 Deterministic strengths, improvements, next exercises, and the numeric score
@@ -40,6 +47,10 @@ remain available when it is disabled or unreachable.
   Its zero is explained as missing comparison evidence, not presented as proof
   that the singer failed.
 - Stream gaps are counted as missing evidence rather than silently ignored.
+- A result is classified as `measured`, `partial`, `legacy`,
+  `insufficient_evidence`, or `not_scorable`. The UI may show a numeric value
+  for compatibility, but it must not present `not_scorable` or
+  `insufficient_evidence` as a practice score.
 - A clean sustained note scores highly only when it is both voiced and close to
   its target. Silence, low confidence, detuning, and incomplete coverage lower
   the result.

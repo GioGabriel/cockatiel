@@ -14,7 +14,7 @@
     "prompt_version"
   ],
   "properties": {
-    "session_id": { "type": "string" },
+    "session_id": { "type": "string", "minLength": 1 },
     "overall_score": { "type": "number", "minimum": 0, "maximum": 100 },
     "strengths": {
       "type": "array",
@@ -28,8 +28,121 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "summary": { "type": ["string", "null"] },
     "model_used": { "type": "string" },
     "prompt_version": { "type": "string" },
-    "latency_ms": { "type": "integer", "minimum": 0 }
+    "latency_ms": { "type": "integer", "minimum": 0 },
+    "score_breakdown": { "$ref": "#/$defs/scoreBreakdown" },
+    "detailed_improvements": {
+      "type": "array",
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/detailedImprovement" }
+    }
+  },
+  "$defs": {
+    "scoreBreakdown": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "metric_mode",
+        "metric_scores",
+        "scoring_version",
+        "sample_count",
+        "evidence_quality",
+        "score_status",
+        "legacy_evidence"
+      ],
+      "properties": {
+        "metric_mode": { "type": "string", "enum": ["voice", "breathing"] },
+        "focus_metrics": { "type": "array", "items": { "type": "string" } },
+        "metric_scores": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 100 }
+        },
+        "weighted_components": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 100 }
+        },
+        "scoring_version": { "type": "string", "minLength": 1 },
+        "sample_count": { "type": "integer", "minimum": 0 },
+        "evidence_quality": {
+          "type": "string",
+          "enum": ["reliable", "limited", "insufficient", "unknown"]
+        },
+        "score_status": {
+          "type": "string",
+          "enum": ["measured", "partial", "legacy", "insufficient_evidence", "not_scorable"]
+        },
+        "score_reliability": { "type": "string" },
+        "legacy_evidence": { "type": "boolean" },
+        "recording_evidence": { "type": "object" },
+        "metric_details": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/metricDetail" }
+        },
+        "segments": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/segmentEvidence" }
+        }
+      }
+    },
+    "metricDetail": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "status": { "type": "string" },
+        "reason": { "type": "string" },
+        "observed_frames": { "type": "integer", "minimum": 0 },
+        "coverage_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "action": { "type": "string" }
+      }
+    },
+    "segmentEvidence": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["segment_id", "start_ms", "end_ms", "score", "status"],
+      "properties": {
+        "segment_id": { "type": "string", "minLength": 1 },
+        "label": { "type": ["string", "null"] },
+        "start_ms": { "type": "integer", "minimum": 0 },
+        "end_ms": { "type": "integer", "minimum": 0 },
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "status": { "type": "string" },
+        "target_frequency_hz": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "pitch_bias_cents": { "type": "number" },
+        "pitch_stddev_cents": { "type": "number", "minimum": 0 },
+        "interrupted": { "type": "boolean" },
+        "recommendation": { "type": ["string", "null"] }
+      }
+    },
+    "detailedImprovement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_key",
+        "priority",
+        "finding",
+        "evidence",
+        "why_it_matters",
+        "action",
+        "practice_plan"
+      ],
+      "properties": {
+        "metric_key": { "type": "string", "minLength": 1 },
+        "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+        "finding": { "type": "string", "minLength": 1 },
+        "evidence": { "type": "string", "minLength": 1 },
+        "why_it_matters": { "type": "string", "minLength": 1 },
+        "action": { "type": "string", "minLength": 1 },
+        "practice_plan": { "type": "string", "minLength": 1 },
+        "evidence_quality": { "type": "string" },
+        "limitation": { "type": ["string", "null"] },
+        "segment_id": { "type": ["string", "null"] },
+        "start_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "end_ms": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    }
   }
 }

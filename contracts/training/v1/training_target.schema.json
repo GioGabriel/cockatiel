@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/training/v1/training_target.schema.json",
+  "title": "TrainingTargetV1",
+  "description": "Canonical guided target shared by the training runtime, client visualizer, scorer, and feedback evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "target_id",
+    "solfege",
+    "scale_degree",
+    "midi_note",
+    "target_frequency_hz",
+    "key",
+    "octave",
+    "start_sec",
+    "end_sec",
+    "intended_note_duration_sec",
+    "rest_after_sec",
+    "target_type",
+    "breath_cue"
+  ],
+  "properties": {
+    "target_id": { "type": "string", "minLength": 1 },
+    "solfege": { "type": "string", "minLength": 1 },
+    "scale_degree": { "type": ["integer", "null"], "minimum": 1, "maximum": 8 },
+    "midi_note": { "type": ["integer", "null"], "minimum": 0, "maximum": 127 },
+    "target_frequency_hz": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+    "key": { "type": "string", "pattern": "^[A-G](#)?$" },
+    "octave": { "type": "integer", "minimum": 2, "maximum": 6 },
+    "start_sec": { "type": "number", "minimum": 0 },
+    "end_sec": { "type": "number", "minimum": 0 },
+    "intended_note_duration_sec": { "type": "number", "minimum": 0 },
+    "rest_after_sec": { "type": "number", "minimum": 0 },
+    "target_type": {
+      "type": "string",
+      "enum": ["sustained_note", "transition", "breathing_phase"]
+    },
+    "breath_cue": { "type": "boolean" }
+  }
+}

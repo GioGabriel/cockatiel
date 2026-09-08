@@ -209,7 +209,15 @@ class _PitchPainter extends CustomPainter {
     final playheadX = _scaleWidth + plotWidth * _playheadFraction;
     final pxPerSec = plotWidth / _windowSec;
 
-    final allHz = stages.map((s) => getTargetFrequency(s.targetLabel)).toList();
+    double stageFrequency(TrainingRuntimeStage stage) {
+      return stage.target.frequencyHz ?? getTargetFrequency(stage.targetLabel);
+    }
+
+    final allHz = stages.map(stageFrequency).where((hz) => hz > 0).toList();
+    if (allHz.isEmpty) {
+      _drawEmptyHint(canvas, size);
+      return;
+    }
     double loHz = min(minHz, allHz.reduce(min) * 0.80);
     double hiHz = max(maxHz, allHz.reduce(max) * 1.20);
     loHz = loHz.clamp(60.0, 800.0);
@@ -245,7 +253,7 @@ class _PitchPainter extends CustomPainter {
       final endX = secToX(stage.endSec.toDouble());
       if (endX < _scaleWidth - 8 || startX > size.width + 8) continue;
 
-      final hz = getTargetFrequency(stage.targetLabel);
+      final hz = stageFrequency(stage);
       final cy = hzToY(hz).clamp(0.0, size.height);
       final norm = hzToNorm(hz);
       final noteColor = _pitchColor(norm, primaryColor);

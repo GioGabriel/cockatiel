@@ -138,6 +138,7 @@ void main() {
         'scoring_version': '2.1',
         'sample_count': 706,
         'evidence_quality': 'reliable',
+        'score_status': 'not_scorable',
         'recording_evidence': {
           'frame_count': 706,
           'voiced_coverage_pct': 49.86,
@@ -193,6 +194,57 @@ void main() {
         find.textContaining('No target-note comparison frames were captured'),
         findsWidgets);
     expect(find.textContaining('not a failed singing result'), findsWidgets);
+  });
+
+  testWidgets('does not present an unscorable take as a practice score',
+      (tester) async {
+    final feedback = CoachingFeedback.fromJson({
+      'session_id': 'session-no-target',
+      'overall_score': 0,
+      'strengths': ['Voice was captured'],
+      'improvements': ['Start the target guide before singing'],
+      'next_exercises': ['Microphone and target-note check'],
+      'model_used': 'coaching-logic-engine',
+      'score_breakdown': {
+        'metric_mode': 'voice',
+        'focus_metrics': ['pitch_accuracy'],
+        'metric_scores': {'pitch_accuracy': 0.0},
+        'weighted_components': {'pitch_accuracy': 0.0},
+        'scoring_version': '2.2',
+        'sample_count': 64,
+        'evidence_quality': 'reliable',
+        'score_status': 'not_scorable',
+        'recording_evidence': {
+          'frame_count': 64,
+          'target_frame_count': 0,
+        },
+        'metric_details': {
+          'pitch_accuracy': {
+            'status': 'not_measurable',
+            'reason': 'No target-note comparison frames were captured.',
+            'observed_frames': 0,
+            'coverage_pct': 0.0,
+          },
+        },
+      },
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FeedbackPage(
+          result: FinalizeResponse(
+            sessionId: 'session-no-target',
+            status: 'completed',
+            feedback: feedback,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Not enough evidence to score this take reliably'),
+        findsOneWidget);
+    expect(find.text('Your practice score'), findsNothing);
   });
 
   testWidgets('explains breathing phase evidence', (tester) async {

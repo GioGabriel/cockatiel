@@ -5,8 +5,9 @@ This document describes how audio data is processed from the user's microphone t
 ## 1. Capture & Local Processing (Client)
 - User starts a training or karaoke session.
 - `LiveAudioAnalyzer` captures a 16-bit PCM audio stream from the microphone.
-- The stream is chunked and analyzed locally using Autocorrelation to determine the pitch (Hz).
-- The detected pitch is visually rendered on the screen (the orange line in `KaraokePitchVisualizer`).
+- The stream is chunked and analyzed locally with the deterministic YIN-style estimator to estimate fundamental pitch (Hz).
+- Only voiced frames that pass the confidence and signal-quality gates are rendered; rejected frames create gaps in `KaraokePitchVisualizer`.
+- The detected line is an estimated fundamental-frequency trace. It does not directly measure timbre, resonance, airflow, breath pressure, throat tension, vocal-fold behavior, vocal health, or overall singing quality.
 
 ## 2. Telemetry Aggregation (Client -> Server)
 - The raw pitches are smoothed and compared against the target notes.

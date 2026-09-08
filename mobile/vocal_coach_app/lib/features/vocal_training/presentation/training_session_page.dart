@@ -105,11 +105,12 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   int _tipIndex = 0;
   int _loaderTick = 0;
   int _solfegeIndex = 0;
-  double _liveFrequencyHz = 261.63;
+  double? _liveFrequencyHz;
   double _liveLoudnessDb = -32.0;
   double _livePitchConfidence = 0;
   double _currentCentsError = 0;
-  String _detectedNoteLabel = 'Do';
+  String? _detectedNoteLabel;
+  bool _liveFrameMeasurable = false;
   String _status = 'Prepare your first take.';
   String _microphoneStatus = 'Initializing microphone...';
   String _exerciseName = '';
@@ -323,29 +324,38 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     final activeStage = _activeRuntimeStage;
     final isRest = _activeStageIsRest;
     final targetHz = isRest ? null : _activeTargetFrequency();
-    var nextFrequency = _liveFrequencyHz;
-    var nextDetectedLabel = _detectedNoteLabel;
+    double? nextFrequency = _liveFrequencyHz;
+    String? nextDetectedLabel = _detectedNoteLabel;
     var nextCentsError = _currentCentsError;
     var nextStatus = _microphoneStatus;
 
     if (_isCalibratingLoudness) {
-      _calibrationFrameCount += 1;
-      _calibrationLoudnessTotal += frame.loudnessDb;
+      // Calibration measures the quiet room/microphone floor, not vocal power.
+      if (!frame.voiced && frame.loudnessDb.isFinite) {
+        _calibrationFrameCount += 1;
+        _calibrationLoudnessTotal += frame.loudnessDb;
+      }
     }
 
     final guidance = _livePitchGuidance.update(
       isAttemptRunning: _isAttemptRunning,
       hasTarget: targetHz != null,
-      voiced: frame.voiced && frame.frequencyHz != null,
+      voiced: frame.voiced &&
+          frame.frequencyHz != null &&
+          frame.loudnessDb > _loudnessFloorDb,
       confidence: frame.confidence,
       loudnessDb: frame.loudnessDb,
       centsError: targetHz == null || frame.frequencyHz == null
           ? 0
           : _centsDifference(frame.frequencyHz!, targetHz),
       clippingRatio: frame.clippingRatio ?? 0,
+      quietFloorDb: _loudnessFloorDb,
     );
 
-    if (frame.frequencyHz != null && frame.voiced && targetHz != null) {
+    if (frame.frequencyHz != null &&
+        frame.voiced &&
+        targetHz != null &&
+        _livePitchGuidance.lastFrameMeasurable) {
       final frequencyHz = frame.frequencyHz!;
       final centsError = _centsDifference(frequencyHz, targetHz);
       final absCents = centsError.abs();
@@ -371,6 +381,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       nextCentsError = centsError;
     } else {
       _onTargetFrameStreak = 0;
+      nextFrequency = null;
+      nextDetectedLabel = null;
+      nextCentsError = 0;
       nextStatus = guidance.message;
     }
 
@@ -392,7 +405,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
             targetFrequencyHz: targetHz,
             frequencyHz: frame.frequencyHz,
             loudnessDb: frame.loudnessDb,
-            voiced: frame.voiced,
+            voiced: frame.voiced &&
+                frame.loudnessDb > _loudnessFloorDb &&
+                _livePitchGuidance.lastFrameMeasurable,
             confidence: frame.confidence,
             zeroCrossingRate: frame.zeroCrossingRate,
             spectralCentroidHz: frame.spectralCentroidHz,
@@ -411,13 +426,18 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       _detectedNoteLabel = nextDetectedLabel;
       _currentCentsError = nextCentsError;
       _livePitchConfidence = frame.confidence;
+      _liveFrameMeasurable = nextFrequency != null &&
+          targetHz != null &&
+          _livePitchGuidance.lastFrameMeasurable;
       _microphoneStatus = nextStatus;
 
       if (_isAttemptRunning && _attemptStopwatch.isRunning) {
         final elapsed = _attemptStopwatch.elapsedMilliseconds / 1000.0;
         final double pitchToSave = (frame.frequencyHz != null &&
                 frame.voiced &&
-                frame.loudnessDb > _loudnessFloorDb)
+                frame.confidence >= 0.45 &&
+                frame.loudnessDb > _loudnessFloorDb &&
+                _livePitchGuidance.lastFrameMeasurable)
             ? frame.frequencyHz!
             : 0.0;
         _pitchHistory.add(PitchPoint(elapsed, pitchToSave));
@@ -637,7 +657,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       _calibrationFrameCount = 0;
       _calibrationLoudnessTotal = 0;
       _error = null;
-      _status = 'Calibrating loudness floor... sing steadily for 3 seconds.';
+      _status =
+          'Measuring room noise... stay quiet for 3 seconds, then sing normally.';
     });
 
     _calibrationTimer?.cancel();
@@ -649,20 +670,21 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       if (_calibrationFrameCount < 6) {
         setState(() {
           _isCalibratingLoudness = false;
-          _error = 'Calibration failed. Try again with steady voice input.';
+          _error = 'Noise check failed. Stay quiet and try again.';
         });
         return;
       }
 
       final averageLoudness =
           _calibrationLoudnessTotal / _calibrationFrameCount;
+      // The margin is a provisional engineering gate above the measured noise.
       final calibratedFloor = (averageLoudness + 8).clamp(-52.0, -28.0);
 
       setState(() {
         _isCalibratingLoudness = false;
         _loudnessFloorDb = calibratedFloor;
         _status =
-            'Calibration complete. Loudness floor set to ${calibratedFloor.toStringAsFixed(1)} dB.';
+            'Noise check complete. Signal gate set to ${calibratedFloor.toStringAsFixed(1)} dB.';
       });
       unawaited(HapticFeedback.selectionClick());
     });
@@ -1561,6 +1583,19 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                                   maxHz: _pitchVisualizerMaxHz(),
                                   getTargetFrequency: _targetFrequencyForLabel,
                                   isRunning: _isAttemptRunning,
+                                  targetLabel: _activeTargetLabel(),
+                                  detectedNoteLabel: _detectedNoteLabel,
+                                  detectedFrequencyHz:
+                                      _livePitchGuidance.lastFrameMeasurable
+                                          ? (_liveFrameMeasurable
+                                              ? _liveFrequencyHz
+                                              : null)
+                                          : null,
+                                  detectedCents: _liveFrameMeasurable &&
+                                          _livePitchGuidance.lastFrameMeasurable
+                                      ? _currentCentsError
+                                      : null,
+                                  guidance: _livePitchGuidance.current,
                                 )
                               : _VisualizerPlaceholder(
                                   isLoading: _isLoadingSessionMeta,
@@ -1955,15 +1990,28 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Detected ${_liveFrequencyHz.toStringAsFixed(1)} Hz ($_detectedNoteLabel) • Loudness ${_liveLoudnessDb.toStringAsFixed(1)} dB',
+                              _liveFrequencyHz == null
+                                  ? 'Detected: no measurable fundamental • Loudness ${_liveLoudnessDb.toStringAsFixed(1)} dB'
+                                  : 'Detected ${_liveFrequencyHz!.toStringAsFixed(1)} Hz (${_detectedNoteLabel ?? 'unknown'}) • Loudness ${_liveLoudnessDb.toStringAsFixed(1)} dB',
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Cents error ${_currentCentsError.toStringAsFixed(1)} • Confidence ${(_livePitchConfidence * 100).clamp(0, 100).toStringAsFixed(0)}%',
                             ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Frame: ${_liveFrameMeasurable ? 'measurable' : 'not measurable'} • ${(_liveLoudnessDb >= -2) ? 'clipping warning' : 'within level range'}',
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Sing normally; you do not need to shout. Loudness floor is a signal gate, not a vocal-strength measurement.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                             const SizedBox(height: 12),
                             LinearProgressIndicator(
-                              value: ((_liveFrequencyHz - 180) / 360)
+                              value: (((_liveFrequencyHz ?? 0) - 180) / 360)
                                   .clamp(0.0, 1.0),
                               minHeight: 8,
                             ),
@@ -1996,7 +2044,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                                 child: Text(
                                   _isCalibratingLoudness
                                       ? 'Calibrating...'
-                                      : 'Calibrate Loudness',
+                                      : 'Check Room Noise',
                                 ),
                               ),
                           ],

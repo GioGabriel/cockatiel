@@ -65,13 +65,30 @@ class LivePitchGuidanceController {
   LivePitchCue? _candidateCue;
   int _candidateFrames = 0;
   final List<double> _recentCents = <double>[];
+  bool _lastFrameMeasurable = false;
 
   LivePitchGuidance get current => _current;
+
+  /// True only when the current cue is backed by a voiced, target-relative
+  /// estimate. Signal-quality cues must not place a pitch marker on the map.
+  bool get isMeasurable => switch (_current.cue) {
+        LivePitchCue.tooLow ||
+        LivePitchCue.tooHigh ||
+        LivePitchCue.onTarget ||
+        LivePitchCue.holdSteady =>
+          true,
+        _ => false,
+      };
+
+  /// Whether the latest frame passed the signal and pitch gates. This is kept
+  /// separate from [isMeasurable], whose cue can remain debounced for clarity.
+  bool get lastFrameMeasurable => _lastFrameMeasurable;
 
   void reset() {
     _candidateCue = null;
     _candidateFrames = 0;
     _recentCents.clear();
+    _lastFrameMeasurable = false;
     _current = const LivePitchGuidance(
       cue: LivePitchCue.startWhenReady,
       centsError: 0,
@@ -87,19 +104,28 @@ class LivePitchGuidanceController {
     required double loudnessDb,
     required double centsError,
     double clippingRatio = 0,
+    double? quietFloorDb,
   }) {
     final safeConfidence =
         confidence.isFinite ? confidence.clamp(0.0, 1.0).toDouble() : 0.0;
     final safeCents = centsError.isFinite ? centsError : 0.0;
+    final safeLoudness = loudnessDb.isFinite ? loudnessDb : -double.infinity;
+    final safeClipping =
+        clippingRatio.isFinite ? clippingRatio.clamp(0.0, 1.0) : 1.0;
     final nextCue = _classify(
       isAttemptRunning: isAttemptRunning,
       hasTarget: hasTarget,
       voiced: voiced,
       confidence: safeConfidence,
-      loudnessDb: loudnessDb,
+      loudnessDb: safeLoudness,
       centsError: safeCents,
-      clippingRatio: clippingRatio,
+      clippingRatio: safeClipping.toDouble(),
+      quietFloorDb: quietFloorDb ?? this.quietFloorDb,
     );
+    _lastFrameMeasurable = nextCue == LivePitchCue.tooLow ||
+        nextCue == LivePitchCue.tooHigh ||
+        nextCue == LivePitchCue.onTarget ||
+        nextCue == LivePitchCue.holdSteady;
     final cue = _debounce(nextCue);
     _current = LivePitchGuidance(
       cue: cue,
@@ -117,16 +143,18 @@ class LivePitchGuidanceController {
     required double loudnessDb,
     required double centsError,
     required double clippingRatio,
+    required double quietFloorDb,
   }) {
     if (!isAttemptRunning) return LivePitchCue.startWhenReady;
     if (!hasTarget) return LivePitchCue.takeBreath;
     if (clippingRatio >= clippingRatioThreshold || loudnessDb >= -2) {
       return LivePitchCue.tooLoud;
     }
+    if (loudnessDb <= quietFloorDb) {
+      return LivePitchCue.tooQuiet;
+    }
     if (!voiced || confidence < 0.45) {
-      return loudnessDb <= quietFloorDb
-          ? LivePitchCue.tooQuiet
-          : LivePitchCue.noClearNote;
+      return LivePitchCue.noClearNote;
     }
 
     // A large correction is a new settling window; do not let the previous

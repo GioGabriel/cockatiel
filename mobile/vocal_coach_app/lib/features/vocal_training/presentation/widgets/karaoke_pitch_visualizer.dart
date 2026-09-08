@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../../core/audio/pitch/live_pitch_guidance.dart';
 import '../../../../shared/models/session_models.dart';
 import '../../../../app/theme/app_theme_tokens.dart';
 
@@ -13,7 +14,9 @@ class PitchPoint {
 /// Yousician-style scrolling pitch visualizer with rainbow note blocks.
 ///
 /// Shows target note blocks scrolling left with a restrained accent palette and
-/// the user's live pitch rendered as a high-contrast line.
+/// the estimated voiced fundamental rendered as a high-contrast line. It does
+/// not measure vocal timbre, resonance, airflow, tension, health, or overall
+/// singing quality.
 class KaraokePitchVisualizer extends StatefulWidget {
   const KaraokePitchVisualizer({
     super.key,
@@ -24,6 +27,11 @@ class KaraokePitchVisualizer extends StatefulWidget {
     required this.maxHz,
     required this.getTargetFrequency,
     this.isRunning = false,
+    this.targetLabel = 'Target',
+    this.detectedNoteLabel,
+    this.detectedFrequencyHz,
+    this.detectedCents,
+    this.guidance,
   });
 
   final List<TrainingRuntimeStage> stages;
@@ -33,6 +41,11 @@ class KaraokePitchVisualizer extends StatefulWidget {
   final double maxHz;
   final double Function(String) getTargetFrequency;
   final bool isRunning;
+  final String targetLabel;
+  final String? detectedNoteLabel;
+  final double? detectedFrequencyHz;
+  final double? detectedCents;
+  final LivePitchGuidance? guidance;
 
   @override
   State<KaraokePitchVisualizer> createState() => _KaraokePitchVisualizerState();
@@ -41,13 +54,36 @@ class KaraokePitchVisualizer extends StatefulWidget {
 class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
     with SingleTickerProviderStateMixin {
   late AnimationController _ticker;
+  Tween<double>? _markerTween;
 
   @override
   void initState() {
     super.initState();
-    _ticker =
-        AnimationController(vsync: this, duration: const Duration(hours: 1))
-          ..repeat();
+    _ticker = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 140),
+    );
+    _markerTween = Tween<double>(
+      begin: widget.detectedFrequencyHz,
+      end: widget.detectedFrequencyHz,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant KaraokePitchVisualizer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextFrequency = widget.detectedFrequencyHz;
+    if (oldWidget.detectedFrequencyHz == nextFrequency) {
+      return;
+    }
+    if (nextFrequency == null || !nextFrequency.isFinite) {
+      _markerTween = null;
+      _ticker.stop();
+      return;
+    }
+    final currentFrequency = _markerTween?.evaluate(_ticker) ?? nextFrequency;
+    _markerTween = Tween<double>(begin: currentFrequency, end: nextFrequency);
+    _ticker.forward(from: 0);
   }
 
   @override
@@ -62,95 +98,199 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
     final primaryColor = theme.colorScheme.primary;
     final tokens = theme.appTokens;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10, left: 2, right: 2),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: widget.isRunning ? tokens.success : primaryColor,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                widget.isRunning ? 'REAL-TIME PITCH TRACKER' : 'SONG PITCH MAP',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.outline,
-                    width: 1,
+    final guidance = widget.guidance;
+    final guidanceColor = _guidanceColor(theme, guidance?.cue);
+
+    return Semantics(
+      container: true,
+      label: 'Pitch tuner. Target ${widget.targetLabel}. '
+          '${widget.detectedNoteLabel == null ? 'No measurable note.' : 'Detected ${widget.detectedNoteLabel}.'} '
+          '${guidance?.message ?? 'Start when you are ready.'}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10, left: 2, right: 2),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.isRunning ? tokens.success : primaryColor,
                   ),
                 ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.isRunning
+                        ? 'REAL-TIME PITCH TRACKER'
+                        : 'SONG PITCH MAP',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.outline,
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '${widget.stages.length} TARGET NOTES',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              color: guidanceColor.withValues(alpha: 0.12),
+              border: Border.all(color: guidanceColor.withValues(alpha: 0.55)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(_guidanceIcon(guidance?.cue),
+                    color: guidanceColor, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    guidance?.message ?? 'Start when you are ready',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (widget.detectedCents != null &&
+                    widget.detectedCents!.isFinite)
+                  Text(
+                    '${widget.detectedCents!.abs().round()} cents',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
                 child: Text(
-                  '${widget.stages.length} TARGET NOTES',
-                  style: TextStyle(
+                  'Target: ${widget.targetLabel} · Estimated fundamental pitch',
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  widget.detectedNoteLabel == null
+                      ? 'Detected: waiting for a clear note'
+                      : 'Detected: ${widget.detectedNoteLabel}',
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
             ],
           ),
-        ),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant,
-                width: 1,
+          const SizedBox(height: 8),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant,
+                  width: 1,
+                ),
               ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: AnimatedBuilder(
-                animation: _ticker,
-                builder: (context, _) => CustomPaint(
-                  painter: _PitchPainter(
-                    stages: widget.stages,
-                    currentElapsedSec: widget.currentElapsedSec,
-                    pitchHistory: widget.pitchHistory,
-                    minHz: widget.minHz,
-                    maxHz: widget.maxHz,
-                    getTargetFrequency: widget.getTargetFrequency,
-                    isRunning: widget.isRunning,
-                    primaryColor: primaryColor,
-                    successColor: tokens.success,
-                    raisedSurfaceColor:
-                        theme.colorScheme.surfaceContainerHighest,
-                    outlineColor: theme.colorScheme.outline,
-                    outlineVariantColor: theme.colorScheme.outlineVariant,
-                    onSurfaceColor: theme.colorScheme.onSurface,
-                    onSurfaceVariantColor: theme.colorScheme.onSurfaceVariant,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: AnimatedBuilder(
+                  animation: _ticker,
+                  builder: (context, _) => CustomPaint(
+                    painter: _PitchPainter(
+                      stages: widget.stages,
+                      currentElapsedSec: widget.currentElapsedSec,
+                      pitchHistory: widget.pitchHistory,
+                      minHz: widget.minHz,
+                      maxHz: widget.maxHz,
+                      getTargetFrequency: widget.getTargetFrequency,
+                      isRunning: widget.isRunning,
+                      markerFrequencyHz: _markerTween?.evaluate(_ticker),
+                      markerMeasurable: widget.detectedFrequencyHz != null,
+                      markerColor: guidanceColor,
+                      primaryColor: primaryColor,
+                      successColor: tokens.success,
+                      raisedSurfaceColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      outlineColor: theme.colorScheme.outline,
+                      outlineVariantColor: theme.colorScheme.outlineVariant,
+                      onSurfaceColor: theme.colorScheme.onSurface,
+                      onSurfaceVariantColor: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    child: const SizedBox.expand(),
                   ),
-                  child: const SizedBox.expand(),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  static Color _guidanceColor(ThemeData theme, LivePitchCue? cue) {
+    return switch (cue) {
+      LivePitchCue.tooLow || LivePitchCue.tooHigh => theme.colorScheme.tertiary,
+      LivePitchCue.onTarget ||
+      LivePitchCue.holdSteady =>
+        theme.appTokens.success,
+      LivePitchCue.tooQuiet ||
+      LivePitchCue.tooLoud ||
+      LivePitchCue.noClearNote =>
+        theme.colorScheme.error,
+      _ => theme.colorScheme.primary,
+    };
+  }
+
+  static IconData _guidanceIcon(LivePitchCue? cue) {
+    return switch (cue) {
+      LivePitchCue.tooLow => Icons.north_rounded,
+      LivePitchCue.tooHigh => Icons.south_rounded,
+      LivePitchCue.onTarget => Icons.adjust_rounded,
+      LivePitchCue.holdSteady => Icons.pause_circle_outline_rounded,
+      LivePitchCue.tooQuiet => Icons.volume_down_rounded,
+      LivePitchCue.tooLoud => Icons.volume_up_rounded,
+      LivePitchCue.takeBreath => Icons.air_rounded,
+      _ => Icons.mic_none_rounded,
+    };
   }
 }
 
@@ -175,6 +315,9 @@ class _PitchPainter extends CustomPainter {
   final Color outlineVariantColor;
   final Color onSurfaceColor;
   final Color onSurfaceVariantColor;
+  final double? markerFrequencyHz;
+  final bool markerMeasurable;
+  final Color markerColor;
 
   _PitchPainter({
     required this.stages,
@@ -191,6 +334,9 @@ class _PitchPainter extends CustomPainter {
     required this.outlineVariantColor,
     required this.onSurfaceColor,
     required this.onSurfaceVariantColor,
+    required this.markerFrequencyHz,
+    required this.markerMeasurable,
+    required this.markerColor,
   });
 
   static const double _windowSec = 8.5;
@@ -301,9 +447,30 @@ class _PitchPainter extends CustomPainter {
       _drawPitchLine(canvas, size, hzToY, secToX);
     }
 
+    if (isRunning && markerMeasurable && markerFrequencyHz != null) {
+      _drawTunerMarker(canvas, size, hzToY, playheadX, markerFrequencyHz!);
+    }
+
     if (!isRunning) {
       _drawPreviewHint(canvas, size);
     }
+  }
+
+  void _drawTunerMarker(
+    Canvas canvas,
+    Size size,
+    double Function(double) hzToY,
+    double x,
+    double frequencyHz,
+  ) {
+    final y = hzToY(frequencyHz).clamp(8.0, size.height - 8.0);
+    final markerPaint = Paint()
+      ..color = markerColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    canvas.drawLine(Offset(x - 14, y), Offset(x + 14, y), markerPaint);
+    canvas.drawCircle(Offset(x, y), 8, markerPaint);
+    canvas.drawCircle(Offset(x, y), 3, Paint()..color = markerColor);
   }
 
   void _drawPitchScale(Canvas canvas, Size size, double loMidi, double hiMidi,

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 
 import '../../../core/audio/live_audio_analyzer.dart';
+import '../../../core/audio/pitch/live_pitch_guidance.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/scoring/vocal_metric_scorer.dart';
 import '../../../core/state/app_state.dart';
@@ -41,6 +42,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   final AudioPlayer _player = AudioPlayer();
   late final LiveAudioAnalyzer _analyzer;
   late final VocalMetricAccumulator _metricAccumulator;
+  late final LivePitchGuidanceController _pitchGuidance;
   late final KaraokeContentClient _contentClient;
   late final bool _ownsContentClient;
   StreamSubscription<LiveAudioFrame>? _audioSub;
@@ -63,6 +65,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 
   Duration _currentPosition = Duration.zero;
   double _liveAmplitude = 0;
+  double? _liveFrequencyHz;
   double? _liveCentsError;
   String _liveCoachCue = 'Press start when you are ready.';
 
@@ -74,6 +77,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       maxFrequencyHz: 800,
     );
     _metricAccumulator = VocalMetricAccumulator();
+    _pitchGuidance = LivePitchGuidanceController();
     _contentClient = widget.contentClient ?? KaraokeContentClient();
     _ownsContentClient = widget.contentClient == null;
     _initializeKaraoke();
@@ -263,6 +267,27 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     return 1200 * (log(frequencyHz / targetHz) / ln2);
   }
 
+  String _noteLabelForFrequency(double frequencyHz) {
+    if (frequencyHz <= 0 || !frequencyHz.isFinite) return 'unknown';
+    const names = <String>[
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
+    final midi = (69 + 12 * (log(frequencyHz / 440) / ln2)).round();
+    final octave = (midi ~/ 12) - 1;
+    return '${names[midi % 12]}$octave';
+  }
+
   void _startMicOnlyClock() {
     _micOnlyTimer?.cancel();
     _micOnlyStopwatch
@@ -304,9 +329,11 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       _isPlaying = true;
       _liveCoachCue = 'Listening for your voice...';
       _liveCentsError = null;
+      _liveFrequencyHz = null;
     });
 
     _metricAccumulator.reset();
+    _pitchGuidance.reset();
 
     try {
       await _analyzer.start();
@@ -322,41 +349,43 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     _audioSub = _analyzer.frames.listen((frame) {
       final elapsed = _currentPosition.inMilliseconds / 1000.0;
       final currentStage = _currentStage(elapsed);
+      final targetHz = currentStage == null
+          ? null
+          : double.tryParse(currentStage.targetLabel);
       double? centsError;
       if (frame.voiced && frame.frequencyHz != null && currentStage != null) {
-        final targetHz = double.tryParse(currentStage.targetLabel) ?? 261.63;
-        centsError = _centsDifference(frame.frequencyHz!, targetHz);
+        centsError = _centsDifference(frame.frequencyHz!, targetHz ?? 261.63);
       }
+      final guidance = _pitchGuidance.update(
+        isAttemptRunning: true,
+        hasTarget: targetHz != null,
+        voiced: frame.voiced && frame.frequencyHz != null,
+        confidence: frame.confidence,
+        loudnessDb: frame.loudnessDb,
+        centsError: centsError ?? 0,
+        clippingRatio: frame.clippingRatio ?? 0,
+      );
       final normalizedAmplitude =
           ((frame.loudnessDb + 60) / 60).clamp(0.0, 1.0);
-      final cue = !frame.voiced
-          ? 'Sing into the microphone'
-          : currentStage == null
-              ? 'Keep singing—your live pitch is being tracked'
-              : centsError == null
-                  ? 'Keep singing—your live pitch is being tracked'
-                  : centsError.abs() <= 50
-                      ? 'On target—keep it steady'
-                      : centsError < 0
-                          ? 'A little higher'
-                          : 'A little lower';
 
       if (mounted) {
         setState(() {
           _liveAmplitude = normalizedAmplitude;
           _liveCentsError = centsError;
-          _liveCoachCue = cue;
+          _liveFrequencyHz =
+              _pitchGuidance.lastFrameMeasurable ? frame.frequencyHz : null;
+          _liveCoachCue = guidance.message;
 
-          if (frame.voiced && frame.frequencyHz != null) {
+          if (_pitchGuidance.lastFrameMeasurable && frame.frequencyHz != null) {
             _pitchHistory.add(PitchPoint(elapsed, frame.frequencyHz!));
+            if (_pitchHistory.length > 250) _pitchHistory.removeAt(0);
+          } else {
+            _pitchHistory.add(PitchPoint(elapsed, 0));
             if (_pitchHistory.length > 250) _pitchHistory.removeAt(0);
           }
         });
       }
 
-      final targetHz = currentStage == null
-          ? null
-          : double.tryParse(currentStage.targetLabel) ?? 261.63;
       _metricAccumulator.addFrame(
         VocalMetricFrame(
           timestampMs: frame.timestampMs,
@@ -365,7 +394,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
           targetFrequencyHz: targetHz,
           frequencyHz: frame.frequencyHz,
           loudnessDb: frame.loudnessDb,
-          voiced: frame.voiced,
+          voiced: frame.voiced && _pitchGuidance.lastFrameMeasurable,
           confidence: frame.confidence,
         ),
       );
@@ -519,6 +548,20 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
                     getTargetFrequency: (label) =>
                         double.tryParse(label) ?? 261.63,
                     isRunning: _isPlaying,
+                    targetLabel: _currentStage(
+                          _currentPosition.inMilliseconds / 1000.0,
+                        )?.targetLabel ??
+                        'No target',
+                    detectedNoteLabel: _liveFrequencyHz == null
+                        ? null
+                        : _noteLabelForFrequency(_liveFrequencyHz!),
+                    detectedFrequencyHz: _pitchGuidance.lastFrameMeasurable
+                        ? _liveFrequencyHz
+                        : null,
+                    detectedCents: _pitchGuidance.lastFrameMeasurable
+                        ? _liveCentsError
+                        : null,
+                    guidance: _pitchGuidance.current,
                   ),
                 ),
 

@@ -139,4 +139,69 @@ void main() {
     expect(below.cue, LivePitchCue.tooLow);
     expect(above.cue, LivePitchCue.tooHigh);
   });
+
+  test('uses the configured signal floor without requiring a loud voice', () {
+    final controller = LivePitchGuidanceController(requiredStableFrames: 1);
+
+    final quietButMeasurable = controller.update(
+      isAttemptRunning: true,
+      hasTarget: true,
+      voiced: true,
+      confidence: 0.8,
+      loudnessDb: -41,
+      centsError: 4,
+      quietFloorDb: -42,
+    );
+
+    expect(quietButMeasurable.cue, LivePitchCue.onTarget);
+    expect(controller.lastFrameMeasurable, isTrue);
+
+    final quiet = controller.update(
+      isAttemptRunning: true,
+      hasTarget: true,
+      voiced: true,
+      confidence: 0.8,
+      loudnessDb: -43,
+      centsError: 4,
+      quietFloorDb: -42,
+    );
+    expect(quiet.cue, LivePitchCue.tooQuiet);
+    expect(controller.lastFrameMeasurable, isFalse);
+  });
+
+  test(
+      'a rejected frame creates a non-measurable gap even when the cue is debounced',
+      () {
+    final controller = LivePitchGuidanceController(requiredStableFrames: 2);
+
+    controller.update(
+      isAttemptRunning: true,
+      hasTarget: true,
+      voiced: true,
+      confidence: 0.9,
+      loudnessDb: -24,
+      centsError: 0,
+    );
+    final stable = controller.update(
+      isAttemptRunning: true,
+      hasTarget: true,
+      voiced: true,
+      confidence: 0.9,
+      loudnessDb: -24,
+      centsError: 0,
+    );
+    expect(stable.cue, LivePitchCue.onTarget);
+
+    final rejected = controller.update(
+      isAttemptRunning: true,
+      hasTarget: true,
+      voiced: false,
+      confidence: 0,
+      loudnessDb: -30,
+      centsError: 0,
+    );
+
+    expect(rejected.cue, LivePitchCue.onTarget);
+    expect(controller.lastFrameMeasurable, isFalse);
+  });
 }

@@ -764,6 +764,9 @@ const Set<String> _legacyCompatibleSegmentKeys = <String>{
 
 Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
   final normalized = Map<String, dynamic>.from(source);
+  normalized['mean_abs_cents'] = _finiteNumberOrZero(
+    normalized['mean_abs_cents'],
+  );
   normalized['p95_abs_cents'] = _finiteNumberOrZero(
     normalized['p95_abs_cents'],
   );
@@ -780,6 +783,9 @@ Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
           if (_legacyCompatibleSegmentKeys.contains(entry.key))
             entry.key: entry.value,
       };
+      segment['mean_abs_cents'] = _finiteNumberOrZero(
+        segment['mean_abs_cents'],
+      );
       segment['p95_abs_cents'] = _finiteNumberOrZero(
         segment['p95_abs_cents'],
       );

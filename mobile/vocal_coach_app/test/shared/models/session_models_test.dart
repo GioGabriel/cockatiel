@@ -308,7 +308,8 @@ void main() {
     expect(breakdown.scoreStatus, 'not_scorable');
   });
 
-  test('voice metric summaries normalize nullable percentile evidence', () {
+  test('voice metric summaries normalize missing and nullable cents evidence',
+      () {
     final summary = TrainingAttemptMetricSummary.voice(
       sampleCount: 24,
       pitchAccuracy: 72,
@@ -321,7 +322,12 @@ void main() {
         'p95_abs_cents': null,
         'segments': [
           {'segment_id': 'stage_1', 'p95_abs_cents': null},
-          {'segment_id': 'stage_2', 'p95_abs_cents': 84.5},
+          {
+            'segment_id': 'stage_2',
+            'mean_abs_cents': null,
+            'p95_abs_cents': 84.5
+          },
+          {'segment_id': 'stage_3'},
         ],
       },
     );
@@ -329,9 +335,14 @@ void main() {
     final evidence = summary.toCreateJson()['evidence'] as Map<String, dynamic>;
     final segments = evidence['segments'] as List<dynamic>;
 
+    expect(evidence['mean_abs_cents'], 0.0);
     expect(evidence['p95_abs_cents'], 0.0);
+    expect((segments[0] as Map<String, dynamic>)['mean_abs_cents'], 0.0);
     expect((segments[0] as Map<String, dynamic>)['p95_abs_cents'], 0.0);
+    expect((segments[1] as Map<String, dynamic>)['mean_abs_cents'], 0.0);
     expect((segments[1] as Map<String, dynamic>)['p95_abs_cents'], 84.5);
+    expect((segments[2] as Map<String, dynamic>)['mean_abs_cents'], 0.0);
+    expect((segments[2] as Map<String, dynamic>)['p95_abs_cents'], 0.0);
   });
 
   test(
@@ -347,6 +358,7 @@ void main() {
       noteTransitionSmoothness: 66,
       evidence: {
         'p95_abs_cents': 84.5,
+        'mean_abs_cents': 42.0,
         'pitch_bias_cents': -12.0,
         'segments': [
           {
@@ -381,6 +393,7 @@ void main() {
         (evidence['segments'] as List<dynamic>).single as Map<String, dynamic>;
 
     expect(segment['segment_id'], 'stage_1');
+    expect(segment['mean_abs_cents'], 42.0);
     expect(segment['p95_abs_cents'], 84.5);
     expect(segment.containsKey('target_frequency_hz'), isFalse);
     expect(segment.containsKey('pitch_stddev_cents'), isFalse);

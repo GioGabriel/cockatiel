@@ -61,11 +61,12 @@ class MetricSegmentEvidence(BaseModel):
   status: Literal["measured", "partial", "not_measurable", "not_applicable"] = "measured"
   reason: str | None = Field(default=None, max_length=280)
 
-  @field_validator("p95_abs_cents", mode="before")
+  @field_validator("mean_abs_cents", "p95_abs_cents", mode="before")
   @classmethod
-  def normalize_missing_percentile(cls, value: Any) -> Any:
+  def normalize_missing_error_evidence(cls, value: Any) -> Any:
     # A percentile is legitimately unavailable when a segment has no
-    # measurable pitch frames. Treat an explicit null like an omitted field.
+    # measurable pitch frames. Treat explicit nulls like omitted fields for
+    # both required wire values without changing the score inputs.
     return 0 if value is None else value
 
 
@@ -117,9 +118,9 @@ class VoiceMetricEvidence(BaseModel):
   vibrato_regularity_pct: float | None = Field(default=None, ge=0, le=100)
   segments: list[MetricSegmentEvidence] = Field(default_factory=list, max_length=64)
 
-  @field_validator("p95_abs_cents", mode="before")
+  @field_validator("mean_abs_cents", "p95_abs_cents", mode="before")
   @classmethod
-  def normalize_missing_percentile(cls, value: Any) -> Any:
+  def normalize_missing_error_evidence(cls, value: Any) -> Any:
     # Keep older or partially populated clients compatible with the evidence
     # contract without inventing a non-zero measurement.
     return 0 if value is None else value

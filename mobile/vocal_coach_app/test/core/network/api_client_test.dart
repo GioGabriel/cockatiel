@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:vocal_coach_app/core/auth/auth_token_provider.dart';
 import 'package:vocal_coach_app/core/config/app_config.dart';
 import 'package:vocal_coach_app/core/network/api_client.dart';
+import 'package:vocal_coach_app/shared/models/session_models.dart';
 import 'package:vocal_coach_app/shared/models/user_models.dart';
 
 class _FakeTokenProvider implements AuthTokenProvider {
@@ -122,6 +123,85 @@ void main() {
       'target_pattern': 'warmup_ladder',
       'pace': 'slow',
       'phrase_mode': 'short',
+    });
+  });
+
+  test('saveTrainingAttempt sends the exact compatible voice evidence shape',
+      () async {
+    late http.BaseRequest request;
+    final client = ApiClient(
+      config: _config(),
+      tokenProvider: _FakeTokenProvider('test-token'),
+      httpClient: MockClient((incoming) async {
+        request = incoming;
+        return http.Response(
+          '{"session_id":"session-1","attempt":{"attempt_id":"attempt-1","attempt_index":1,"difficulty":"beginner","duration_sec":20,"score":50,"metric_summary":{"metric_mode":"voice","sample_count":24,"pitch_accuracy":50,"timing_accuracy":50,"breath_control":50,"pitch_stability":50,"vibrato_consistency":50,"note_transition_smoothness":50},"saved_at":1,"is_best":true},"selected_best_attempt_id":"attempt-1","best_attempt_score":50}',
+          201,
+        );
+      }),
+    );
+
+    final summary = TrainingAttemptMetricSummary.voice(
+      sampleCount: 24,
+      pitchAccuracy: 50,
+      timingAccuracy: 50,
+      breathControl: 50,
+      pitchStability: 50,
+      vibratoConsistency: 50,
+      noteTransitionSmoothness: 50,
+      evidence: {
+        'frame_count': 24,
+        'mean_abs_cents': null,
+        'p95_abs_cents': null,
+        'segments': [
+          {
+            'segment_id': 'stage-1',
+            'mean_abs_cents': null,
+            'p95_abs_cents': null,
+            'target_frequency_hz': 329.63,
+            'pitch_stddev_cents': 18,
+            'recommendation': 'Keep the center steady.',
+          },
+        ],
+      },
+    );
+
+    await client.saveTrainingAttempt(
+      sessionId: 'session-1',
+      attemptIndex: 1,
+      difficulty: 'beginner',
+      durationSec: 20,
+      metricSummary: summary,
+    );
+
+    final body =
+        jsonDecode((request as http.Request).body) as Map<String, dynamic>;
+    expect(body, {
+      'attempt_index': 1,
+      'difficulty': 'beginner',
+      'duration_sec': 20,
+      'metric_summary': {
+        'metric_mode': 'voice',
+        'sample_count': 24,
+        'pitch_accuracy': 50.0,
+        'timing_accuracy': 50.0,
+        'breath_control': 50.0,
+        'pitch_stability': 50.0,
+        'vibrato_consistency': 50.0,
+        'note_transition_smoothness': 50.0,
+        'evidence': {
+          'frame_count': 24,
+          'mean_abs_cents': 0.0,
+          'p95_abs_cents': 0.0,
+          'segments': [
+            {
+              'segment_id': 'stage-1',
+              'mean_abs_cents': 0.0,
+              'p95_abs_cents': 0.0,
+            },
+          ],
+        },
+      },
     });
   });
 

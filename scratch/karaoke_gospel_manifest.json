@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "rights_confirmed": true,
+  "notes": "Candidate intake manifest transcribed from the supplied catalog screenshots. A source URL is a candidate recording, not a claim that the catalog entry and recording version are identical. Validate title, artist, album, duration, lyrics, and pitch coverage before publishing.",
+  "songs": [
+    {
+      "drill_id": "gospel_glorify_your_name_hillsong_australia",
+      "title": "Glorify Your Name",
+      "artist": "Hillsong Worship",
+      "catalog_artist": "Hillsong Australia",
+      "catalog_code": "12347",
+      "catalog_volume": "59",
+      "source_url": "https://www.youtube.com/watch?v=XtR5woQQxxg",
+      "source_status": "candidate_official_upload",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_glory_hillsong_australia",
+      "title": "Glory",
+      "artist": "Hillsong Worship",
+      "catalog_artist": "Hillsong Australia",
+      "catalog_code": "12350",
+      "catalog_volume": "59",
+      "source_url": "https://www.youtube.com/watch?v=sf7KdRKCmOE",
+      "source_status": "candidate_official_upload",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_jesus_generation_hillsong_australia",
+      "title": "Jesus Generation",
+      "artist": "Hillsong Australia",
+      "catalog_code": "12626",
+      "catalog_volume": "59",
+      "source_status": "needs_source"
+    },
+    {
+      "drill_id": "gospel_breathe_hillsong_kids",
+      "title": "Breathe",
+      "artist": "Hillsong Kids",
+      "catalog_code": "12179",
+      "catalog_volume": "59",
+      "source_url": "https://www.youtube.com/watch?v=Rh8fDZhIqyc",
+      "source_status": "candidate_official_upload",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_get_up_and_dance_hillsong_kids",
+      "title": "Get Up And Dance",
+      "artist": "Hillsong Kids",
+      "catalog_code": "12339",
+      "catalog_volume": "59",
+      "source_url": "https://www.youtube.com/watch?v=YPCbJ4Wj_Kc",
+      "source_status": "candidate_official_upload",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_im_really_happy_hillsong_kids",
+      "title": "I'm Really Happy",
+      "artist": "Hillsong Kids",
+      "catalog_code": "12567",
+      "catalog_volume": "59",
+      "source_url": "https://www.youtube.com/watch?v=IwG3o7SCD04",
+      "source_status": "candidate_official_upload",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_all_for_love_hillsong_united",
+      "title": "All For Love",
+      "artist": "Hillsong UNITED",
+      "catalog_code": "18682",
+      "catalog_volume": "78",
+      "source_url": "https://www.youtube.com/watch?v=bDzAYB6yq8w",
+      "source_status": "candidate_official_upload",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_hosanna_hillsong_united",
+      "title": "Hosanna",
+      "artist": "Hillsong UNITED",
+      "catalog_code": "27059",
+      "catalog_volume": "81",
+      "source_url": "https://www.youtube.com/watch?v=KkpjtkGW7JQ",
+      "source_status": "candidate_official_upload",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_lead_me_to_the_cross_hillsong_united",
+      "title": "Lead Me to the Cross",
+      "artist": "Hillsong UNITED",
+      "catalog_code": "27121",
+      "catalog_volume": "81",
+      "source_url": "https://www.youtube.com/watch?v=iWzsyOYS2j4",
+      "source_status": "candidate_official_upload",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_oceans_hillsong_united",
+      "title": "Oceans (Where Feet May Fail)",
+      "artist": "Hillsong UNITED",
+      "catalog_code": "16223",
+      "catalog_volume": "67",
+      "source_url": "https://www.youtube.com/watch?v=OP-00EwLdiU",
+      "source_status": "candidate_official_upload_duration_needs_review",
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
+    },
+    {
+      "drill_id": "gospel_a_broken_spirit_don_harris_martin_j",
+      "title": "A Broken Spirit",
+      "artist": "Don Harris & Martin J",
+      "catalog_code": "12002",
+      "catalog_volume": "59",
+      "source_status": "needs_source"
+    },
+    {
+      "drill_id": "gospel_a_broken_spirit_generic",
+      "title": "A Broken Spirit",
+      "artist": "Gospel Song",
+      "catalog_code": "7597",
+      "catalog_volume": "42",
+      "source_status": "needs_recording_identity"
+    },
+    {
+      "drill_id": "gospel_a_heart_like_mine_bryan_duncan",
+      "title": "A Heart Like Mine",
+      "artist": "Bryan Duncan, Bob",
+      "catalog_code": "12003",
+      "catalog_volume": "59",
+      "source_status": "needs_source"
+    },
+    {
+      "drill_id": "gospel_a_king_is_born",
+      "title": "A King Is Born",
+      "artist": "R. Gorieb & Tim Hosnan",
+      "catalog_code": "12004",
+      "catalog_volume": "59",
+      "source_status": "needs_source"
+    },
+    {
+      "drill_id": "gospel_a_king_shall_come",
+      "title": "A King Shall Come",
+      "artist": "James Cowanm",
+      "catalog_code": "12005",
+      "catalog_volume": "59",
+      "source_status": "needs_source_artist_confirmation"
+    },
+    {
+      "drill_id": "gospel_a_man_after_your_own_generic",
+      "title": "A Man After Your Own",
+      "artist": "Gospel Song",
+      "catalog_code": "7567",
+      "catalog_volume": "42",
+      "source_status": "needs_recording_identity"
+    },
+    {
+      "drill_id": "gospel_a_man_after_your_own_heart_wayne_kirkpatrick",
+      "title": "A Man After Your Own Heart",
+      "artist": "Wayne Kirkpatrick",
+      "catalog_code": "12006",
+      "catalog_volume": "59",
+      "source_status": "needs_source_artist_confirmation"
+    },
+    {
+      "drill_id": "gospel_a_place_at_your_altar_gerrit_gustafson",
+      "title": "A Place at Your Altar",
+      "artist": "Gerrit Gustafson",
+      "catalog_code": "12007",
+      "catalog_volume": "59",
+      "source_status": "needs_source_artist_confirmation"
+    },
+    {
+      "drill_id": "gospel_a_place_at_your_altar_generic",
+      "title": "A Place at Your Altar",
+      "artist": "Gospel Song",
+      "catalog_code": "7568",
+      "catalog_volume": "42",
+      "source_status": "needs_recording_identity"
+    },
+    {
+      "drill_id": "gospel_a_pure_heart_generic",
+      "title": "A Pure Heart",
+      "artist": "Gospel Song",
+      "catalog_code": "7569",
+      "catalog_volume": "42",
+      "source_status": "needs_recording_identity"
+    },
+    {
+      "drill_id": "gospel_a_pure_heart_rusty_nelson",
+      "title": "A Pure Heart",
+      "artist": "Rusty Nelson",
+      "catalog_code": "12008",
+      "catalog_volume": "59",
+      "source_status": "needs_source"
+    },
+    {
+      "drill_id": "gospel_a_shield_about_me_pending",
+      "title": "A Shield About Me",
+      "artist": "Unknown from cropped screenshot",
+      "catalog_volume": "59",
+      "source_status": "needs_catalog_identity"
+    }
+  ]
+}

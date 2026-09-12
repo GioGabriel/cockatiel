@@ -22,7 +22,9 @@ build/
 # Local env
 .env
 .env.*
+env.local
 
 # Credentials
 service-account.json
 *service-account*.json
+*firebase-adminsdk*.json

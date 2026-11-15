@@ -110,6 +110,30 @@ def test_cloudinary_http_error_reports_status_without_response_body(monkeypatch,
   assert "do-not-print" not in str(error.value)
 
 
+def test_upload_streams_a_fixed_length_body_in_small_transport_reads(monkeypatch, tmp_path) -> None:
+  audio = tmp_path / "instrumental.mp3"
+  audio.write_bytes(b"recording" * 300_000)
+
+  def receive(request, *, timeout):
+    assert timeout == 60.0
+    assert hasattr(request.data, "read"), "A bytes body becomes one large TLS send"
+    chunks = []
+    while chunk := request.data.read(8192):
+      assert len(chunk) <= 8192
+      chunks.append(chunk)
+    body = b"".join(chunks)
+    assert int(request.get_header("Content-length")) == len(body)
+    assert request.get_header("Transfer-encoding") is None
+    assert audio.read_bytes() in body
+    return io.BytesIO(b'{"secure_url":"https://cdn.example/audio.mp3"}')
+
+  monkeypatch.setattr(publisher_module, "urlopen", receive)
+  result = CloudinaryUploader("cloud", "key", "secret").upload(
+    audio, resource_type="video", public_id="test/instrumental", format_name="mp3", overwrite=False
+  )
+  assert result["secure_url"] == "https://cdn.example/audio.mp3"
+
+
 def test_artifacts_require_review_and_target_map(tmp_path) -> None:
   _write_assets(tmp_path, status="local_review_required")
 

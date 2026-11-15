@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import math
 import os
@@ -226,10 +227,14 @@ class CloudinaryUploader:
     endpoint = f"https://api.cloudinary.com/v1_1/{self._cloud_name}/{resource_type}/upload"
     request = Request(
       endpoint,
-      data=body,
+      # http.client reads file-like bodies in small blocks. Passing bytes
+      # directly sends the entire multipart body in one TLS write, which
+      # stalled on the publishing connection even for modest audio files.
+      data=io.BytesIO(body),
       method="POST",
       headers={
         "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "Content-Length": str(len(body)),
         "Accept": "application/json",
       },
     )

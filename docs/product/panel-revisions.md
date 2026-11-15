@@ -22,12 +22,12 @@ notes supply recommendations; their medical and timing claims are not treated as
 - This source revision does not change the live catalog or publish new music. The user selected “Keep the current catalog for this revision”.
 - The optional gender field requires deploying the updated backend before distributing the corresponding app build.
 - Automated tests and builds verify source behavior. Microphone accuracy, audio routing, synchronization against each actual recording and usability still require a representative Android device and singer review.
-- The deployed guest catalog preview timed out during the source revision. This is recorded as an unavailable external check, not evidence that the live catalog is empty.
+- The deployed guest catalog preview initially timed out, then responded after warming up on 2026-11-15. See the rollout update for verified counts.
 
 ## Verification and review build
 
-- Flutter: 225 tests passed, analyzer clean, formatting applied.
-- Python backend and tools: 228 tests passed; backend coverage was 85%. Ruff and Python compilation passed.
+- Flutter: 229 tests passed, analyzer clean, formatting applied.
+- Python backend and tools: 235 tests passed; backend coverage was 85%. Ruff and Python compilation passed.
 - Web and Android release builds succeeded. `git diff --check` passed.
 - Android review artifact: `mobile/vocal_coach_app/build/app/outputs/flutter-apk/app-release.apk`, version 5.1.0, build 7.
 - The review APK and the supplied V10 APK use different Android debug signing certificates. This artifact cannot update that existing installation in place. Preserve the existing installation and its data; an upgrade-compatible artifact requires the original signing key. Production distribution also requires release signing.
@@ -46,3 +46,10 @@ instruction to keep the catalog unchanged.
 - The signed-in Render workspace contains unrelated services and does not expose the existing Cockatiel service. Deployment cannot be confirmed from that account.
 - No Android device was attached when checked. Real microphone, routing and singer acceptance checks remain unavailable.
 - The original V10 signing key is not present in the supplied project; the review APK remains signed with this machine's debug certificate.
+
+- Follow-up verification: 229 Flutter tests and 235 backend/tool tests passed locally; analysis, lint, compilation and web/APK release builds passed. CI now pins Java 17 because the runner's default Java 25 is incompatible with Gradle 8.14. Content tooling tests are included in CI.
+- Recording-duration matching prevents lyric selection from silently choosing a shorter edit; untimed lyrics have a clearly labelled manual-scroll view.
+- Before deployment, the live OpenAPI contract still had a 300-second attempt limit and no gender field. A successful GitHub merge alone must not be reported as verified deployment.
+
+- Audio publication is blocked by repeated transfer timeouts, including 60/180-second signed uploads, a second multipart transport, native HTTP/2 and a 1 MiB chunked transfer. One unlinked pitch-map asset was uploaded successfully; zero new catalog documents were created. All six complete local packages are preserved under the workspace's `karaoke-expansion-2026-11-15/` directory.
+- The versioned `song-expansion-2026-11-15.json` report records source identities, hashes, lyric availability, sparse-contour evidence and publication attempts. The public catalog remains at 29 total songs / nine gospel songs until audio upload succeeds.

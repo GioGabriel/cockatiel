@@ -6,33 +6,16 @@ Cockatiel has permission to use and redistribute the recordings. That
 confirmation is recorded in the local manifest; it does not make an arbitrary
 online recording the correct version of a catalog entry.
 
-## Current intake status
+## Current intake status — 2026-11-15
 
-- 22 visible catalog entries are recorded in
-  `scratch/karaoke_gospel_manifest.json`.
-- 9 entries have candidate YouTube source URLs.
-- A prior recovery note reports that six recordings were published:
-  `Glorify Your Name`, `Glory`, `All For Love`, `Hosanna`,
-  `Lead Me to the Cross`, and `Oceans (Where Feet May Fail)`. This checkout
-  does not include a Firestore export or publication ledger, so their current
-  Cloudinary and Firestore state has not been independently verified.
-- The same recovery note reported a guest catalog preview with 9 Gospel drills.
-  That deployed preview has not been re-queried; the remaining three records
-  have not been individually audited here.
-- The manifest includes three Hillsong Kids candidates: `Breathe`,
-  `Get Up And Dance`, and `I'm Really Happy`. Their current publication and
-  local review-package status is unverified.
-- 13 entries still need a source URL or an unambiguous recording identity.
+- The 22-entry manifest now contains 15 source URLs. Six new recording identities were checked against distributor-provided title, performer, album and duration metadata; original catalog labels are retained separately.
+- Direct Firestore and public API checks confirmed 29 existing catalog songs, including nine gospel recordings. All 58 audio/pitch-map URLs returned HTTP 200 and all 29 pitch maps contained points.
+- Six additional recordings were extracted using the supported pipeline: `Jesus Generation`, `A Broken Spirit`, `A Heart Like Mine`, `A Man After Your Own Heart`, `A Place at Your Altar`, and `A Pure Heart`.
+- Each new package passed hash, duration, timestamp, frequency-bound and catalog-schema checks. These checks establish technical integrity, not melody accuracy. The observed contours remain provisional and contain gaps; they have not received expert melody or singer review.
+- All six new recordings have matching-duration lyric results. Five offer synchronized lyrics. `A Place at Your Altar` offers readable plain lyrics; the app labels these as untimed and allows manual scrolling. Lyric selection rejects results more than two seconds away from the catalog duration, avoiding shorter edits with the same title and artist.
+- Seven entries remain unresolved. Generic duplicate labels and incomplete titles are not treated as distinct recordings without evidence.
 
-The six recording names and deployed counts above are recovery notes, not live
-service evidence. Local artifacts outside this repository are not a complete
-publication record: some song folders lack metadata or a final instrumental.
-File presence and schema tests cannot prove that remote assets exist, that
-Firestore currently serves them, or that an extracted contour is musically
-correct. Recheck the live catalog and asset inventory before an operational
-decision. The `Oceans` instrumental was reported as encoded at 96-kbps
-stereo/44.1-kHz to meet the service's asset-size limit; that deployed asset was
-not inspected during this source recovery.
+Publication was attempted but audio transfers repeatedly timed out. No new Firestore catalog documents were created; one unlinked pitch-map asset exists. The live catalog remains at 29 songs / nine gospel entries. Complete local packages are preserved for retry. See `song-expansion-2026-11-15.json` for the versioned evidence. Never infer successful publication merely from local files or a completed media process.
 
 ## What the local pipeline does
 
@@ -43,9 +26,9 @@ estimates the vocal fundamental with pYIN, and encodes the accompaniment to
 
 The generated `pitch_map.json` is an observed vocal fundamental-frequency
 contour. It is not a verified lead melody, key map, lyric alignment, or
-copyright/licence record. Human review must confirm the recording identity,
-whether the separation is clean enough, the timing, and the target contour
-before publication.
+copyright/licence record. Recording identity and technical integrity must be checked before publication.
+Expert review of separation, timing and the target melody is still required before
+calling an observed contour an authoritative scoring reference.
 
 ## Controlled publication
 

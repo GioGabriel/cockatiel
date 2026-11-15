@@ -1,0 +1,321 @@
+{
+  "reviewed_on": "2026-11-15",
+  "authorization": "Explicit user request to extract additional songs and upload/publish through Cloudinary. Existing manifest records rights confirmation.",
+  "previous_catalog_count": 29,
+  "previous_gospel_count": 9,
+  "existing_asset_urls_checked": 58,
+  "existing_asset_urls_http_200": 58,
+  "pitch_reference_notice": "Observed vocal fundamental-frequency contours; not expert-reviewed melodies. Occupied-second counts describe sparse observations, not scoring accuracy or voiced coverage.",
+  "recordings": [
+    {
+      "drill_id": "gospel_jesus_generation_hillsong_australia",
+      "title": "Jesus Generation",
+      "artist": "Hillsong UNITED",
+      "duration_sec": 305.133333,
+      "tempo_bpm": 96,
+      "difficulty": "advanced",
+      "audio_sha256": "264cb38ab1dbb79bc73ca1b4051fb730f4a6e057ee83657eb38c6b3e346ff08e",
+      "pitch_map_sha256": "f2084454ab63fdee28d69188edb9b980251349aefa9306b861f1043b2d7b6b79",
+      "point_count": 246,
+      "occupied_one_second_bins": 45,
+      "pitch_map_kind": "observed_vocal_contour",
+      "source_url": "https://www.youtube.com/watch?v=urrrRyBG5l0",
+      "lyrics_candidates": [
+        {
+          "id": 7096434,
+          "track": "Jesus' Generation",
+          "artist": "Hillsong UNITED",
+          "album": "Best Friend",
+          "duration": 305.0,
+          "synced": true,
+          "plain": true
+        },
+        {
+          "id": 11885030,
+          "track": "Jesus Generation",
+          "artist": "Hillsong United",
+          "album": "Best Friend: United Live",
+          "duration": 305.0,
+          "synced": true,
+          "plain": true
+        },
+        {
+          "id": 26791714,
+          "track": "Jesus Generation",
+          "artist": "Hillsong United",
+          "album": "United Live  - Best Friend",
+          "duration": 305.188542,
+          "synced": true,
+          "plain": true
+        },
+        {
+          "id": 3275088,
+          "track": "Jesus Generation - Live",
+          "artist": "Hillsong UNITED",
+          "album": "Best Friend: United Live",
+          "duration": 305.0,
+          "synced": false,
+          "plain": true
+        },
+        {
+          "id": 20457682,
+          "track": "Jesus Generation (Live)",
+          "artist": "Hillsong United",
+          "album": "Best Friend: United Live (Live)",
+          "duration": 305.110204,
+          "synced": false,
+          "plain": true
+        },
+        {
+          "id": 35377137,
+          "track": "Jesus' Generation (Live)",
+          "artist": "Hillsong UNITED",
+          "album": "United Live - Best Friend",
+          "duration": 305.0,
+          "synced": false,
+          "plain": true
+        }
+      ],
+      "synchronized_lyrics_available": true
+    },
+    {
+      "drill_id": "gospel_a_broken_spirit_don_harris_martin_j",
+      "title": "A Broken Spirit",
+      "artist": "Martin J. Nystrom",
+      "duration_sec": 259.76,
+      "tempo_bpm": 103,
+      "difficulty": "intermediate",
+      "audio_sha256": "6ab74d90c3a51b34b34b45044944a2429565fcb2024e8e59964c8c3d9c16381b",
+      "pitch_map_sha256": "c9c2efb13b44f3e55a491f6a79b2645af9b93013b566794a6afde2f19fe7b7e5",
+      "point_count": 771,
+      "occupied_one_second_bins": 112,
+      "pitch_map_kind": "observed_vocal_contour",
+      "source_url": "https://www.youtube.com/watch?v=zSUaenj8_r0",
+      "lyrics_candidates": [
+        {
+          "id": 37378504,
+          "track": "A Broken Spirit",
+          "artist": "Martin J. Nystrom",
+          "album": "In Christ Alone",
+          "duration": 260.0,
+          "synced": true,
+          "plain": true
+        }
+      ],
+      "synchronized_lyrics_available": true
+    },
+    {
+      "drill_id": "gospel_a_heart_like_mine_bryan_duncan",
+      "title": "A Heart Like Mine",
+      "artist": "Bryan Duncan",
+      "duration_sec": 264.173333,
+      "tempo_bpm": 89,
+      "difficulty": "intermediate",
+      "audio_sha256": "68303c28beceeff50891164d385fbcf0e5e2c1dcc9090402b65a835409c4a37e",
+      "pitch_map_sha256": "ed15a4607dd3ed04e14e6a70eb1a35af01065dc21b8543afbfa8005916e0c5be",
+      "point_count": 4101,
+      "occupied_one_second_bins": 201,
+      "pitch_map_kind": "observed_vocal_contour",
+      "source_url": "https://www.youtube.com/watch?v=oDjxd3yh6OQ",
+      "lyrics_candidates": [
+        {
+          "id": 30238927,
+          "track": "A Heart Like Mine",
+          "artist": "Bryan Duncan",
+          "album": "Songs 4 Life: Lift Your Spirit! Disc 1",
+          "duration": 266.0,
+          "synced": true,
+          "plain": true
+        },
+        {
+          "id": 16074774,
+          "track": "A Heart Like Mine",
+          "artist": "Bryan Duncan",
+          "album": "Songs 4 Life- Lift Your Spirit!",
+          "duration": 265.32425,
+          "synced": true,
+          "plain": true
+        },
+        {
+          "id": 11962562,
+          "track": "A Heart Like Mine",
+          "artist": "Bryan Duncan",
+          "album": "Love Takes Time",
+          "duration": 264.0,
+          "synced": true,
+          "plain": true
+        },
+        {
+          "id": 26359706,
+          "track": "A Heart Like Mine",
+          "artist": "Bryan Duncan",
+          "album": "The Best In Christian Music - 27th Annual Dove Awards Collection",
+          "duration": 265.090625,
+          "synced": true,
+          "plain": true
+        },
+        {
+          "id": 27013214,
+          "track": "A Heart Like Mine",
+          "artist": "Bryan Duncan",
+          "album": "My Utmost for His Highest",
+          "duration": 264.01,
+          "synced": true,
+          "plain": true
+        }
+      ],
+      "synchronized_lyrics_available": true
+    },
+    {
+      "drill_id": "gospel_a_man_after_your_own_heart_wayne_kirkpatrick",
+      "title": "A Man After Your Own Heart",
+      "artist": "Gary Chapman",
+      "duration_sec": 293.933333,
+      "tempo_bpm": 112,
+      "difficulty": "intermediate",
+      "audio_sha256": "30ffeef41423d061f69c712c774040b195727bfb17cc1178dd3d644457d286c2",
+      "pitch_map_sha256": "80af1398baf508478ff50c2583f95417e86efab94c42880bf729a2b4eadc208d",
+      "point_count": 5236,
+      "occupied_one_second_bins": 201,
+      "pitch_map_kind": "observed_vocal_contour",
+      "source_url": "https://www.youtube.com/watch?v=cSjv1DJtLDE",
+      "lyrics_candidates": [
+        {
+          "id": 16403982,
+          "track": "A Man After Your Own Heart",
+          "artist": "Gary Chapman",
+          "album": "Shelter",
+          "duration": 294.0,
+          "synced": true,
+          "plain": true
+        }
+      ],
+      "synchronized_lyrics_available": true
+    },
+    {
+      "drill_id": "gospel_a_place_at_your_altar_gerrit_gustafson",
+      "title": "A Place at Your Altar",
+      "artist": "Randy Rothwell",
+      "duration_sec": 224.16,
+      "tempo_bpm": 144,
+      "difficulty": "intermediate",
+      "audio_sha256": "79bc6db646e6d2ee9c8fd88225eb5e2c48d4ef6fe3f4af5dd5caf5a7c45140f4",
+      "pitch_map_sha256": "f414cbc3c848ea68593e34ac5ff339dfc80f93d40b5a48ca4bed7739eccb48c7",
+      "point_count": 719,
+      "occupied_one_second_bins": 83,
+      "pitch_map_kind": "observed_vocal_contour",
+      "source_url": "https://www.youtube.com/watch?v=zs_b7ckCbFE",
+      "lyrics_candidates": [
+        {
+          "id": 38939357,
+          "track": "A Place at Your Altar",
+          "artist": "Randy Rothwell",
+          "album": "Be Magnified",
+          "duration": 224.0,
+          "synced": false,
+          "plain": true
+        }
+      ],
+      "synchronized_lyrics_available": false
+    },
+    {
+      "drill_id": "gospel_a_pure_heart_rusty_nelson",
+      "title": "A Pure Heart",
+      "artist": "Rusty Nelson",
+      "duration_sec": 165.774127,
+      "tempo_bpm": 103,
+      "difficulty": "intermediate",
+      "audio_sha256": "c32725add9516812f2c37effd2d73205aa470b549dbdef8cc8d6c0f8656cd7ad",
+      "pitch_map_sha256": "e0440631c69bbbc312904be59ffaaeb30a88fb31bed871eb94a13c57123017f7",
+      "point_count": 355,
+      "occupied_one_second_bins": 37,
+      "pitch_map_kind": "observed_vocal_contour",
+      "source_url": "https://www.youtube.com/watch?v=rrNwrs7pGZc",
+      "lyrics_candidates": [
+        {
+          "id": 14069916,
+          "track": "A Pure Heart",
+          "artist": "Rusty Nelson",
+          "album": "Take the City",
+          "duration": 166.0,
+          "synced": true,
+          "plain": true
+        }
+      ],
+      "synchronized_lyrics_available": true
+    }
+  ],
+  "publication_status": "blocked_by_audio_transfer_timeouts",
+  "catalog_after_count": 29,
+  "catalog_after_gospel_count": 9,
+  "publication_attempts": [
+    "Standard signed uploader, 60-second timeout: audio transfer timed out.",
+    "Standard signed uploader, 180-second timeout: audio transfer timed out.",
+    "Requests multipart transport: audio transfer timed out.",
+    "Native curl HTTP/2: stalled after 2097152 uploaded bytes, timed out after 75 seconds.",
+    "Cloudinary chunked protocol with 1 MiB chunks: first transfer timed out."
+  ],
+  "partial_assets": [
+    {
+      "secure_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1794717011/cockatiel/karaoke/gospel_jesus_generation_hillsong_australia/pitch_map.json",
+      "public_id": "cockatiel/karaoke/gospel_jesus_generation_hillsong_australia/pitch_map.json"
+    }
+  ],
+  "catalog_writes_completed": 0,
+  "client_lyrics_verification": [
+    {
+      "drill_id": "gospel_jesus_generation_hillsong_australia",
+      "available": true,
+      "lrclib_id": 11885030,
+      "track": "Jesus Generation",
+      "duration": 305.0,
+      "synced": true,
+      "plain": true
+    },
+    {
+      "drill_id": "gospel_a_broken_spirit_don_harris_martin_j",
+      "available": true,
+      "lrclib_id": 37378504,
+      "track": "A Broken Spirit",
+      "duration": 260.0,
+      "synced": true,
+      "plain": true
+    },
+    {
+      "drill_id": "gospel_a_heart_like_mine_bryan_duncan",
+      "available": true,
+      "lrclib_id": 11962562,
+      "track": "A Heart Like Mine",
+      "duration": 264.0,
+      "synced": true,
+      "plain": true
+    },
+    {
+      "drill_id": "gospel_a_man_after_your_own_heart_wayne_kirkpatrick",
+      "available": true,
+      "lrclib_id": 16403982,
+      "track": "A Man After Your Own Heart",
+      "duration": 294.0,
+      "synced": true,
+      "plain": true
+    },
+    {
+      "drill_id": "gospel_a_place_at_your_altar_gerrit_gustafson",
+      "available": true,
+      "lrclib_id": 38939357,
+      "track": "A Place at Your Altar",
+      "duration": 224.0,
+      "synced": false,
+      "plain": true
+    },
+    {
+      "drill_id": "gospel_a_pure_heart_rusty_nelson",
+      "available": true,
+      "lrclib_id": 14069916,
+      "track": "A Pure Heart",
+      "duration": 166.0,
+      "synced": true,
+      "plain": true
+    }
+  ]
+}

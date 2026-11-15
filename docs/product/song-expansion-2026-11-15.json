@@ -317,5 +317,17 @@
       "synced": true,
       "plain": true
     }
-  ]
+  ],
+  "backend_deployment": {
+    "verified": true,
+    "method": "Live OpenAPI after merging PR #1",
+    "gender_field_present": true,
+    "attempt_duration_max_sec": 600
+  },
+  "github_delivery": {
+    "implementation_pr": "https://github.com/GioGabriel/cockatiel/pull/1",
+    "evidence_pr": "https://github.com/GioGabriel/cockatiel/pull/2",
+    "apk_release_status": "draft_only_apk_upload_exceeded_150_seconds",
+    "checksum_asset_uploaded": true
+  }
 }

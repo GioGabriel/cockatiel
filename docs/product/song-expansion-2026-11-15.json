@@ -253,7 +253,8 @@
     "Standard signed uploader, 180-second timeout: audio transfer timed out.",
     "Requests multipart transport: audio transfer timed out.",
     "Native curl HTTP/2: stalled after 2097152 uploaded bytes, timed out after 75 seconds.",
-    "Cloudinary chunked protocol with 1 MiB chunks: first transfer timed out."
+    "Cloudinary chunked protocol with 1 MiB chunks: first transfer timed out.",
+    "64 KiB chunk reached Cloudinary but returned HTTP 400: All parts except EOF-chunk must be larger than 5mb. Smaller chunks cannot work around the stalled larger transfers."
   ],
   "partial_assets": [
     {

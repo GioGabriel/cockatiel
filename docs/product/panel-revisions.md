@@ -62,3 +62,5 @@ instruction to keep the catalog unchanged.
 - A GitHub prerelease draft was prepared. Its small checksum asset uploaded, but APK transfer exceeded 150 seconds; the draft was not published without its APK.
 - The repository has no existing Actions secrets for remote content publishing. No credentials were added to GitHub or exposed in source to work around the local transfer failures.
 - Outstanding: Cloudinary audio transfer, original V10 signing key, real-device audio checks and client/panel acceptance. Six verified local song packages are ready for the supported publisher once the transfer path works.
+
+- Final transfer diagnostic: a 64 KiB chunk reached Cloudinary and returned HTTP 400 because non-final chunks must exceed 5 MB. Smaller chunks therefore cannot work around the stalled larger transfers on this connection. Final public preview still confirms 29 songs / nine gospel entries.

@@ -62,6 +62,10 @@ def update_vocal_preferences(user_id: str, preferences: dict[str, Any]) -> dict[
   """
   errors: list[str] = []
 
+  gender = preferences.get("gender")
+  if gender is not None and (not isinstance(gender, str) or gender not in {"male", "female", "non_binary", "prefer_not_to_say"}):
+    errors.append("gender must be male, female, non_binary, or prefer_not_to_say")
+
   vocal_range = preferences.get("vocal_range")
   if vocal_range is not None and vocal_range not in VALID_VOCAL_RANGES:
     errors.append(

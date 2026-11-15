@@ -11,16 +11,28 @@ online recording the correct version of a catalog entry.
 - 22 visible catalog entries are recorded in
   `scratch/karaoke_gospel_manifest.json`.
 - 9 entries have candidate YouTube source URLs.
-- 3 candidates have been prepared locally for review: `Breathe`, `Get Up And
-  Dance`, and `I'm Really Happy` by Hillsong Kids.
-- 6 candidate URLs returned HTTP 403 when their audio was requested. They are
-  not marked as ready and were not bypassed.
+- A prior recovery note reports that six recordings were published:
+  `Glorify Your Name`, `Glory`, `All For Love`, `Hosanna`,
+  `Lead Me to the Cross`, and `Oceans (Where Feet May Fail)`. This checkout
+  does not include a Firestore export or publication ledger, so their current
+  Cloudinary and Firestore state has not been independently verified.
+- The same recovery note reported a guest catalog preview with 9 Gospel drills.
+  That deployed preview has not been re-queried; the remaining three records
+  have not been individually audited here.
+- The manifest includes three Hillsong Kids candidates: `Breathe`,
+  `Get Up And Dance`, and `I'm Really Happy`. Their current publication and
+  local review-package status is unverified.
 - 13 entries still need a source URL or an unambiguous recording identity.
 
-The local outputs are outside the repository under
-`/private/tmp/cockatiel-karaoke-gospel-assets`. They contain an MP3 instrumental,
-a JSON pitch contour, and metadata with hashes and evidence statistics. They
-are deliberately marked `local_review_required`.
+The six recording names and deployed counts above are recovery notes, not live
+service evidence. Local artifacts outside this repository are not a complete
+publication record: some song folders lack metadata or a final instrumental.
+File presence and schema tests cannot prove that remote assets exist, that
+Firestore currently serves them, or that an extracted contour is musically
+correct. Recheck the live catalog and asset inventory before an operational
+decision. The `Oceans` instrumental was reported as encoded at 96-kbps
+stereo/44.1-kHz to meet the service's asset-size limit; that deployed asset was
+not inspected during this source recovery.
 
 ## What the local pipeline does
 
@@ -40,17 +52,18 @@ before publication.
 `tools/karaoke_publisher.py` is the only supported publication path. It is a
 one-shot operator tool, not an API route: it reads the three Cloudinary
 variables from the execution environment, uploads deterministic audio and JSON
-asset IDs, and then updates an existing `karaoke_songs/{drill_id}` document.
-It does not create an incomplete Firestore document, accept arbitrary HTTP
-uploads, or print credential values. The Firestore update happens only after
-both Cloudinary uploads return HTTPS URLs.
+asset IDs, then safely creates a missing `karaoke_songs/{drill_id}` document or
+updates a matching existing document. It does not accept arbitrary HTTP
+uploads or print credential values. Firestore writes happen only after both
+Cloudinary uploads return HTTPS URLs, and existing records are identity-checked
+before update.
 
-The tool intentionally refuses the current pilot output because it is marked
-`local_review_required` and `observed_vocal_contour`. A reviewer must replace
-those metadata values with `approved_for_publication` and
-`reviewed_target_contour` only after checking the recording identity,
-separation, timing, target pitches, and catalog record. This prevents an
-observed singer's contour from silently becoming the scoring target.
+Publication authorization and pitch-map validity are separate. Recovery
+metadata labels the available contours `observed_vocal_contour`; their current
+publication state and musical accuracy have not been independently verified.
+Do not describe these maps as expert-reviewed. Before using any map as an
+authoritative scoring reference, review recording identity, vocal separation,
+timing, and target pitches, then record that review in versioned metadata.
 
 The Render variables alone do not make local files available to a local
 process. Run the publisher only from a controlled environment that has both
@@ -100,13 +113,18 @@ content-review data before publication.
 ## Publication gate
 
 Do not run the old `scratch/upload_and_publish.py` as part of intake. It writes
-to Cloudinary and Firestore and contains environment-specific paths. A future
-publication step must use reviewed assets, verified URLs, a versioned import
-manifest, and an explicit operator action. It must also create or update the
-matching `karaoke_songs` document with the correct title, artist, duration,
-vocal range, melody reference, instrumental URL, and pitch-map URL.
+to Cloudinary and Firestore and contains environment-specific paths. Before
+publishing or replacing any listed recording, first read its current remote
+record, verify the source and assets, and compare against a versioned manifest.
+For each remaining candidate, use the supported publisher with verified
+assets, explicit operator action, and identity-checked Firestore create/update.
+Do not publish any candidate until its source identity and review status are
+resolved.
 
 No raw audio is sent to Gemini or logged by this intake tool. The phone app's
-pitch analysis and the published target map must remain separate: a source
-recording's detected vocal contour is evidence for review, not authority for a
-user's numeric score.
+pitch analysis and a source-derived pitch contour are different signals. The
+published maps are observed vocal contours, not independently verified lead
+melody annotations; file/hash/schema validation is not a musical accuracy
+test. Treat karaoke pitch comparisons as provisional until each map has been
+reviewed against the correct recording and target melody. Do not describe the
+result as a validated singing assessment.

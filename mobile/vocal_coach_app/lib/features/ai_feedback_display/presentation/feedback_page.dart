@@ -5,6 +5,7 @@ import '../../../shared/models/session_models.dart';
 import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/animated_score_display.dart';
 import '../../../shared/widgets/glass_card.dart';
+import '../../../shared/widgets/voice_studio.dart';
 
 const _voiceMetricOrder = [
   'pitch_accuracy',
@@ -62,138 +63,147 @@ class FeedbackPage extends StatelessWidget {
     final feedback = result.feedback;
     final scoreBreakdown = feedback?.scoreBreakdown;
 
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Session Feedback')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: feedback == null
-            ? Center(
-                child: Text(
-                  'Session ${result.sessionId} is ${result.status}. Feedback is not ready yet.',
-                ),
-              )
-            : ListView(
-                children: [
-                  GlassCard.dark(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
+      appBar: AppBar(title: const Text('Your practice review')),
+      body: VoiceStageBackground(
+          child: feedback == null
+              ? Center(
+                  child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.hourglass_top_rounded, size: 48),
+                        const SizedBox(height: 16),
+                        const Text(
+                            'Your review is being prepared. You can find it in Practice history.'),
+                        TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Back')),
+                      ])))
+              : ListView(padding: const EdgeInsets.all(20), children: [
+                  StudioCard(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (_isUnscorable(scoreBreakdown))
-                            Text(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                        if (_isUnscorable(scoreBreakdown))
+                          Text(
                               'Not enough evidence to score this take reliably',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            )
-                          else ...[
-                            Text(
-                              'Your practice score',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                AnimatedScoreDisplay(
-                                  score: feedback.overallScore.round(),
-                                  style:
-                                      Theme.of(context).textTheme.displaySmall,
-                                ),
-                                Text(
-                                  'out of 100',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              feedback.scoreBreakdown == null
-                                  ? 'Your score is measured out of 100.'
-                                  : 'This score combines the measurable parts of this take. Lower areas below show where to focus first.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(height: 1.4),
-                            ),
-                          ],
-                          if (feedback.summary != null &&
-                              feedback.summary!.trim().isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              'Your takeaway',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              feedback.summary!,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(height: 1.4),
-                            ),
-                          ],
+                              style: theme.textTheme.titleLarge)
+                        else ...[
+                          const Text('Your practice score',
+                              textAlign: TextAlign.center),
+                          const SizedBox(height: 20),
+                          Center(
+                              child: SizedBox.square(
+                                  dimension: 156,
+                                  child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        SizedBox.expand(
+                                            child: CircularProgressIndicator(
+                                                value: (feedback.overallScore /
+                                                        100)
+                                                    .clamp(0, 1),
+                                                strokeWidth: 10,
+                                                backgroundColor: theme
+                                                    .colorScheme.outlineVariant,
+                                                strokeCap: StrokeCap.round)),
+                                        Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              AnimatedScoreDisplay(
+                                                  score: feedback.overallScore
+                                                      .round(),
+                                                  style: theme
+                                                      .textTheme.displayMedium),
+                                              const Text('out of 100'),
+                                            ]),
+                                      ]))),
                         ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (scoreBreakdown != null) ...[
-                    _ScoreBreakdownCard(breakdown: scoreBreakdown),
-                    const SizedBox(height: 8),
+                        if (feedback.summary?.trim().isNotEmpty ?? false) ...[
+                          const SizedBox(height: 20),
+                          Text(feedback.summary!,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center),
+                        ],
+                        if (scoreBreakdown != null &&
+                            !_isUnscorable(scoreBreakdown)) ...[
+                          const SizedBox(height: 20),
+                          ...scoreBreakdown.metricScores.entries
+                              .where((entry) =>
+                                  scoreBreakdown
+                                      .metricDetails[entry.key]?.status !=
+                                  'not_measurable')
+                              .take(3)
+                              .map((entry) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Column(children: [
+                                    Row(children: [
+                                      Expanded(
+                                          child: Text(
+                                              _metricLabels[entry.key] ??
+                                                  entry.key)),
+                                      Text('${entry.value.round()}%')
+                                    ]),
+                                    const SizedBox(height: 6),
+                                    LinearProgressIndicator(
+                                        value: (entry.value / 100).clamp(0, 1),
+                                        minHeight: 7,
+                                        borderRadius: BorderRadius.circular(8)),
+                                  ]))),
+                        ],
+                      ])),
+                  if (feedback.improvements.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    StudioCard(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Text('Your next small step',
+                              style: theme.textTheme.titleMedium),
+                          const SizedBox(height: 8),
+                          Text(feedback.improvements.first,
+                              maxLines: 3, overflow: TextOverflow.ellipsis),
+                        ])),
                   ],
-                  if (feedback.detailedImprovements.isNotEmpty) ...[
-                    _DetailedImprovementsCard(
-                      improvements: feedback.detailedImprovements,
-                      aiGenerated:
-                          feedback.modelUsed.startsWith('google-ai-studio:'),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  const _TerminologyCard(),
-                  const SizedBox(height: 8),
-                  _FeedbackSection(
-                      title: 'Strengths', items: feedback.strengths),
-                  const SizedBox(height: 8),
-                  _FeedbackSection(
-                      title: 'Improvements', items: feedback.improvements),
-                  const SizedBox(height: 8),
-                  _FeedbackSection(
-                      title: 'Next Exercises', items: feedback.nextExercises),
                   const SizedBox(height: 16),
                   Card(
-                    child: ExpansionTile(
-                      title: const Text('Details for advanced users'),
-                      subtitle: Text(_friendlySource(feedback.modelUsed)),
-                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Feedback source: ${_friendlySource(feedback.modelUsed)}\n'
-                            'Prompt version: ${feedback.promptVersion ?? 'Not provided'}\n'
-                            'Review time: ${feedback.latencyMs != null ? '${feedback.latencyMs} ms' : 'Not provided'}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.tonal(
-                    onPressed: () => Navigator.of(context)
-                        .popUntil((route) => route.isFirst),
-                    child: const Text('Back to Home'),
-                  ),
-                ],
-              ),
-      ),
+                      child: ExpansionTile(
+                          title: const Text('Read full feedback'),
+                          subtitle: const Text(
+                              'Scores, coaching notes and what to practice next'),
+                          childrenPadding: const EdgeInsets.all(12),
+                          children: [
+                        if (feedback.summary != null) Text(feedback.summary!),
+                        if (scoreBreakdown != null)
+                          _ScoreBreakdownCard(breakdown: scoreBreakdown),
+                        if (feedback.detailedImprovements.isNotEmpty)
+                          _DetailedImprovementsCard(
+                              key: const Key('detailed-coaching-plan'),
+                              improvements: feedback.detailedImprovements,
+                              aiGenerated: feedback.modelUsed
+                                  .startsWith('google-ai-studio:')),
+                        const _TerminologyCard(),
+                        _FeedbackSection(
+                            title: 'Strengths', items: feedback.strengths),
+                        _FeedbackSection(
+                            title: 'Improvements',
+                            items: feedback.improvements),
+                        _FeedbackSection(
+                            title: 'Next Exercises',
+                            items: feedback.nextExercises),
+                        Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(_friendlySource(feedback.modelUsed),
+                                style: theme.textTheme.bodySmall)),
+                      ])),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                      onPressed: () => Navigator.of(context)
+                          .popUntil((route) => route.isFirst),
+                      child: const Text('Back to Home')),
+                ])),
     );
   }
 
@@ -622,6 +632,7 @@ class _SegmentsEvidenceCard extends StatelessWidget {
 
 class _DetailedImprovementsCard extends StatelessWidget {
   const _DetailedImprovementsCard({
+    super.key,
     required this.improvements,
     required this.aiGenerated,
   });

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../shared/models/session_models.dart';
+import '../../shared/utils/vocal_utils.dart';
 
 const minimumVoiceEvidenceSamples = 16;
 
@@ -712,10 +713,7 @@ class VocalMetricAccumulator {
   }
 
   double _centsDifference(double frequencyHz, double targetHz) {
-    if (frequencyHz <= 0 || targetHz <= 0) {
-      return 0;
-    }
-    return 1200 * (math.log(frequencyHz / targetHz) / math.ln2);
+    return centsErrorForFrequencies(frequencyHz, targetHz);
   }
 
   double _roundScore(double value, [int decimalPlaces = 2]) {
@@ -926,10 +924,7 @@ class _SegmentAccumulator {
   }
 
   static double _centsDifference(double frequencyHz, double targetHz) {
-    if (frequencyHz <= 0 || targetHz <= 0) {
-      return 0;
-    }
-    return 1200 * (math.log(frequencyHz / targetHz) / math.ln2);
+    return centsErrorForFrequencies(frequencyHz, targetHz);
   }
 
   static double _roundNumber(double value, {int decimalPlaces = 2}) {

@@ -6,6 +6,13 @@ import 'package:record/record.dart';
 
 import 'pitch/yin_pitch_estimator.dart';
 
+// This is a detection envelope, not a claim about a user's comfortable range.
+// Keeping headroom lets the app report an out-of-range note instead of turning
+// a valid high or low fundamental into "no clear note" before target-relative
+// guidance can classify it.
+const int defaultLivePitchMinFrequencyHz = 60;
+const int defaultLivePitchMaxFrequencyHz = 1200;
+
 class LiveAudioFrame {
   LiveAudioFrame({
     required this.timestampMs,
@@ -195,13 +202,43 @@ class AcousticFrameFeatures {
   }
 }
 
+/// Derives a bounded microphone gate from a quiet-room sample. The percentile
+/// makes one transient (a door, cough, or keyboard) less likely to raise the
+/// gate than a mean would. This is a signal-quality heuristic, not a measure of
+/// vocal power or breath support.
+double? calibratedLoudnessFloorDb(
+  Iterable<double> loudnessSamples, {
+  double percentile = 0.80,
+  double marginDb = 6,
+  double minFloorDb = -52,
+  double maxFloorDb = -28,
+}) {
+  final samples =
+      loudnessSamples.where((value) => value.isFinite).toList(growable: false);
+  if (samples.isEmpty ||
+      !percentile.isFinite ||
+      percentile < 0 ||
+      percentile > 1 ||
+      !marginDb.isFinite ||
+      !minFloorDb.isFinite ||
+      !maxFloorDb.isFinite ||
+      maxFloorDb < minFloorDb) {
+    return null;
+  }
+  final sorted = List<double>.from(samples)..sort();
+  final index =
+      ((sorted.length - 1) * percentile).round().clamp(0, sorted.length - 1);
+  final floor = sorted[index] + marginDb;
+  return floor.clamp(minFloorDb, maxFloorDb).toDouble();
+}
+
 class LiveAudioAnalyzer {
   LiveAudioAnalyzer({
     this.sampleRate = 16000,
     this.frameSize = 2048,
     this.hopSize = 512,
-    this.minFrequencyHz = 80,
-    this.maxFrequencyHz = 520,
+    this.minFrequencyHz = defaultLivePitchMinFrequencyHz,
+    this.maxFrequencyHz = defaultLivePitchMaxFrequencyHz,
   });
 
   final int sampleRate;

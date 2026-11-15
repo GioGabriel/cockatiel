@@ -7,6 +7,7 @@ import '../../../core/audio/pitch/voice_type_classifier.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/user_models.dart';
 import 'voice_calibration_page.dart';
+import '../../../shared/widgets/profile_gender_field.dart';
 
 class VocalPreferencesPage extends StatefulWidget {
   const VocalPreferencesPage({
@@ -29,6 +30,7 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
   late TrainingGoal _selectedGoal;
   late Set<String> _selectedCategories;
   VoiceCalibration? _voiceCalibration;
+  ProfileGender? _selectedGender;
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -44,13 +46,14 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
     'vocal_training': 'Vocal Training',
     'do_re_mi': 'Do Re Mi Fa Sol',
     'breathing': 'Breathing',
-    'karaoke': 'Karaoke',
+    'karaoke': 'Song Practice',
   };
 
   @override
   void initState() {
     super.initState();
     final prefs = widget.currentPreferences;
+    _selectedGender = prefs?.gender;
     _selectedRange = prefs?.vocalRange;
     _selectedGoal = prefs?.trainingGoal ?? TrainingGoal.generalSkillBuilding;
     _selectedCategories = prefs != null
@@ -167,6 +170,7 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
 
     try {
       final update = VocalPreferencesUpdate(
+        gender: _selectedGender,
         vocalRange: _selectedRange!,
         preferredCategories: _selectedCategories.toList(),
         trainingGoal: _selectedGoal,
@@ -206,6 +210,11 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              ProfileGenderField(
+                  value: _selectedGender,
+                  onChanged: (value) =>
+                      setState(() => _selectedGender = value)),
+              const SizedBox(height: 20),
               _buildGlassCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,6 +264,7 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                     ],
                     const SizedBox(height: 16),
                     DropdownButtonFormField<VocalRange>(
+                      isExpanded: true,
                       initialValue: _selectedRange,
                       hint: const Text('Choose a range or calibrate'),
                       style: theme.textTheme.bodyLarge,
@@ -361,6 +371,7 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<TrainingGoal>(
+                      isExpanded: true,
                       initialValue: _selectedGoal,
                       style: theme.textTheme.bodyLarge,
                       dropdownColor: theme.colorScheme.surfaceContainerHighest,

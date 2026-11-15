@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../karaoke_singing_page.dart';
+import '../../domain/song_content_parser.dart';
 
 class LyricScroller extends StatefulWidget {
   const LyricScroller({
@@ -7,11 +7,13 @@ class LyricScroller extends StatefulWidget {
     required this.lyrics,
     required this.currentPosition,
     this.emptyMessage,
+    this.plainLyrics,
   });
 
   final List<LyricLine> lyrics;
   final Duration currentPosition;
   final String? emptyMessage;
+  final String? plainLyrics;
 
   @override
   State<LyricScroller> createState() => _LyricScrollerState();
@@ -66,6 +68,24 @@ class _LyricScrollerState extends State<LyricScroller> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     if (widget.lyrics.isEmpty) {
+      final plainLyrics = widget.plainLyrics?.trim();
+      if (plainLyrics != null && plainLyrics.isNotEmpty) {
+        return Column(children: [
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Text('Lyrics • scroll at your own pace',
+                style: theme.textTheme.labelMedium),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Text(plainLyrics,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium),
+            ),
+          ),
+        ]);
+      }
       return Center(
         child: Text(
           widget.emptyMessage ?? 'Lyrics are unavailable for this song.',

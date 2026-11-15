@@ -23,10 +23,29 @@ block.
 Each guided exercise should make the same sequence visible to the user:
 
 1. Prepare and check the microphone when needed.
-2. Explain the goal and any unfamiliar terms.
-3. Practice with local live pitch, timing, and waveform guidance.
-4. Review understandable strengths and one or two improvements.
-5. Recommend the next short practice and allow a repeat or recalibration.
+2. For voice drills, optionally explore a comfortable starting note with the
+   pre-drill warm-up; this is not a scored attempt.
+3. Explain the goal and any unfamiliar terms.
+4. Practice with local live pitch, timing, and waveform guidance.
+5. Review understandable strengths and one or two improvements.
+6. Recommend the next short practice and allow a repeat or recalibration.
+
+## Pre-drill warm-up and starting-note explorer
+
+The app offers a user-controlled warm-up before microphone-based drills. The
+user can select `Do`, `Re`, `Mi`, `Fa`, `Sol`, and the optional extended octave
+targets `La`, `Ti`, and high `Do`. Each target is resolved from the selected
+movable-do key and octave, then shown with its chromatic note and frequency.
+
+The user hums gently toward one target while the same deterministic live
+guidance used by the drill reports signal quality, pitch direction, and stable
+matching. The explorer has no timer-based pass/fail state; the user can stay on
+one note, choose another, or start the drill. A visible stop action and safety
+reminder prevent “open-ended” practice from becoming pressure to keep singing.
+
+This is intentionally a coordination/readiness aid, not a claim that a short
+warm-up expands range or identifies a formal voice type. The evidence and
+limitations are recorded in [`warmup-evidence.md`](warmup-evidence.md).
 
 ## Why note sequences differ
 

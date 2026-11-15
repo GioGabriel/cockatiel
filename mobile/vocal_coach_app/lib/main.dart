@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'app/bootstrap/app_bootstrap.dart';
@@ -9,6 +11,12 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    for (final family in ['Inter', 'Outfit']) {
+      yield LicenseEntryWithLineBreaks([family],
+          await rootBundle.loadString('assets/fonts/$family-OFL.txt'));
+    }
+  });
   await _initializeFirebase();
   _configureFirebaseAuth();
   await NotificationService.instance.initialize();

@@ -11,6 +11,42 @@ class PitchPoint {
   const PitchPoint(this.elapsedSec, this.frequencyHz);
 }
 
+bool _isUsableFrequency(double? frequencyHz) {
+  return frequencyHz != null && frequencyHz.isFinite && frequencyHz > 0;
+}
+
+/// Maps a fundamental frequency to the same vertical coordinate used by the
+/// pitch-map painter. Higher frequencies must appear higher on screen (a
+/// smaller canvas Y value). Invalid measurements are deliberately placed
+/// outside the plot so they cannot look like a real zero-Hz note.
+double pitchMapYForFrequency(
+  double frequencyHz, {
+  required double minHz,
+  required double maxHz,
+  required double height,
+}) {
+  if (!_isUsableFrequency(frequencyHz) ||
+      !_isUsableFrequency(minHz) ||
+      !_isUsableFrequency(maxHz) ||
+      maxHz <= minHz ||
+      !height.isFinite ||
+      height <= 0) {
+    return height.isFinite && height > 0 ? height + 60 : 60;
+  }
+  final loMidi = _hzToMidi(minHz);
+  final hiMidi = _hzToMidi(maxHz);
+  final midiRange = max(1.0, hiMidi - loMidi);
+  final norm = ((_hzToMidi(frequencyHz) - loMidi) / midiRange)
+      .clamp(-0.3, 1.3)
+      .toDouble();
+  return height - norm * height;
+}
+
+double _hzToMidi(double hz) {
+  if (!_isUsableFrequency(hz)) return 0;
+  return 69 + 12 * (log(hz / 440) / ln2);
+}
+
 /// Yousician-style scrolling pitch visualizer with rainbow note blocks.
 ///
 /// Shows target note blocks scrolling left with a restrained accent palette and
@@ -39,7 +75,7 @@ class KaraokePitchVisualizer extends StatefulWidget {
   final List<PitchPoint> pitchHistory;
   final double minHz;
   final double maxHz;
-  final double Function(String) getTargetFrequency;
+  final double? Function(String) getTargetFrequency;
   final bool isRunning;
   final String targetLabel;
   final String? detectedNoteLabel;
@@ -63,10 +99,13 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
       vsync: this,
       duration: const Duration(milliseconds: 140),
     );
-    _markerTween = Tween<double>(
-      begin: widget.detectedFrequencyHz,
-      end: widget.detectedFrequencyHz,
-    );
+    final initialFrequency = widget.detectedFrequencyHz;
+    if (_isUsableFrequency(initialFrequency)) {
+      _markerTween = Tween<double>(
+        begin: initialFrequency!,
+        end: initialFrequency,
+      );
+    }
   }
 
   @override
@@ -76,13 +115,19 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
     if (oldWidget.detectedFrequencyHz == nextFrequency) {
       return;
     }
-    if (nextFrequency == null || !nextFrequency.isFinite) {
+    if (!_isUsableFrequency(nextFrequency)) {
       _markerTween = null;
       _ticker.stop();
       return;
     }
-    final currentFrequency = _markerTween?.evaluate(_ticker) ?? nextFrequency;
-    _markerTween = Tween<double>(begin: currentFrequency, end: nextFrequency);
+    final animatedFrequency = _markerTween?.evaluate(_ticker);
+    final currentFrequency = _isUsableFrequency(animatedFrequency)
+        ? animatedFrequency!
+        : nextFrequency!;
+    _markerTween = Tween<double>(
+      begin: currentFrequency,
+      end: nextFrequency,
+    );
     _ticker.forward(from: 0);
   }
 
@@ -99,13 +144,28 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
     final tokens = theme.appTokens;
 
     final guidance = widget.guidance;
-    final guidanceColor = _guidanceColor(theme, guidance?.cue);
+    final hasCurrentMeasurement =
+        _isUsableFrequency(widget.detectedFrequencyHz);
+    final guidanceCue =
+        guidance != null && !hasCurrentMeasurement && _isPitchCue(guidance.cue)
+            ? LivePitchCue.noClearNote
+            : guidance?.cue;
+    final guidanceColor = _guidanceColor(theme, guidanceCue);
+    final guidanceMessage = guidanceCue == LivePitchCue.noClearNote
+        ? 'I can’t hear a clear note yet'
+        : guidance?.message ?? 'Start when you are ready';
+    final detectedCents = widget.detectedCents;
+    final centsText = hasCurrentMeasurement &&
+            detectedCents != null &&
+            detectedCents.isFinite
+        ? '${detectedCents >= 0 ? '+' : '−'}${detectedCents.abs().round()} cents'
+        : null;
 
     return Semantics(
       container: true,
       label: 'Pitch tuner. Target ${widget.targetLabel}. '
           '${widget.detectedNoteLabel == null ? 'No measurable note.' : 'Detected ${widget.detectedNoteLabel}.'} '
-          '${guidance?.message ?? 'Start when you are ready.'}',
+          '$guidanceMessage',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -160,39 +220,6 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
               ],
             ),
           ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            decoration: BoxDecoration(
-              color: guidanceColor.withValues(alpha: 0.12),
-              border: Border.all(color: guidanceColor.withValues(alpha: 0.55)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(_guidanceIcon(guidance?.cue),
-                    color: guidanceColor, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    guidance?.message ?? 'Start when you are ready',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                if (widget.detectedCents != null &&
-                    widget.detectedCents!.isFinite)
-                  Text(
-                    '${widget.detectedCents!.abs().round()} cents',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-              ],
-            ),
-          ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -222,6 +249,7 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
           const SizedBox(height: 8),
           Expanded(
             child: Container(
+              key: const Key('pitch-map-surface'),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
@@ -232,31 +260,94 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(15),
-                child: AnimatedBuilder(
-                  animation: _ticker,
-                  builder: (context, _) => CustomPaint(
-                    painter: _PitchPainter(
-                      stages: widget.stages,
-                      currentElapsedSec: widget.currentElapsedSec,
-                      pitchHistory: widget.pitchHistory,
-                      minHz: widget.minHz,
-                      maxHz: widget.maxHz,
-                      getTargetFrequency: widget.getTargetFrequency,
-                      isRunning: widget.isRunning,
-                      markerFrequencyHz: _markerTween?.evaluate(_ticker),
-                      markerMeasurable: widget.detectedFrequencyHz != null,
-                      markerColor: guidanceColor,
-                      primaryColor: primaryColor,
-                      successColor: tokens.success,
-                      raisedSurfaceColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      outlineColor: theme.colorScheme.outline,
-                      outlineVariantColor: theme.colorScheme.outlineVariant,
-                      onSurfaceColor: theme.colorScheme.onSurface,
-                      onSurfaceVariantColor: theme.colorScheme.onSurfaceVariant,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    AnimatedBuilder(
+                      animation: _ticker,
+                      builder: (context, _) => CustomPaint(
+                        painter: _PitchPainter(
+                          stages: widget.stages,
+                          currentElapsedSec: widget.currentElapsedSec,
+                          pitchHistory: widget.pitchHistory,
+                          minHz: widget.minHz,
+                          maxHz: widget.maxHz,
+                          getTargetFrequency: widget.getTargetFrequency,
+                          isRunning: widget.isRunning,
+                          markerFrequencyHz: _markerTween?.evaluate(_ticker),
+                          markerMeasurable:
+                              _isUsableFrequency(widget.detectedFrequencyHz),
+                          markerColor: guidanceColor,
+                          primaryColor: primaryColor,
+                          successColor: tokens.success,
+                          raisedSurfaceColor:
+                              theme.colorScheme.surfaceContainerHighest,
+                          outlineColor: theme.colorScheme.outline,
+                          outlineVariantColor: theme.colorScheme.outlineVariant,
+                          onSurfaceColor: theme.colorScheme.onSurface,
+                          onSurfaceVariantColor:
+                              theme.colorScheme.onSurfaceVariant,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
                     ),
-                    child: const SizedBox.expand(),
-                  ),
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      right: 8,
+                      child: IgnorePointer(
+                        child: Container(
+                          key: const Key('pitch-tuner-overlay'),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface
+                                .withValues(alpha: 0.90),
+                            border: Border.all(
+                              color: guidanceColor.withValues(alpha: 0.60),
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _guidanceIcon(guidanceCue),
+                                color: guidanceColor,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  guidanceMessage,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: theme.colorScheme.onSurface,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              if (centsText != null) ...[
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    centsText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -280,11 +371,22 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
     };
   }
 
+  static bool _isPitchCue(LivePitchCue cue) {
+    return switch (cue) {
+      LivePitchCue.tooLow ||
+      LivePitchCue.tooHigh ||
+      LivePitchCue.onTarget ||
+      LivePitchCue.holdSteady =>
+        true,
+      _ => false,
+    };
+  }
+
   static IconData _guidanceIcon(LivePitchCue? cue) {
     return switch (cue) {
       LivePitchCue.tooLow => Icons.north_rounded,
       LivePitchCue.tooHigh => Icons.south_rounded,
-      LivePitchCue.onTarget => Icons.adjust_rounded,
+      LivePitchCue.onTarget => Icons.check_circle_outline_rounded,
       LivePitchCue.holdSteady => Icons.pause_circle_outline_rounded,
       LivePitchCue.tooQuiet => Icons.volume_down_rounded,
       LivePitchCue.tooLoud => Icons.volume_up_rounded,
@@ -306,7 +408,7 @@ class _PitchPainter extends CustomPainter {
   final List<PitchPoint> pitchHistory;
   final double minHz;
   final double maxHz;
-  final double Function(String) getTargetFrequency;
+  final double? Function(String) getTargetFrequency;
   final bool isRunning;
   final Color primaryColor;
   final Color successColor;
@@ -355,17 +457,25 @@ class _PitchPainter extends CustomPainter {
     final playheadX = _scaleWidth + plotWidth * _playheadFraction;
     final pxPerSec = plotWidth / _windowSec;
 
-    double stageFrequency(TrainingRuntimeStage stage) {
-      return stage.target.frequencyHz ?? getTargetFrequency(stage.targetLabel);
+    double? stageFrequency(TrainingRuntimeStage stage) {
+      final canonical = stage.target.frequencyHz;
+      if (_isUsableFrequency(canonical)) return canonical;
+      return getTargetFrequency(stage.targetLabel);
     }
 
-    final allHz = stages.map(stageFrequency).where((hz) => hz > 0).toList();
+    final allHz = stages
+        .map(stageFrequency)
+        .where(_isUsableFrequency)
+        .cast<double>()
+        .toList();
     if (allHz.isEmpty) {
       _drawEmptyHint(canvas, size);
       return;
     }
-    double loHz = min(minHz, allHz.reduce(min) * 0.80);
-    double hiHz = max(maxHz, allHz.reduce(max) * 1.20);
+    final safeMinHz = _isUsableFrequency(minHz) ? minHz : allHz.reduce(min);
+    final safeMaxHz = _isUsableFrequency(maxHz) ? maxHz : allHz.reduce(max);
+    double loHz = min(safeMinHz, allHz.reduce(min) * 0.80);
+    double hiHz = max(safeMaxHz, allHz.reduce(max) * 1.20);
     loHz = loHz.clamp(60.0, 800.0);
     hiHz = hiHz.clamp(80.0, 1200.0);
     if (hiHz <= loHz) hiHz = loHz + 200;
@@ -374,16 +484,15 @@ class _PitchPainter extends CustomPainter {
     final hiMidi = _hzToMidi(hiHz);
     final midiRange = max(1.0, hiMidi - loMidi);
 
-    double hzToY(double hz) {
-      if (hz <= 0) return size.height + 60;
-      final midi = _hzToMidi(hz);
-      final norm = (midi - loMidi) / midiRange;
-      return size.height -
-          (norm * size.height).clamp(-60.0, size.height + 60.0);
-    }
+    double hzToY(double hz) => pitchMapYForFrequency(
+          hz,
+          minHz: loHz,
+          maxHz: hiHz,
+          height: size.height,
+        );
 
     double hzToNorm(double hz) {
-      if (hz <= 0) return 0;
+      if (!_isUsableFrequency(hz)) return 0;
       final midi = _hzToMidi(hz);
       return ((midi - loMidi) / midiRange).clamp(0.0, 1.0);
     }
@@ -399,7 +508,9 @@ class _PitchPainter extends CustomPainter {
       final endX = secToX(stage.endSec.toDouble());
       if (endX < _scaleWidth - 8 || startX > size.width + 8) continue;
 
-      final hz = stageFrequency(stage);
+      final hzValue = stageFrequency(stage);
+      if (!_isUsableFrequency(hzValue)) continue;
+      final hz = hzValue!;
       final cy = hzToY(hz).clamp(0.0, size.height);
       final norm = hzToNorm(hz);
       final noteColor = _pitchColor(norm, primaryColor);
@@ -447,7 +558,9 @@ class _PitchPainter extends CustomPainter {
       _drawPitchLine(canvas, size, hzToY, secToX);
     }
 
-    if (isRunning && markerMeasurable && markerFrequencyHz != null) {
+    if (isRunning &&
+        markerMeasurable &&
+        _isUsableFrequency(markerFrequencyHz)) {
       _drawTunerMarker(canvas, size, hzToY, playheadX, markerFrequencyHz!);
     }
 
@@ -463,6 +576,7 @@ class _PitchPainter extends CustomPainter {
     double x,
     double frequencyHz,
   ) {
+    if (!_isUsableFrequency(frequencyHz)) return;
     final y = hzToY(frequencyHz).clamp(8.0, size.height - 8.0);
     final markerPaint = Paint()
       ..color = markerColor
@@ -577,7 +691,7 @@ class _PitchPainter extends CustomPainter {
     double? prevSec;
 
     for (final pt in pitchHistory) {
-      if (pt.frequencyHz <= 0) {
+      if (!_isUsableFrequency(pt.frequencyHz)) {
         started = false;
         prevSec = null;
         continue;
@@ -611,7 +725,7 @@ class _PitchPainter extends CustomPainter {
           ..strokeJoin = StrokeJoin.round);
 
     final latest = pitchHistory.last;
-    if (latest.frequencyHz > 0) {
+    if (_isUsableFrequency(latest.frequencyHz)) {
       final lx = secToX(latest.elapsedSec);
       final ly = hzToY(latest.frequencyHz).clamp(4.0, size.height - 4.0);
       canvas.drawCircle(Offset(lx, ly), 7, Paint()..color = successColor);
@@ -664,11 +778,6 @@ class _PitchPainter extends CustomPainter {
       ..layout();
     tp.paint(canvas,
         Offset((size.width - tp.width) / 2, (size.height - tp.height) / 2));
-  }
-
-  static double _hzToMidi(double hz) {
-    if (hz <= 0) return 0;
-    return 69.0 + 12.0 * log(hz / 440.0) / ln2;
   }
 
   @override

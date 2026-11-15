@@ -1,65 +1,30 @@
-# Cockatiel design system
+# Cockatiel client visual system
 
-This is the product visual contract for the Flutter client. It keeps the
-Cockatiel bird, microphone, waveform, and dark premium character while making
-the interface legible to a beginner and credible in a thesis or enterprise
-demonstration.
+The client references supplied on 2026-11-14 replace the earlier matte/teal direction.
+The product keeps its Cockatiel name and singing workflows while using the references'
+midnight backgrounds, violet/rose accents, large voice artwork, rounded cards and pill controls.
 
-## Principles
+## Reusable visual roles
 
-- **Clarity before decoration.** Every visual treatment must improve hierarchy,
-  state recognition, or interaction confidence.
-- **Matte layered surfaces.** Use the theme's background, surface, raised
-  surface, outline, and semantic state tokens. Borders and spacing carry more
-  structure than shadows.
-- **Restrained accents.** Teal communicates the primary action; blue supports
-  secondary navigation; semantic success, warning, info, and danger colors are
-  used consistently and never as the only signal.
-- **Progressive disclosure.** Beginners see plain-language guidance first;
-  detailed pitch, timing, confidence, and waveform metrics remain available in
-  an optional details layer.
-- **Accessible by default.** Preserve contrast, 48dp interaction targets,
-  visible focus, meaningful semantics, text scaling, keyboard navigation, and
-  reduced-motion behavior.
+- Background: deep midnight (`#070419`), with a restrained violet/rose wash on entry and studio surfaces.
+- Surface: `#120C2B`; raised surface: `#21143C`; borders: `#332446`.
+- Primary: lavender (`#C4A7FF`) with dark text; secondary: rose (`#F2A7D5`).
+- Typography: bundled Inter for reading and Outfit for headings. Both include their OFL licenses and work offline.
+- Voice artwork: bundled 3D microphone art tinted violet, with a vector microphone fallback. The supplied reference screenshots are design references, not application assets or branding.
+- Cards and primary controls: rounded, readable surfaces. Gradient artwork never replaces recording/error/success labels.
 
-## No-gradient policy
+`AppTheme`, `VoiceStageBackground`, `StudioCard` and `VoiceHero` own this shared styling.
+Keep controls at least 48dp, permit text scaling, and use scrollable content on narrow screens.
+The focused training surface reserves at least half of its viewport for the training visual.
+Results show the score and next step first; the full breakdown is available through “Read full feedback”.
 
-Decorative gradients, uncontrolled neon, heavy glass blur, and glow effects are
-not part of the default system. They make state harder to interpret, increase
-contrast risk, and create visual inconsistency across screens. A gradient may be
-introduced only when it has a documented functional purpose, passes contrast and
-performance review, and is covered by a stable visual test. Image artwork may
-retain its own approved treatment, but text and controls must remain on a
-readable opaque or sufficiently contrasted surface.
+## Language and flow
 
-The Dribbble references supplied during review informed broad ideas—clear song
-discovery, readable lyrics, strong player hierarchy, and concise metadata. No
-Dribbble asset, branding, wording, or layout is copied. Decorative neon and
-glass-heavy treatments were intentionally rejected in favor of comprehension,
-accessibility, and maintainability.
+- Home → Voice studio → exercise briefing → optional warm-up → focused live take → review.
+- Home → Song Practice → church-song catalog → song briefing → sing with lyrics and backing when available → feedback.
+- “Song Practice” is the user-facing name; existing `karaoke` API and persistence identifiers remain compatible.
+- Voice range is a selectable practice preference. Optional gender suggestions never remove voice-range choices.
+- Technical measurement details belong in expandable feedback, not the main singing view.
 
-## Tokens and components
-
-`lib/app/theme/app_theme.dart` owns the Material color scheme, typography,
-surface levels, component shapes, and interaction defaults.
-`lib/app/theme/app_theme_tokens.dart` owns semantic colors that are not native
-Material roles. Shared cards, badges, navigation, empty states, skeletons,
-waveforms, and feedback components should consume those tokens rather than
-inventing local colors.
-
-When a screen needs a new visual role:
-
-1. Check whether an existing Material or semantic token describes it.
-2. Add a token only if the role is reused or has a distinct accessibility meaning.
-3. Add the focused widget/semantics test before changing the component.
-4. Verify light/dark contrast, large text, narrow width, focus, loading, error,
-   and disabled states.
-
-## Product language
-
-Primary labels should use plain language: “Voice profile” instead of an obscure
-settings label, “How accurate was your pitch?” before a raw metric, and “AI
-summary (optional)” when a remote provider is involved. Terms such as vocal
-range, pitch accuracy, timing, breath support, resonance, vibrato, waveform,
-confidence, calibration, and practice difficulty must have helper text or a
-“What does this mean?” affordance.
+Visual checks render onboarding, live practice and feedback at 320px and 390px widths with bundled fonts.
+Behavior tests also exercise large text and review retry paths.

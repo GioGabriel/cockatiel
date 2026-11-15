@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 
 from ..karaoke_pipeline import (
@@ -123,3 +126,52 @@ def test_nonempty_staging_directory_is_never_overwritten(tmp_path) -> None:
 
   with pytest.raises(FileExistsError, match="contains files"):
     _ensure_reusable_directory(staging)
+
+
+def test_requested_gospel_catalog_entries_match_the_supplied_list() -> None:
+  repo_root = Path(__file__).resolve().parents[2]
+  manifest = json.loads((repo_root / "scratch/karaoke_gospel_manifest.json").read_text(encoding="utf-8"))
+  specs = load_manifest_data(manifest)
+  by_id = {spec.drill_id: spec for spec in specs}
+  expected = {
+    "gospel_glorify_your_name_hillsong_australia": ("Glorify Your Name", "Hillsong Worship", "12347"),
+    "gospel_glory_hillsong_australia": ("Glory", "Hillsong Worship", "12350"),
+    "gospel_all_for_love_hillsong_united": ("All For Love", "Hillsong UNITED", "18682"),
+    "gospel_hosanna_hillsong_united": ("Hosanna", "Hillsong UNITED", "27059"),
+    "gospel_lead_me_to_the_cross_hillsong_united": ("Lead Me to the Cross", "Hillsong UNITED", "27121"),
+    "gospel_oceans_hillsong_united": ("Oceans (Where Feet May Fail)", "Hillsong UNITED", "16223"),
+  }
+
+  assert manifest["rights_confirmed"] is True
+  assert set(expected).issubset(by_id)
+  for drill_id, (title, artist, catalog_code) in expected.items():
+    spec = by_id[drill_id]
+    assert (spec.title, spec.artist, spec.catalog_code) == (title, artist, catalog_code)
+    assert spec.rights_confirmed is True
+    assert spec.source_url is not None
+
+
+@pytest.mark.parametrize(
+  "drill_id,artist,video_id",
+  [
+    ("gospel_jesus_generation_hillsong_australia", "Hillsong UNITED", "urrrRyBG5l0"),
+    ("gospel_a_broken_spirit_don_harris_martin_j", "Martin J. Nystrom", "zSUaenj8_r0"),
+    ("gospel_a_heart_like_mine_bryan_duncan", "Bryan Duncan", "oDjxd3yh6OQ"),
+    ("gospel_a_man_after_your_own_heart_wayne_kirkpatrick", "Gary Chapman", "cSjv1DJtLDE"),
+    ("gospel_a_place_at_your_altar_gerrit_gustafson", "Randy Rothwell", "zs_b7ckCbFE"),
+    ("gospel_a_pure_heart_rusty_nelson", "Rusty Nelson", "rrNwrs7pGZc"),
+  ],
+)
+def test_new_recordings_attribute_performers_and_retain_source_evidence(drill_id, artist, video_id) -> None:
+  repo_root = Path(__file__).resolve().parents[2]
+  manifest = json.loads((repo_root / "scratch/karaoke_gospel_manifest.json").read_text(encoding="utf-8"))
+  specs = {spec.drill_id: spec for spec in load_manifest_data(manifest)}
+  raw = next(song for song in manifest["songs"] if song["drill_id"] == drill_id)
+
+  assert specs[drill_id].artist == artist
+  assert specs[drill_id].source_url == f"https://www.youtube.com/watch?v={video_id}"
+  assert specs[drill_id].source_status == "verified_official_recording"
+  assert raw["source_review"]["recording_title"]
+  assert raw["source_review"]["album"]
+  assert 10 <= raw["source_review"]["duration_sec"] <= 600
+  assert raw["source_review"]["reviewed_on"] == "2026-11-15"

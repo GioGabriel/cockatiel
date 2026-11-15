@@ -140,6 +140,32 @@ void main() {
     expect(above.cue, LivePitchCue.tooHigh);
   });
 
+  test('octave-sized errors keep the direction honest', () {
+    final controller = LivePitchGuidanceController(requiredStableFrames: 1);
+
+    final oneOctaveLow = controller.update(
+      isAttemptRunning: true,
+      hasTarget: true,
+      voiced: true,
+      confidence: 0.9,
+      loudnessDb: -24,
+      centsError: -1200,
+    );
+    final oneOctaveHigh = controller.update(
+      isAttemptRunning: true,
+      hasTarget: true,
+      voiced: true,
+      confidence: 0.9,
+      loudnessDb: -24,
+      centsError: 1200,
+    );
+
+    expect(oneOctaveLow.cue, LivePitchCue.tooLow);
+    expect(oneOctaveLow.message, 'A little higher');
+    expect(oneOctaveHigh.cue, LivePitchCue.tooHigh);
+    expect(oneOctaveHigh.message, 'A little lower');
+  });
+
   test('uses the configured signal floor without requiring a loud voice', () {
     final controller = LivePitchGuidanceController(requiredStableFrames: 1);
 

@@ -113,6 +113,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingAttemptCreateIn'
       responses:
         "201":
           description: Created
@@ -392,6 +398,23 @@ components:
       in: header
       name: X-Metrics-Token
   schemas:
+    TrainingAttemptCreateIn:
+      type: object
+      required: [attempt_index, difficulty, duration_sec, metric_summary]
+      properties:
+        attempt_index:
+          type: integer
+          minimum: 1
+          maximum: 10
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        duration_sec:
+          type: integer
+          minimum: 10
+          maximum: 600
+        metric_summary:
+          type: object
     VocalPreferencesIn:
       type: object
       required:
@@ -399,6 +422,9 @@ components:
         - preferred_categories
         - training_goal
       properties:
+        gender:
+          type: [string, 'null']
+          enum: [male, female, non_binary, prefer_not_to_say, null]
         vocal_range:
           type: string
           enum: [soprano, mezzo-soprano, alto, tenor, baritone, bass]
@@ -454,6 +480,9 @@ components:
       type: object
       required: [vocal_range, preferred_categories, training_goal]
       properties:
+        gender:
+          type: [string, 'null']
+          enum: [male, female, non_binary, prefer_not_to_say, null]
         vocal_range:
           type: string
           enum: [soprano, mezzo-soprano, alto, tenor, baritone, bass]

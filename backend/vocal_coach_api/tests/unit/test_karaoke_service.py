@@ -268,3 +268,66 @@ def test_drill_lookup_reuses_loaded_firestore_catalog(monkeypatch) -> None:
   assert drill is not None
   assert drill["title"] == "Test Song"
   assert database.collection_ref.stream_calls == 1
+
+
+def test_gospel_catalog_documents_are_api_compatible(monkeypatch) -> None:
+  published_songs = {
+    "gospel_glorify_your_name_hillsong_australia": "Glorify Your Name",
+    "gospel_glory_hillsong_australia": "Glory",
+    "gospel_all_for_love_hillsong_united": "All For Love",
+    "gospel_hosanna_hillsong_united": "Hosanna",
+    "gospel_lead_me_to_the_cross_hillsong_united": "Lead Me to the Cross",
+    "gospel_oceans_hillsong_united": "Oceans (Where Feet May Fail)",
+  }
+
+  class Document:
+    def __init__(self, document_id: str, title: str) -> None:
+      self.id = document_id
+      self.title = title
+
+    def to_dict(self) -> dict[str, object]:
+      return {
+        "title": self.title,
+        "style_category": "Gospel",
+        "difficulty": "intermediate",
+        "instrumental_url": "https://assets.example/instrumental.mp3",
+        "pitch_map_url": "https://assets.example/pitch_map.json",
+      }
+
+  class Collection:
+    def __init__(self) -> None:
+      self.stream_calls = 0
+
+    def stream(self) -> list[Document]:
+      self.stream_calls += 1
+      return [Document(song_id, title) for song_id, title in published_songs.items()]
+
+  class Database:
+    def __init__(self) -> None:
+      self.collection_ref = Collection()
+
+    def collection(self, _collection_name: str) -> Collection:
+      return self.collection_ref
+
+  database = Database()
+  production_settings = replace(
+    karaoke_catalog.settings,
+    app_env="production",
+    firestore_enabled=True,
+    firestore_project_id="test-project",
+  )
+  monkeypatch.setattr(karaoke_catalog, "settings", production_settings)
+  monkeypatch.setattr(karaoke_catalog, "build_firestore_client", lambda: database)
+
+  from app.api.v1.schemas import KaraokeCatalogOut, KaraokeCatalogPreviewOut
+
+  catalog = KaraokeCatalogOut.model_validate(get_karaoke_catalog())
+  gospel = next(category for category in catalog.categories if category.category_id == "gospel")
+  assert {drill.drill_id: drill.title for drill in gospel.drills} == published_songs
+
+  preview = KaraokeCatalogPreviewOut.model_validate(get_catalog_preview())
+  assert preview.total_drills == len(published_songs)
+  assert preview.category_count == 1
+  assert preview.categories[0].category_id == "gospel"
+  assert preview.categories[0].drill_count == len(published_songs)
+  assert database.collection_ref.stream_calls == 1

@@ -9,6 +9,7 @@ import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/difficulty_badge.dart';
 import '../../../shared/widgets/shimmer_skeleton.dart';
 import 'karaoke_song_briefing_page.dart';
+import '../domain/song_library.dart';
 
 class KaraokeCatalogPage extends StatefulWidget {
   const KaraokeCatalogPage({
@@ -52,15 +53,14 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     });
 
     try {
-      final results = await Future.wait([
-        widget.apiClient.fetchKaraokeCatalog(),
-        widget.apiClient.fetchKaraokeProgress(),
-      ]);
-      final catalog = results[0] as KaraokeCatalog;
-      final progress = results[1] as TrainingProgress;
+      final library = await loadSongLibrary(
+          fetchCatalog: widget.apiClient.fetchKaraokeCatalog,
+          fetchProgress: widget.apiClient.fetchKaraokeProgress);
+      final catalog = library.catalog;
+      final progress = library.progress;
 
       final Map<String, TrainingExerciseProgress> progressMap = {};
-      for (final item in progress.items) {
+      for (final item in progress?.items ?? <TrainingExerciseProgress>[]) {
         progressMap[item.exerciseId] = item;
       }
 
@@ -96,7 +96,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Karaoke Catalog')),
+      appBar: AppBar(title: const Text('Song Practice')),
       body: _buildBody(theme),
     );
   }
@@ -164,7 +164,21 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
 
   Widget _buildCatalogList(ThemeData theme) {
     final originalCategories = _catalog?.categories ?? [];
-    if (originalCategories.isEmpty) return const SizedBox.shrink();
+    if (originalCategories.isEmpty) {
+      return Center(
+          child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.library_music_rounded, size: 48),
+                const SizedBox(height: 16),
+                const Text(
+                    'No songs are available yet. Pull the latest church-song catalog when it is ready.',
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                    onPressed: _loadData, child: const Text('Refresh songs')),
+              ])));
+    }
 
     final Map<String, KaraokeDrill> uniqueDrills = {};
     for (var c in originalCategories) {
@@ -181,7 +195,8 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     );
 
     final categories = [allCategory, ...originalCategories];
-    final selectedCategory = categories[_selectedCategoryIndex];
+    final selectedCategory =
+        categories[_selectedCategoryIndex.clamp(0, categories.length - 1)];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -272,17 +287,21 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth >= 1100
-                      ? 4
-                      : constraints.maxWidth >= 720
-                          ? 3
-                          : 2;
+                  final crossAxisCount = constraints.maxWidth < 380 ||
+                          MediaQuery.textScalerOf(context).scale(1) > 1.3
+                      ? 1
+                      : constraints.maxWidth >= 1100
+                          ? 4
+                          : constraints.maxWidth >= 720
+                              ? 3
+                              : 2;
                   return GridView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
+                      mainAxisExtent: crossAxisCount == 1 ? 390 : null,
                       childAspectRatio: crossAxisCount >= 3 ? 0.82 : 0.70,
                     ),
                     itemCount: filteredDrills.length,

@@ -64,3 +64,30 @@ instruction to keep the catalog unchanged.
 - Outstanding: Cloudinary audio transfer, original V10 signing key, real-device audio checks and client/panel acceptance. Six verified local song packages are ready for the supported publisher once the transfer path works.
 
 - Final transfer diagnostic: a 64 KiB chunk reached Cloudinary and returned HTTP 400 because non-final chunks must exceed 5 MB. Smaller chunks therefore cannot work around the stalled larger transfers on this connection. Final public preview still confirms 29 songs / nine gospel entries.
+
+## Successful publication retry
+
+The six prepared recordings are now published and linked. Public catalog preview
+returned **35 total songs / 15 Gospel songs**. All twelve new audio/pitch-map
+URLs returned HTTP 200; delivered MP3 codec and duration were checked, and
+pitch-map contents matched the local files. Cloudinary's MP3 processing can
+change bytes, so delivered audio hashes are recorded separately from source hashes.
+
+The retry used the official SDK, smaller full-duration practice copies and explicit
+small network writes. The supported publisher now passes a readable multipart
+body with an explicit Content-Length, avoiding one whole-body TLS send and
+conflicting chunked framing. A regression test covers that transport contract.
+The per-recording publication ledger states the active audio encoding; originals
+are preserved locally and stereo upgrades are applied only after successful uploads.
+Earlier failure entries in this document are historical and superseded by this result.
+
+Verification repeated: 24 tools tests, 212 backend tests and 229 Flutter tests passed;
+lint, compilation, Flutter analysis and Android/web production builds passed.
+
+Final encoding detail: `A Pure Heart` uses the preserved original stereo source
+(128 kbps source; Cloudinary delivers a roughly 160 kbps MP3). The other five
+use full-duration 48 kbps mono source copies, which Cloudinary re-encodes on
+delivery. Re-encoding does not restore original fidelity. Stereo masters remain
+local for later upgrade. PR #3 fixes the upload transport and passed both full
+GitHub quality jobs before merge. Live publication counts are 35 / 15, superseding
+the historical 29 / nine counts and failure status above.

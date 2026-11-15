@@ -15,7 +15,7 @@ online recording the correct version of a catalog entry.
 - All six new recordings have matching-duration lyric results. Five offer synchronized lyrics. `A Place at Your Altar` offers readable plain lyrics; the app labels these as untimed and allows manual scrolling. Lyric selection rejects results more than two seconds away from the catalog duration, avoiding shorter edits with the same title and artist.
 - Seven entries remain unresolved. Generic duplicate labels and incomplete titles are not treated as distinct recordings without evidence.
 
-Publication was attempted but audio transfers repeatedly timed out. No new Firestore catalog documents were created; one unlinked pitch-map asset exists. The live catalog remains at 29 songs / nine gospel entries. Complete local packages are preserved for retry. See `song-expansion-2026-11-15.json` for the versioned evidence. Never infer successful publication merely from local files or a completed media process.
+Publication succeeded on retry: all six recordings are linked, and the public preview confirms 35 songs / 15 gospel entries. The retry used full-duration optimized practice copies and small transport writes; stereo upgrades are recorded per song in the publication ledger. Original stereo masters remain preserved locally. See `song-expansion-2026-11-15.json` for the source, delivery encoding and verification evidence. Never infer successful publication merely from local files or a completed media process.
 
 ## What the local pipeline does
 

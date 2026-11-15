@@ -245,16 +245,17 @@
       "synchronized_lyrics_available": true
     }
   ],
-  "publication_status": "blocked_by_audio_transfer_timeouts",
-  "catalog_after_count": 29,
-  "catalog_after_gospel_count": 9,
+  "publication_status": "published",
+  "catalog_after_count": 35,
+  "catalog_after_gospel_count": 15,
   "publication_attempts": [
     "Standard signed uploader, 60-second timeout: audio transfer timed out.",
     "Standard signed uploader, 180-second timeout: audio transfer timed out.",
     "Requests multipart transport: audio transfer timed out.",
     "Native curl HTTP/2: stalled after 2097152 uploaded bytes, timed out after 75 seconds.",
     "Cloudinary chunked protocol with 1 MiB chunks: first transfer timed out.",
-    "64 KiB chunk reached Cloudinary but returned HTTP 400: All parts except EOF-chunk must be larger than 5mb. Smaller chunks cannot work around the stalled larger transfers."
+    "64 KiB chunk reached Cloudinary but returned HTTP 400: All parts except EOF-chunk must be larger than 5mb. Smaller chunks cannot work around the stalled larger transfers.",
+    "Retry succeeded: all six recordings linked; live public preview confirms 35 total / 15 Gospel songs."
   ],
   "partial_assets": [
     {
@@ -262,7 +263,7 @@
       "public_id": "cockatiel/karaoke/gospel_jesus_generation_hillsong_australia/pitch_map.json"
     }
   ],
-  "catalog_writes_completed": 0,
+  "catalog_writes_completed": 6,
   "client_lyrics_verification": [
     {
       "drill_id": "gospel_jesus_generation_hillsong_australia",
@@ -330,5 +331,151 @@
     "evidence_pr": "https://github.com/GioGabriel/cockatiel/pull/2",
     "apk_release_status": "draft_only_apk_upload_exceeded_150_seconds",
     "checksum_asset_uploaded": true
+  },
+  "publication_ledger": [
+    {
+      "drill_id": "gospel_jesus_generation_hillsong_australia",
+      "instrumental_url": "https://res.cloudinary.com/dzddt8r3p/video/upload/v1794719202/cockatiel/karaoke/gospel_jesus_generation_hillsong_australia/instrumental.mp3",
+      "pitch_map_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1794717011/cockatiel/karaoke/gospel_jesus_generation_hillsong_australia/pitch_map.json",
+      "delivery_encoding": {
+        "channels": 1,
+        "reason": "Full-duration practice copy below observed upload stall threshold; stereo master preserved.",
+        "source_bitrate_kbps": 48,
+        "delivered_bitrate_bps": 66691,
+        "note": "Cloudinary re-encodes MP3 delivery; a higher delivered bitrate does not restore fidelity lost in an optimized source."
+      },
+      "audio_sha256": "f4f47a1398f09130a0b9e72940af4d7a2dd9c8fd21c0ab25e1e61fc2f247fbaf"
+    },
+    {
+      "drill_id": "gospel_a_pure_heart_rusty_nelson",
+      "instrumental_url": "https://res.cloudinary.com/dzddt8r3p/video/upload/v1794720756/cockatiel/karaoke/gospel_a_pure_heart_rusty_nelson/instrumental_stereo.mp3",
+      "pitch_map_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1794719816/cockatiel/karaoke/gospel_a_pure_heart_rusty_nelson/pitch_map.json",
+      "delivery_encoding": {
+        "channels": 2,
+        "original_stereo_master": true,
+        "source_bitrate_kbps": 128,
+        "delivered_bitrate_bps": 160075,
+        "note": "Cloudinary re-encodes MP3 delivery; a higher delivered bitrate does not restore fidelity lost in an optimized source."
+      },
+      "audio_sha256": "c32725add9516812f2c37effd2d73205aa470b549dbdef8cc8d6c0f8656cd7ad"
+    },
+    {
+      "drill_id": "gospel_a_broken_spirit_don_harris_martin_j",
+      "instrumental_url": "https://res.cloudinary.com/dzddt8r3p/video/upload/v1794720027/cockatiel/karaoke/gospel_a_broken_spirit_don_harris_martin_j/instrumental.mp3",
+      "pitch_map_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1794720317/cockatiel/karaoke/gospel_a_broken_spirit_don_harris_martin_j/pitch_map.json",
+      "delivery_encoding": {
+        "channels": 1,
+        "source_bitrate_kbps": 48,
+        "delivered_bitrate_bps": 64656,
+        "note": "Cloudinary re-encodes MP3 delivery; a higher delivered bitrate does not restore fidelity lost in an optimized source."
+      }
+    },
+    {
+      "drill_id": "gospel_a_heart_like_mine_bryan_duncan",
+      "instrumental_url": "https://res.cloudinary.com/dzddt8r3p/video/upload/v1794720038/cockatiel/karaoke/gospel_a_heart_like_mine_bryan_duncan/instrumental.mp3",
+      "pitch_map_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1794720437/cockatiel/karaoke/gospel_a_heart_like_mine_bryan_duncan/pitch_map.json",
+      "delivery_encoding": {
+        "channels": 1,
+        "source_bitrate_kbps": 48,
+        "delivered_bitrate_bps": 67496,
+        "note": "Cloudinary re-encodes MP3 delivery; a higher delivered bitrate does not restore fidelity lost in an optimized source."
+      }
+    },
+    {
+      "drill_id": "gospel_a_man_after_your_own_heart_wayne_kirkpatrick",
+      "instrumental_url": "https://res.cloudinary.com/dzddt8r3p/video/upload/v1794720083/cockatiel/karaoke/gospel_a_man_after_your_own_heart_wayne_kirkpatrick/instrumental.mp3",
+      "pitch_map_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1794720535/cockatiel/karaoke/gospel_a_man_after_your_own_heart_wayne_kirkpatrick/pitch_map.json",
+      "delivery_encoding": {
+        "channels": 1,
+        "source_bitrate_kbps": 48,
+        "delivered_bitrate_bps": 64505,
+        "note": "Cloudinary re-encodes MP3 delivery; a higher delivered bitrate does not restore fidelity lost in an optimized source."
+      }
+    },
+    {
+      "drill_id": "gospel_a_place_at_your_altar_gerrit_gustafson",
+      "instrumental_url": "https://res.cloudinary.com/dzddt8r3p/video/upload/v1794720090/cockatiel/karaoke/gospel_a_place_at_your_altar_gerrit_gustafson/instrumental.mp3",
+      "pitch_map_url": "https://res.cloudinary.com/dzddt8r3p/raw/upload/v1794720595/cockatiel/karaoke/gospel_a_place_at_your_altar_gerrit_gustafson/pitch_map.json",
+      "delivery_encoding": {
+        "channels": 1,
+        "source_bitrate_kbps": 48,
+        "delivered_bitrate_bps": 65417,
+        "note": "Cloudinary re-encodes MP3 delivery; a higher delivered bitrate does not restore fidelity lost in an optimized source."
+      }
+    }
+  ],
+  "upload_resolution": "Retried with the official SDK, optimized full-duration practice copies and small explicit transport writes. Corrected supported uploader to use a readable body and explicit Content-Length. Large original-stereo transfers remain intermittent; ledger records each active encoding.",
+  "final_encoding_summary": {
+    "original_128_kbps_stereo": 1,
+    "full_duration_48_kbps_mono": 5,
+    "original_stereo_masters_preserved_locally": true
+  },
+  "final_catalog_verification": [
+    {
+      "drill_id": "gospel_jesus_generation_hillsong_australia",
+      "catalog_urls_match": true,
+      "duration_sec": 305,
+      "encoding": {
+        "bitrate_kbps": 48,
+        "channels": 1,
+        "reason": "Full-duration practice copy below observed upload stall threshold; stereo master preserved."
+      }
+    },
+    {
+      "drill_id": "gospel_a_pure_heart_rusty_nelson",
+      "catalog_urls_match": true,
+      "duration_sec": 166,
+      "encoding": {
+        "bitrate_kbps": 128,
+        "channels": 2,
+        "original_stereo_master": true
+      }
+    },
+    {
+      "drill_id": "gospel_a_broken_spirit_don_harris_martin_j",
+      "catalog_urls_match": true,
+      "duration_sec": 260,
+      "encoding": {
+        "bitrate_kbps": 48,
+        "channels": 1
+      }
+    },
+    {
+      "drill_id": "gospel_a_heart_like_mine_bryan_duncan",
+      "catalog_urls_match": true,
+      "duration_sec": 264,
+      "encoding": {
+        "bitrate_kbps": 48,
+        "channels": 1
+      }
+    },
+    {
+      "drill_id": "gospel_a_man_after_your_own_heart_wayne_kirkpatrick",
+      "catalog_urls_match": true,
+      "duration_sec": 294,
+      "encoding": {
+        "bitrate_kbps": 48,
+        "channels": 1
+      }
+    },
+    {
+      "drill_id": "gospel_a_place_at_your_altar_gerrit_gustafson",
+      "catalog_urls_match": true,
+      "duration_sec": 224,
+      "encoding": {
+        "bitrate_kbps": 48,
+        "channels": 1
+      }
+    }
+  ],
+  "publisher_fix_pr": "https://github.com/GioGabriel/cockatiel/pull/3",
+  "publisher_fix_validation": {
+    "tools_tests": 24,
+    "backend_tests": 212,
+    "flutter_tests": 229,
+    "static_checks": "passed",
+    "android_build": "passed",
+    "web_build": "passed",
+    "github_quality_jobs": "both passed before merge"
   }
 }

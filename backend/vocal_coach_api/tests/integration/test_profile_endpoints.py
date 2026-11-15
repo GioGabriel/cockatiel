@@ -19,6 +19,25 @@ class TestFetchProfile:
 
 
 class TestUpdatePreferences:
+  def test_optional_gender_round_trips_without_restricting_vocal_range(self, client: TestClient, auth_headers: dict) -> None:
+    client.get('/v1/auth/me', headers=auth_headers)
+    response = client.put('/v1/profile/preferences', headers=auth_headers, json={
+      'gender': 'female', 'vocal_range': 'tenor',
+      'preferred_categories': ['karaoke'], 'training_goal': 'pitch_improvement',
+    })
+    assert response.status_code == 200
+    assert response.json()['vocal_preferences']['gender'] == 'female'
+    assert response.json()['vocal_preferences']['vocal_range'] == 'tenor'
+    profile = client.get('/v1/profile', headers=auth_headers).json()
+    assert profile['vocal_preferences']['gender'] == 'female'
+
+  def test_invalid_gender_returns_validation_error(self, client: TestClient, auth_headers: dict) -> None:
+    response = client.put('/v1/profile/preferences', headers=auth_headers, json={
+      'gender': 'invalid', 'vocal_range': 'tenor',
+      'preferred_categories': ['karaoke'], 'training_goal': 'pitch_improvement',
+    })
+    assert response.status_code == 422
+
   def test_valid_preferences_returns_200(self, client: TestClient, auth_headers: dict) -> None:
     client.get("/v1/auth/me", headers=auth_headers)
     payload = {

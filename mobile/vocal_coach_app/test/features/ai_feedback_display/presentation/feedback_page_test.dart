@@ -95,9 +95,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-
     expect(find.text('7'), findsOneWidget);
     expect(find.text('out of 100'), findsOneWidget);
+    expect(find.text('How this score is calculated'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Read full feedback'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Read full feedback'));
+    await tester.pumpAndSettle();
+
     expect(find.text('How this score is calculated'), findsOneWidget);
     expect(find.text('Focus first'), findsOneWidget);
     expect(find.textContaining('Pitch accuracy'), findsWidgets);
@@ -110,7 +115,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Detailed coaching plan'), findsOneWidget);
-    expect(find.text('Several target notes were missed.'), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('detailed-coaching-plan')),
+            matching: find.text('Several target notes were missed.')),
+        findsOneWidget);
   });
 
   testWidgets('explains when zero pitch metrics are not measurable',
@@ -182,6 +191,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Read full feedback'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Read full feedback'));
+    await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
       find.text('Why some metrics show 0'),
@@ -240,6 +253,10 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Read full feedback'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Read full feedback'));
     await tester.pumpAndSettle();
 
     expect(find.text('Not enough evidence to score this take reliably'),
@@ -304,6 +321,10 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Read full feedback'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Read full feedback'));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(

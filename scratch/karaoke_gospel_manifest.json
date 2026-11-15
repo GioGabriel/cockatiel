@@ -30,10 +30,22 @@
     {
       "drill_id": "gospel_jesus_generation_hillsong_australia",
       "title": "Jesus Generation",
-      "artist": "Hillsong Australia",
+      "artist": "Hillsong UNITED",
       "catalog_code": "12626",
       "catalog_volume": "59",
-      "source_status": "needs_source"
+      "source_status": "verified_official_recording",
+      "catalog_artist": "Hillsong Australia",
+      "source_url": "https://www.youtube.com/watch?v=urrrRyBG5l0",
+      "source_review": {
+        "recording_title": "Jesus' Generation (Live)",
+        "album": "United Live - Best Friend",
+        "duration_sec": 305,
+        "channel": "Hillsong UNITED",
+        "reviewed_on": "2026-11-15",
+        "basis": "Distributor-provided recording title, performer, album and composer credits in official YouTube metadata. Catalog labels retained separately; this is the selected practice recording, not a claim of identical catalog arrangement."
+      },
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
     },
     {
       "drill_id": "gospel_breathe_hillsong_kids",
@@ -115,10 +127,22 @@
     {
       "drill_id": "gospel_a_broken_spirit_don_harris_martin_j",
       "title": "A Broken Spirit",
-      "artist": "Don Harris & Martin J",
+      "artist": "Martin J. Nystrom",
       "catalog_code": "12002",
       "catalog_volume": "59",
-      "source_status": "needs_source"
+      "source_status": "verified_official_recording",
+      "catalog_artist": "Don Harris & Martin J",
+      "source_url": "https://www.youtube.com/watch?v=zSUaenj8_r0",
+      "source_review": {
+        "recording_title": "A Broken Spirit",
+        "album": "In Christ Alone",
+        "duration_sec": 260,
+        "channel": "Martin J. Nystrom - Topic",
+        "reviewed_on": "2026-11-15",
+        "basis": "Distributor-provided recording title, performer, album and composer credits in official YouTube metadata. Catalog labels retained separately; this is the selected practice recording, not a claim of identical catalog arrangement."
+      },
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
     },
     {
       "drill_id": "gospel_a_broken_spirit_generic",
@@ -131,10 +155,22 @@
     {
       "drill_id": "gospel_a_heart_like_mine_bryan_duncan",
       "title": "A Heart Like Mine",
-      "artist": "Bryan Duncan, Bob",
+      "artist": "Bryan Duncan",
       "catalog_code": "12003",
       "catalog_volume": "59",
-      "source_status": "needs_source"
+      "source_status": "verified_official_recording",
+      "catalog_artist": "Bryan Duncan, Bob",
+      "source_url": "https://www.youtube.com/watch?v=oDjxd3yh6OQ",
+      "source_review": {
+        "recording_title": "A Heart Like Mine",
+        "album": "My Utmost for His Highest",
+        "duration_sec": 264,
+        "channel": "Bryan Duncan",
+        "reviewed_on": "2026-11-15",
+        "basis": "Distributor-provided recording title, performer, album and composer credits in official YouTube metadata. Catalog labels retained separately; this is the selected practice recording, not a claim of identical catalog arrangement."
+      },
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
     },
     {
       "drill_id": "gospel_a_king_is_born",
@@ -163,18 +199,42 @@
     {
       "drill_id": "gospel_a_man_after_your_own_heart_wayne_kirkpatrick",
       "title": "A Man After Your Own Heart",
-      "artist": "Wayne Kirkpatrick",
+      "artist": "Gary Chapman",
       "catalog_code": "12006",
       "catalog_volume": "59",
-      "source_status": "needs_source_artist_confirmation"
+      "source_status": "verified_official_recording",
+      "catalog_artist": "Wayne Kirkpatrick",
+      "source_url": "https://www.youtube.com/watch?v=cSjv1DJtLDE",
+      "source_review": {
+        "recording_title": "A Man After Your Own Heart",
+        "album": "Shelter",
+        "duration_sec": 294,
+        "channel": "Gary Chapman - Topic",
+        "reviewed_on": "2026-11-15",
+        "basis": "Distributor-provided recording title, performer, album and composer credits in official YouTube metadata. Catalog labels retained separately; this is the selected practice recording, not a claim of identical catalog arrangement."
+      },
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
     },
     {
       "drill_id": "gospel_a_place_at_your_altar_gerrit_gustafson",
       "title": "A Place at Your Altar",
-      "artist": "Gerrit Gustafson",
+      "artist": "Randy Rothwell",
       "catalog_code": "12007",
       "catalog_volume": "59",
-      "source_status": "needs_source_artist_confirmation"
+      "source_status": "verified_official_recording",
+      "catalog_artist": "Gerrit Gustafson",
+      "source_url": "https://www.youtube.com/watch?v=zs_b7ckCbFE",
+      "source_review": {
+        "recording_title": "A Place At Your Altar",
+        "album": "Be Magnified",
+        "duration_sec": 224,
+        "channel": "Randy Rothwell - Topic",
+        "reviewed_on": "2026-11-15",
+        "basis": "Distributor-provided recording title, performer, album and composer credits in official YouTube metadata. Catalog labels retained separately; this is the selected practice recording, not a claim of identical catalog arrangement."
+      },
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
     },
     {
       "drill_id": "gospel_a_place_at_your_altar_generic",
@@ -198,7 +258,19 @@
       "artist": "Rusty Nelson",
       "catalog_code": "12008",
       "catalog_volume": "59",
-      "source_status": "needs_source"
+      "source_status": "verified_official_recording",
+      "catalog_artist": "Rusty Nelson",
+      "source_url": "https://www.youtube.com/watch?v=rrNwrs7pGZc",
+      "source_review": {
+        "recording_title": "A Pure Heart",
+        "album": "Take the City",
+        "duration_sec": 166,
+        "channel": "Rusty Nelson - Topic",
+        "reviewed_on": "2026-11-15",
+        "basis": "Distributor-provided recording title, performer, album and composer credits in official YouTube metadata. Catalog labels retained separately; this is the selected practice recording, not a claim of identical catalog arrangement."
+      },
+      "analysis_min_hz": 65.0,
+      "analysis_max_hz": 1046.5
     },
     {
       "drill_id": "gospel_a_shield_about_me_pending",

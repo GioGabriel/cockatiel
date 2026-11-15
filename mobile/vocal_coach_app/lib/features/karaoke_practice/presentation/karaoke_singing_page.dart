@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -13,10 +12,20 @@ import '../../../core/scoring/vocal_metric_scorer.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/karaoke_models.dart';
 import '../../../shared/models/session_models.dart';
+import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/audio_waveform_visualizer.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../vocal_training/presentation/widgets/karaoke_pitch_visualizer.dart';
 import 'widgets/lyric_scroller.dart';
+import '../domain/song_content_parser.dart';
+import '../domain/song_practice_review.dart';
+import '../../ai_feedback_display/presentation/feedback_page.dart';
+import '../../ai_feedback_display/presentation/session_feedback_wait_page.dart';
+import '../../../shared/widgets/voice_studio.dart';
+
+bool _isUsableKaraokeFrequency(double? frequencyHz) {
+  return frequencyHz != null && frequencyHz.isFinite && frequencyHz > 0;
+}
 
 class KaraokeSingingPage extends StatefulWidget {
   const KaraokeSingingPage({
@@ -54,6 +63,9 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   bool _isLoading = true;
   bool _isPlaying = false;
   bool _isFinishing = false;
+  String? _reviewError;
+  bool _requiresNewTake = false;
+  final _review = SongPracticeReviewController();
   String? _error;
   List<String> _contentNotices = const [];
   bool _hasInstrumentalAudio = false;
@@ -73,8 +85,10 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   void initState() {
     super.initState();
     _analyzer = LiveAudioAnalyzer(
-      minFrequencyHz: 80,
-      maxFrequencyHz: 800,
+      minFrequencyHz: defaultLivePitchMinFrequencyHz,
+      // Keep the live detector wide enough for the upper end of a valid song
+      // map; target-relative guidance still decides whether the note is right.
+      maxFrequencyHz: defaultLivePitchMaxFrequencyHz,
     );
     _metricAccumulator = VocalMetricAccumulator();
     _pitchGuidance = LivePitchGuidanceController();
@@ -91,8 +105,9 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
         title: widget.drill.title,
         artist: widget.drill.artistName,
       );
+      if (!mounted) return;
       if (syncedLyrics != null) {
-        _lyrics = _parseLrc(syncedLyrics);
+        _lyrics = parseSongLyrics(syncedLyrics);
       }
       if (_lyrics.isEmpty) {
         notices.add(
@@ -102,11 +117,8 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       if (widget.drill.pitchMapUrl.isNotEmpty) {
         final decoded =
             await _contentClient.fetchPitchMap(widget.drill.pitchMapUrl);
-        if (decoded is List) {
-          _stages = _parsePitchMapList(decoded);
-        } else if (decoded is Map<String, dynamic>) {
-          _stages = _parsePitchMap(decoded);
-        }
+        if (!mounted) return;
+        _stages = parseSongPitchMap(decoded);
       }
       if (_stages.isEmpty) {
         notices.add(
@@ -115,7 +127,9 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 
       if (widget.drill.instrumentalUrl.isNotEmpty) {
         try {
-          await _player.setUrl(widget.drill.instrumentalUrl);
+          await _player
+              .setUrl(widget.drill.instrumentalUrl)
+              .timeout(const Duration(seconds: 12));
           _hasInstrumentalAudio = true;
         } catch (_) {
           notices.add(
@@ -126,6 +140,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
             'Instrumental audio is unavailable. Mic-only practice is available.');
       }
 
+      if (!mounted) return;
       _positionSub = _player.positionStream.listen((pos) {
         if (mounted) setState(() => _currentPosition = pos);
       });
@@ -151,143 +166,6 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     }
   }
 
-  List<TrainingRuntimeStage> _parsePitchMapList(List<dynamic> jsonList) {
-    final List<TrainingRuntimeStage> stages = [];
-
-    for (int i = 0; i < jsonList.length; i++) {
-      final item = jsonList[i];
-      if (item is! Map) continue;
-
-      final timeValue = item['time'];
-      final pitchValue = item['pitch'];
-      if (timeValue is! num || pitchValue is! num) continue;
-      final timeSec = timeValue.toDouble();
-      final freq = pitchValue.toDouble();
-
-      if (freq <= 0) continue; // Skip silences
-
-      // Determine duration (diff to next frame, or default to 0.05s)
-      double durationSec = 0.05;
-      if (i < jsonList.length - 1) {
-        final nextItem = jsonList[i + 1];
-        if (nextItem is Map) {
-          final nextTimeValue = nextItem['time'];
-          if (nextTimeValue is! num) continue;
-          final nextTimeSec = nextTimeValue.toDouble();
-
-          // If the next note is the exact same pitch and continuous, we could merge them.
-          // For now, just generate discrete tiny stages or rely on the visualizer to merge them.
-          // Actually, we should just emit the exact frame as a tiny 0.05s stage so the visualizer draws a continuous line!
-          durationSec = (nextTimeSec - timeSec).clamp(0.01, 0.5);
-        }
-      }
-
-      stages.add(TrainingRuntimeStage(
-        stageId: 'pitch_$i',
-        title: freq.toStringAsFixed(1),
-        targetLabel: freq.toStringAsFixed(1),
-        instruction: 'Match pitch',
-        durationSec: durationSec,
-        startSec: timeSec,
-        endSec: timeSec + durationSec,
-      ));
-    }
-    return stages;
-  }
-
-  List<TrainingRuntimeStage> _parsePitchMap(Map<String, dynamic> jsonMap) {
-    final List<TrainingRuntimeStage> stages = [];
-    int index = 0;
-
-    final keys = jsonMap.keys.toList()..sort();
-
-    for (int i = 0; i < keys.length; i++) {
-      final key = keys[i];
-      final frequencyValue = jsonMap[key];
-      if (frequencyValue is! num) continue;
-      final freq = frequencyValue.toDouble();
-
-      final parts = key.split(':');
-      if (parts.length != 2) continue;
-      final min = int.tryParse(parts[0]);
-      final seconds = double.tryParse(parts[1]);
-      if (min == null || seconds == null) continue;
-      final startSecDouble = min * 60.0 + seconds;
-
-      double endSecDouble = startSecDouble + 0.1;
-      if (i < keys.length - 1) {
-        final nextParts = keys[i + 1].split(':');
-        if (nextParts.length == 2) {
-          final nextMin = int.tryParse(nextParts[0]);
-          final nextSeconds = double.tryParse(nextParts[1]);
-          if (nextMin != null && nextSeconds != null) {
-            final nextStartSec = nextMin * 60.0 + nextSeconds;
-            if (nextStartSec - startSecDouble <= 0.5) {
-              endSecDouble = nextStartSec;
-            }
-          }
-        }
-      }
-
-      stages.add(TrainingRuntimeStage(
-        stageId: 'stage_$index',
-        title: 'Note $index',
-        targetLabel: freq.toString(),
-        instruction: '',
-        durationSec: endSecDouble - startSecDouble,
-        startSec: startSecDouble,
-        endSec: endSecDouble,
-      ));
-      index++;
-    }
-    return stages;
-  }
-
-  List<LyricLine> _parseLrc(String lrc) {
-    final List<LyricLine> lines = [];
-    final regex = RegExp(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)');
-
-    for (var line in lrc.split('\n')) {
-      final match = regex.firstMatch(line);
-      if (match != null) {
-        final min = int.parse(match.group(1)!);
-        final sec = int.parse(match.group(2)!);
-        final ms = int.parse(match.group(3)!.padRight(3, '0'));
-        final text = match.group(4)!.trim();
-
-        final duration = Duration(minutes: min, seconds: sec, milliseconds: ms);
-        lines.add(LyricLine(time: duration, text: text));
-      }
-    }
-    return lines;
-  }
-
-  double _centsDifference(double frequencyHz, double targetHz) {
-    if (frequencyHz <= 0 || targetHz <= 0) return 0;
-    return 1200 * (log(frequencyHz / targetHz) / ln2);
-  }
-
-  String _noteLabelForFrequency(double frequencyHz) {
-    if (frequencyHz <= 0 || !frequencyHz.isFinite) return 'unknown';
-    const names = <String>[
-      'C',
-      'C#',
-      'D',
-      'D#',
-      'E',
-      'F',
-      'F#',
-      'G',
-      'G#',
-      'A',
-      'A#',
-      'B',
-    ];
-    final midi = (69 + 12 * (log(frequencyHz / 440) / ln2)).round();
-    final octave = (midi ~/ 12) - 1;
-    return '${names[midi % 12]}$octave';
-  }
-
   void _startMicOnlyClock() {
     _micOnlyTimer?.cancel();
     _micOnlyStopwatch
@@ -309,7 +187,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 
   TrainingRuntimeStage? _currentStage(double elapsedSec) {
     for (var stage in _stages) {
-      if (elapsedSec >= stage.startSec && elapsedSec <= stage.endSec) {
+      if (elapsedSec >= stage.startSec && elapsedSec < stage.endSec) {
         return stage;
       }
     }
@@ -346,20 +224,33 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       });
       return;
     }
+    if (!mounted) {
+      await _analyzer.stop();
+      return;
+    }
     _audioSub = _analyzer.frames.listen((frame) {
       final elapsed = _currentPosition.inMilliseconds / 1000.0;
       final currentStage = _currentStage(elapsed);
       final targetHz = currentStage == null
           ? null
-          : double.tryParse(currentStage.targetLabel);
+          : (currentStage.target.frequencyHz ??
+              frequencyHzForPitchLabel(
+                currentStage.targetLabel,
+                key: currentStage.target.key,
+                octave: currentStage.target.octave,
+              ));
+      final measuredFrequencyHz = _isUsableKaraokeFrequency(frame.frequencyHz)
+          ? frame.frequencyHz
+          : null;
+      final frameIsVoiced = frame.voiced && measuredFrequencyHz != null;
       double? centsError;
-      if (frame.voiced && frame.frequencyHz != null && currentStage != null) {
-        centsError = _centsDifference(frame.frequencyHz!, targetHz ?? 261.63);
+      if (frameIsVoiced && targetHz != null) {
+        centsError = centsErrorForFrequencies(measuredFrequencyHz, targetHz);
       }
       final guidance = _pitchGuidance.update(
         isAttemptRunning: true,
         hasTarget: targetHz != null,
-        voiced: frame.voiced && frame.frequencyHz != null,
+        voiced: frameIsVoiced,
         confidence: frame.confidence,
         loudnessDb: frame.loudnessDb,
         centsError: centsError ?? 0,
@@ -373,16 +264,15 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
           _liveAmplitude = normalizedAmplitude;
           _liveCentsError = centsError;
           _liveFrequencyHz =
-              _pitchGuidance.lastFrameMeasurable ? frame.frequencyHz : null;
+              _pitchGuidance.lastFrameMeasurable ? measuredFrequencyHz : null;
           _liveCoachCue = guidance.message;
 
-          if (_pitchGuidance.lastFrameMeasurable && frame.frequencyHz != null) {
-            _pitchHistory.add(PitchPoint(elapsed, frame.frequencyHz!));
-            if (_pitchHistory.length > 250) _pitchHistory.removeAt(0);
-          } else {
-            _pitchHistory.add(PitchPoint(elapsed, 0));
-            if (_pitchHistory.length > 250) _pitchHistory.removeAt(0);
-          }
+          final pitchToDisplay =
+              _pitchGuidance.lastFrameMeasurable && measuredFrequencyHz != null
+                  ? measuredFrequencyHz
+                  : 0.0;
+          _pitchHistory.add(PitchPoint(elapsed, pitchToDisplay));
+          if (_pitchHistory.length > 250) _pitchHistory.removeAt(0);
         });
       }
 
@@ -392,9 +282,9 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
           targetId: currentStage?.stageId,
           targetLabel: currentStage?.targetLabel,
           targetFrequencyHz: targetHz,
-          frequencyHz: frame.frequencyHz,
+          frequencyHz: measuredFrequencyHz,
           loudnessDb: frame.loudnessDb,
-          voiced: frame.voiced && _pitchGuidance.lastFrameMeasurable,
+          voiced: frameIsVoiced && _pitchGuidance.lastFrameMeasurable,
           confidence: frame.confidence,
         ),
       );
@@ -426,53 +316,72 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     if (_isFinishing) return;
     _isFinishing = true;
 
+    final elapsedSec = _currentPosition.inSeconds;
     _stopMicOnlyClock();
-    await _player.stop();
-    await _audioSub?.cancel();
-    _audioSub = null;
-    await _analyzer.stop();
-
-    if (!mounted) return;
     setState(() {
       _isPlaying = false;
       _isLoading = true;
     });
-
     try {
+      await _player.stop();
+      await _audioSub?.cancel();
+      _audioSub = null;
+      await _analyzer.stop();
+      if (!mounted) return;
+      if (elapsedSec < 10) {
+        throw const ApiException(
+            statusCode: 422,
+            code: 'TAKE_TOO_SHORT',
+            message:
+                'This take was shorter than 10 seconds. Start a new take when you feel ready.');
+      }
       final summary = _buildAttemptMetricSummary();
-      final totalSec =
-          (_currentPosition.inMilliseconds / 1000.0).clamp(10, 600).toInt();
+      final totalSec = elapsedSec.clamp(10, 600);
 
-      await widget.apiClient.saveTrainingAttempt(
-        sessionId: widget.sessionId,
-        attemptIndex: 1,
-        difficulty: widget.drill.difficulty,
-        durationSec: totalSec,
-        metricSummary: summary,
+      final result = await _review.submit(
+        saveAttempt: () async {
+          await widget.apiClient.saveTrainingAttempt(
+              sessionId: widget.sessionId,
+              attemptIndex: 1,
+              difficulty: widget.drill.difficulty,
+              durationSec: totalSec,
+              metricSummary: summary);
+        },
+        finalize: () =>
+            widget.apiClient.finalizeSession(sessionId: widget.sessionId),
       );
-
-      await widget.apiClient.finalizeSession(sessionId: widget.sessionId);
-      await widget.appState.refreshAIJobs();
-
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => AnalysisQueuePage(
-              apiClient: widget.apiClient,
-              appState: widget.appState,
-            ),
-          ),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not save this session. Please try again.'),
-          ),
-        );
-        Navigator.pop(context);
-      }
+      unawaited(widget.appState.refreshAIJobs().catchError((_) {}));
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (reviewContext) => result.feedback != null
+              ? FeedbackPage(result: result)
+              : SessionFeedbackWaitPage(
+                  loadReview: () async {
+                    final session = await widget.apiClient
+                        .fetchSession(sessionId: widget.sessionId);
+                    return FinalizeResponse(
+                        sessionId: widget.sessionId,
+                        status: session.status,
+                        feedback: session.feedbackForDisplay);
+                  },
+                  onOpenQueue: () => Navigator.of(reviewContext)
+                      .pushReplacement(MaterialPageRoute(
+                          builder: (_) => AnalysisQueuePage(
+                              apiClient: widget.apiClient,
+                              appState: widget.appState))),
+                )));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isFinishing = false;
+        _isLoading = false;
+        _requiresNewTake = error is ApiException &&
+            const {'TAKE_TOO_SHORT', 'INSUFFICIENT_AUDIO_EVIDENCE'}
+                .contains(error.code);
+        _reviewError = error is ApiException
+            ? error.message
+            : 'Your take is still here. Try saving the review again.';
+      });
     }
   }
 
@@ -513,99 +422,83 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     }
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          image: widget.drill.coverUrl.isNotEmpty
-              ? DecorationImage(
-                  image: NetworkImage(widget.drill.coverUrl),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(
-                    theme.colorScheme.scrim.withValues(alpha: 0.3),
-                    BlendMode.darken,
-                  ),
-                )
-              : null,
-        ),
-        child: Container(
-          color: theme.colorScheme.scrim.withValues(alpha: 0.82),
-          child: SafeArea(
-            child: Stack(
-              children: [
-                // Pitch Visualizer Background Layer
-                Positioned(
-                  top: 50,
-                  left: 0,
-                  right: 0,
-                  height: 200,
+      appBar: AppBar(
+          title: Text(widget.drill.title,
+              maxLines: 1, overflow: TextOverflow.ellipsis)),
+      body: VoiceStageBackground(
+          child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
+        return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              Text(widget.drill.artistName, style: theme.textTheme.bodyMedium),
+              const SizedBox(height: 12),
+              SizedBox(
+                  height: (constraints.maxHeight * .43).clamp(240, 420),
                   child: KaraokePitchVisualizer(
-                    stages: _stages,
-                    currentElapsedSec: _currentPosition.inMilliseconds / 1000.0,
-                    pitchHistory: _pitchHistory,
-                    minHz: 80,
-                    maxHz: 800,
-                    getTargetFrequency: (label) =>
-                        double.tryParse(label) ?? 261.63,
-                    isRunning: _isPlaying,
-                    targetLabel: _currentStage(
-                          _currentPosition.inMilliseconds / 1000.0,
-                        )?.targetLabel ??
-                        'No target',
-                    detectedNoteLabel: _liveFrequencyHz == null
-                        ? null
-                        : _noteLabelForFrequency(_liveFrequencyHz!),
-                    detectedFrequencyHz: _pitchGuidance.lastFrameMeasurable
-                        ? _liveFrequencyHz
-                        : null,
-                    detectedCents: _pitchGuidance.lastFrameMeasurable
-                        ? _liveCentsError
-                        : null,
-                    guidance: _pitchGuidance.current,
-                  ),
-                ),
-
-                Positioned(
-                  top: 258,
-                  left: 16,
-                  right: 16,
-                  child: _buildLiveCoachCard(),
-                ),
-
-                // Lyrics Scroller Layer
-                Positioned.fill(
-                  top: 338,
+                      stages: _stages,
+                      currentElapsedSec: _currentPosition.inMilliseconds / 1000,
+                      pitchHistory: _pitchHistory,
+                      minHz: defaultLivePitchMinFrequencyHz.toDouble(),
+                      maxHz: defaultLivePitchMaxFrequencyHz.toDouble(),
+                      getTargetFrequency: frequencyHzForPitchLabel,
+                      isRunning: _isPlaying,
+                      targetLabel:
+                          _currentStage(_currentPosition.inMilliseconds / 1000)
+                                  ?.targetLabel ??
+                              'Listen and follow',
+                      detectedNoteLabel: _liveFrequencyHz == null
+                          ? null
+                          : noteLabelForFrequency(_liveFrequencyHz!),
+                      detectedFrequencyHz: _pitchGuidance.lastFrameMeasurable
+                          ? _liveFrequencyHz
+                          : null,
+                      detectedCents: _pitchGuidance.lastFrameMeasurable
+                          ? _liveCentsError
+                          : null,
+                      guidance: _pitchGuidance.current)),
+              const SizedBox(height: 12),
+              _buildLiveCoachCard(),
+              SizedBox(
+                  height: (constraints.maxHeight * .3).clamp(150, 300),
                   child: LyricScroller(
-                    lyrics: _lyrics,
-                    currentPosition: _currentPosition,
-                    emptyMessage:
-                        'Lyrics are unavailable for this song yet. Follow the pitch guide or practice by ear.',
-                  ),
-                ),
-
-                if (_contentNotices.isNotEmpty)
-                  Positioned(
-                    top: 8,
-                    left: 16,
-                    right: 16,
-                    child: _buildContentNotice(),
-                  ),
-
-                // Bottom Controls
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 60.0),
+                      lyrics: _lyrics,
+                      currentPosition: _currentPosition,
+                      emptyMessage:
+                          'Synchronized lyrics are unavailable. Follow the pitch guide or practice by ear.')),
+              if (_contentNotices.isNotEmpty)
+                ExpansionTile(
+                    title: const Text('Song availability'),
+                    children: _contentNotices
+                        .map((notice) => Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(notice)))
+                        .toList()),
+              if (_reviewError != null) ...[
+                Text(_reviewError!,
+                    style: TextStyle(color: theme.colorScheme.error)),
+                const SizedBox(height: 12),
+                if (!_requiresNewTake)
+                  FilledButton.icon(
+                      onPressed: _finishSession,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry review')),
+                if (!_review.hasSavedAttempt)
+                  TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _reviewError = null;
+                          _requiresNewTake = false;
+                        });
+                        _startSinging();
+                      },
+                      child: const Text('Start a new take')),
+              ] else
+                Center(
                     child: _isPlaying
                         ? _buildPlayingControls()
-                        : _buildStartControls(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+                        : _buildStartControls()),
+            ]);
+      }))),
     );
   }
 
@@ -663,27 +556,6 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContentNotice() {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Text(
-        _contentNotices.first,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.center,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
     );
@@ -769,12 +641,6 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   }
 }
 
-class LyricLine {
-  final Duration time;
-  final String text;
-  LyricLine({required this.time, required this.text});
-}
-
 /// Testable boundary for optional third-party song content.
 class KaraokeContentClient {
   KaraokeContentClient({http.Client? httpClient})
@@ -799,15 +665,28 @@ class KaraokeContentClient {
       if (response.statusCode != 200) return null;
       final decoded = json.decode(response.body);
       if (decoded is! List) return null;
+
+      String? bestLyrics;
+      var bestMatchRank = 0;
       for (final item in decoded) {
         if (item is! Map) continue;
         final lyrics = item['syncedLyrics'];
-        if (lyrics is String && lyrics.trim().isNotEmpty) return lyrics;
+        if (lyrics is! String || lyrics.trim().isEmpty) continue;
+
+        final matchRank = _lrcLibMatchRank(
+          item,
+          requestedTitle: title,
+          requestedArtist: artist,
+        );
+        if (matchRank > bestMatchRank) {
+          bestMatchRank = matchRank;
+          bestLyrics = lyrics;
+        }
       }
+      return bestLyrics;
     } catch (_) {
       return null;
     }
-    return null;
   }
 
   Future<dynamic> fetchPitchMap(String url) async {
@@ -825,4 +704,55 @@ class KaraokeContentClient {
   void dispose() {
     if (_ownsClient) _httpClient.close();
   }
+}
+
+String _normalizeLrcLibText(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .trim()
+      .replaceAll(RegExp(r'\s+'), ' ');
+}
+
+int _lrcLibMatchRank(
+  Map<dynamic, dynamic> item, {
+  required String requestedTitle,
+  required String requestedArtist,
+}) {
+  final trackName = item['trackName'];
+  final artistName = item['artistName'];
+  if (trackName is! String || artistName is! String) return 0;
+
+  final expectedTitle = _normalizeLrcLibText(requestedTitle);
+  final actualTitle = _normalizeLrcLibText(trackName);
+  final expectedArtist = _normalizeLrcLibText(requestedArtist);
+  final actualArtist = _normalizeLrcLibText(artistName);
+  if (expectedTitle.isEmpty ||
+      expectedArtist.isEmpty ||
+      actualArtist != expectedArtist) {
+    return 0;
+  }
+
+  if (actualTitle == expectedTitle) return 2;
+  if (!actualTitle.startsWith('$expectedTitle ')) return 0;
+
+  // A clearly labelled version is acceptable only as a fallback. Exact
+  // titles always outrank Live/Acoustic variants when both are available.
+  final suffix = actualTitle.substring(expectedTitle.length).trim();
+  const allowedVariantWords = {
+    'acoustic',
+    'demo',
+    'edit',
+    'live',
+    'mix',
+    'radio',
+    'remix',
+    'version',
+  };
+  final suffixWords = suffix.split(' ');
+  if (suffixWords.isEmpty ||
+      suffixWords.any((word) => !allowedVariantWords.contains(word))) {
+    return 0;
+  }
+  return 1;
 }

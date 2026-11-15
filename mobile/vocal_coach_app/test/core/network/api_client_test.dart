@@ -205,6 +205,77 @@ void main() {
     });
   });
 
+  test('saveTrainingAttempt sends the exact breathing evidence shape',
+      () async {
+    late http.BaseRequest request;
+    final client = ApiClient(
+      config: _config(),
+      tokenProvider: _FakeTokenProvider('test-token'),
+      httpClient: MockClient((incoming) async {
+        request = incoming;
+        return http.Response(
+          '{"session_id":"session-1","attempt":{"attempt_id":"attempt-1","attempt_index":1,"difficulty":"beginner","duration_sec":20,"score":75,"metric_summary":{"metric_mode":"breathing","sample_count":20,"phase_completion_rate":75,"pace_adherence":72,"cycle_consistency":78,"completion_rate":80,"interruption_count":0},"saved_at":1,"is_best":true},"selected_best_attempt_id":"attempt-1","best_attempt_score":75}',
+          201,
+        );
+      }),
+    );
+
+    await client.saveTrainingAttempt(
+      sessionId: 'session-1',
+      attemptIndex: 1,
+      difficulty: 'beginner',
+      durationSec: 20,
+      metricSummary: TrainingAttemptMetricSummary.breathing(
+        sampleCount: 20,
+        phaseCompletionRate: 75,
+        paceAdherence: 72,
+        cycleConsistency: 78,
+        completionRate: 80,
+        interruptionCount: 0,
+        evidence: {
+          'duration_ms': 20000,
+          'phase_count': 4,
+          'completed_phase_count': 3,
+          'interruption_count': 0,
+          'audio_frame_count': 0,
+          'audible_frame_count': 0,
+          'audible_coverage_pct': 0,
+          'mean_loudness_db': null,
+          'loudness_stddev_db': 0,
+          'audio_observed_duration_ms': 0,
+          'audio_evidence_note':
+              'Optional microphone loudness proxy; this does not measure airflow.',
+        },
+      ),
+    );
+
+    final body =
+        jsonDecode((request as http.Request).body) as Map<String, dynamic>;
+    expect(body['metric_summary'], {
+      'metric_mode': 'breathing',
+      'sample_count': 20,
+      'phase_completion_rate': 75.0,
+      'pace_adherence': 72.0,
+      'cycle_consistency': 78.0,
+      'completion_rate': 80.0,
+      'interruption_count': 0,
+      'evidence': {
+        'duration_ms': 20000,
+        'phase_count': 4,
+        'completed_phase_count': 3,
+        'interruption_count': 0,
+        'audio_frame_count': 0,
+        'audible_frame_count': 0,
+        'audible_coverage_pct': 0,
+        'mean_loudness_db': null,
+        'loudness_stddev_db': 0,
+        'audio_observed_duration_ms': 0,
+        'audio_evidence_note':
+            'Optional microphone loudness proxy; this does not measure airflow.',
+      },
+    });
+  });
+
   test('force refresh requests bypass the server session-list cache', () async {
     late Uri requestUri;
     final client = ApiClient(

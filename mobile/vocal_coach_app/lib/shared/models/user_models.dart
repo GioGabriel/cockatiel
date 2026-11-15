@@ -42,6 +42,28 @@ String accessTierToString(AccessTier tier) {
   }
 }
 
+enum ProfileGender { male, female, nonBinary, preferNotToSay }
+
+String profileGenderToString(ProfileGender value) => switch (value) {
+      ProfileGender.male => 'male',
+      ProfileGender.female => 'female',
+      ProfileGender.nonBinary => 'non_binary',
+      ProfileGender.preferNotToSay => 'prefer_not_to_say',
+    };
+ProfileGender? profileGenderFromString(Object? value) => switch (value) {
+      'male' => ProfileGender.male,
+      'female' => ProfileGender.female,
+      'non_binary' => ProfileGender.nonBinary,
+      'prefer_not_to_say' => ProfileGender.preferNotToSay,
+      _ => null,
+    };
+String profileGenderLabel(ProfileGender value) => switch (value) {
+      ProfileGender.male => 'Male',
+      ProfileGender.female => 'Female',
+      ProfileGender.nonBinary => 'Non-binary',
+      ProfileGender.preferNotToSay => 'Prefer not to say',
+    };
+
 enum VocalRange { soprano, mezzoSoprano, alto, tenor, baritone, bass }
 
 VocalRange vocalRangeFromString(String value) {
@@ -119,6 +141,7 @@ String trainingGoalToString(TrainingGoal goal) {
 }
 
 class VocalPreferences {
+  final ProfileGender? gender;
   final VocalRange vocalRange;
   final List<String> preferredCategories;
   final TrainingGoal trainingGoal;
@@ -129,10 +152,12 @@ class VocalPreferences {
     required this.preferredCategories,
     required this.trainingGoal,
     this.voiceCalibration,
+    this.gender,
   });
 
   factory VocalPreferences.fromJson(Map<String, dynamic> json) {
     return VocalPreferences(
+      gender: profileGenderFromString(json['gender']),
       vocalRange: vocalRangeFromString(json['vocal_range'] as String),
       preferredCategories: List<String>.from(
         json['preferred_categories'] as List,
@@ -147,6 +172,7 @@ class VocalPreferences {
   }
 
   Map<String, dynamic> toJson() => {
+        if (gender != null) 'gender': profileGenderToString(gender!),
         'vocal_range': vocalRangeToString(vocalRange),
         'preferred_categories': preferredCategories,
         'training_goal': trainingGoalToString(trainingGoal),
@@ -198,6 +224,7 @@ class VoiceCalibration {
 }
 
 class VocalPreferencesUpdate {
+  final ProfileGender? gender;
   final VocalRange? vocalRange;
   final List<String>? preferredCategories;
   final TrainingGoal? trainingGoal;
@@ -208,10 +235,12 @@ class VocalPreferencesUpdate {
     this.preferredCategories,
     this.trainingGoal,
     this.voiceCalibration,
+    this.gender,
   });
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
+    if (gender != null) map['gender'] = profileGenderToString(gender!);
     if (vocalRange != null) {
       map['vocal_range'] = vocalRangeToString(vocalRange!);
     }

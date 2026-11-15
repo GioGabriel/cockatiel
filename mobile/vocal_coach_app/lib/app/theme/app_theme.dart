@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_theme_tokens.dart';
 
 /// Cockatiel's shared visual system.
 ///
-/// Surfaces are intentionally matte and layered. Accent colors communicate
-/// state and interaction; decorative gradients and uncontrolled glow effects
-/// are not part of the product language.
+/// Midnight surfaces, lavender actions and pink accents follow the client reference.
+/// Text and controls retain solid surfaces for legibility.
 class AppTheme {
   AppTheme._();
 
-  static const _lightPrimary = Color(0xFF006B57);
-  static const _lightSecondary = Color(0xFF315A92);
-  static const _lightBackground = Color(0xFFF7F9FC);
+  static const _lightPrimary = Color(0xFF7040BA);
+  static const _lightSecondary = Color(0xFF8F3C7E);
+  static const _lightBackground = Color(0xFFF9F5FF);
 
-  static const _darkBackground = Color(0xFF0B0E14);
-  static const _darkSurface = Color(0xFF121722);
-  static const _darkSurfaceRaised = Color(0xFF1A2230);
-  static const _darkBorder = Color(0xFF2B3545);
-  static const _darkPrimary = Color(0xFF66D9B0);
-  static const _darkSecondary = Color(0xFF9DB8FF);
+  static const _darkBackground = Color(0xFF070419);
+  static const _darkSurface = Color(0xFF120C2B);
+  static const _darkSurfaceRaised = Color(0xFF21143C);
+  static const _darkBorder = Color(0xFF483460);
+  static const _darkPrimary = Color(0xFFC4A7FF);
+  static const _darkSecondary = Color(0xFFF2A7D5);
 
   static ThemeData light() {
     final scheme = ColorScheme.fromSeed(
@@ -31,7 +29,7 @@ class AppTheme {
       primary: _lightPrimary,
       secondary: _lightSecondary,
       surface: Colors.white,
-      surfaceContainerHighest: const Color(0xFFE9EEF5),
+      surfaceContainerHighest: const Color(0xFFF5EEFF),
       onSurface: const Color(0xFF17202A),
       onSurfaceVariant: const Color(0xFF52606D),
       outline: const Color(0xFFB7C2CF),
@@ -61,15 +59,15 @@ class AppTheme {
       surface: _darkSurface,
     ).copyWith(
       primary: _darkPrimary,
-      onPrimary: const Color(0xFF00382D),
+      onPrimary: const Color(0xFF28134D),
       secondary: _darkSecondary,
-      onSecondary: const Color(0xFF102E5B),
+      onSecondary: const Color(0xFF451337),
       surface: _darkSurface,
       surfaceContainerHighest: _darkSurfaceRaised,
-      onSurface: const Color(0xFFE9EEF5),
-      onSurfaceVariant: const Color(0xFFB4BFCD),
+      onSurface: const Color(0xFFF5EEFF),
+      onSurfaceVariant: const Color(0xFFC6B9DA),
       outline: _darkBorder,
-      outlineVariant: const Color(0xFF222B39),
+      outlineVariant: const Color(0xFF332446),
     );
 
     return _buildTheme(
@@ -81,7 +79,7 @@ class AppTheme {
       tokens: const AppThemeTokens(
         success: Color(0xFF69E6AB),
         warning: Color(0xFFFFD166),
-        info: Color(0xFF9DB8FF),
+        info: Color(0xFFF2A7D5),
         danger: Color(0xFFFFB4AB),
         focusRing: _darkPrimary,
       ),
@@ -98,7 +96,7 @@ class AppTheme {
   }) {
     final textTheme = _buildTextTheme(brightness);
     final fieldBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(28),
       borderSide: BorderSide(color: scheme.outline),
     );
 
@@ -125,7 +123,7 @@ class AppTheme {
         margin: EdgeInsets.zero,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(24),
           side: BorderSide(color: scheme.outlineVariant),
         ),
       ),
@@ -153,8 +151,9 @@ class AppTheme {
           minimumSize: const Size.fromHeight(50),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          textStyle:
+              const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -164,36 +163,38 @@ class AppTheme {
           foregroundColor: scheme.onSurface,
           side: BorderSide(color: scheme.outline),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          textStyle:
+              const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: scheme.primary,
           minimumSize: const Size(48, 48),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+          textStyle:
+              const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: raisedSurface,
         selectedColor: scheme.primary.withValues(alpha: 0.18),
         side: BorderSide(color: scheme.outline),
-        labelStyle: GoogleFonts.inter(color: scheme.onSurface),
+        labelStyle: TextStyle(fontFamily: 'Inter', color: scheme.onSurface),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: background,
         indicatorColor: scheme.primary.withValues(alpha: 0.18),
         surfaceTintColor: Colors.transparent,
-        labelTextStyle: WidgetStatePropertyAll(
-          GoogleFonts.inter(fontWeight: FontWeight.w600),
+        labelTextStyle: const WidgetStatePropertyAll(
+          TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
         ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: surface,
@@ -204,7 +205,8 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: raisedSurface,
-        contentTextStyle: GoogleFonts.inter(color: scheme.onSurface),
+        contentTextStyle:
+            TextStyle(fontFamily: 'Inter', color: scheme.onSurface),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
@@ -216,23 +218,24 @@ class AppTheme {
     final base = brightness == Brightness.light
         ? Typography.material2021().black
         : Typography.material2021().white;
-    final outfitTheme =
-        GoogleFonts.outfitTextTheme(GoogleFonts.interTextTheme(base));
+    final outfitTheme = base.apply(fontFamily: 'Inter');
     return outfitTheme.copyWith(
-      displayLarge:
-          outfitTheme.displayLarge?.copyWith(fontWeight: FontWeight.w700),
-      displayMedium:
-          outfitTheme.displayMedium?.copyWith(fontWeight: FontWeight.w700),
-      headlineLarge:
-          outfitTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w700),
-      headlineMedium:
-          outfitTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
-      headlineSmall:
-          outfitTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-      titleLarge: outfitTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-      titleMedium:
-          outfitTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-      titleSmall: outfitTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      displayLarge: outfitTheme.displayLarge
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w700),
+      displayMedium: outfitTheme.displayMedium
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w700),
+      headlineLarge: outfitTheme.headlineLarge
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
+      headlineMedium: outfitTheme.headlineMedium
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
+      headlineSmall: outfitTheme.headlineSmall
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
+      titleLarge: outfitTheme.titleLarge
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w700),
+      titleMedium: outfitTheme.titleMedium
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
+      titleSmall: outfitTheme.titleSmall
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
       bodyLarge: outfitTheme.bodyLarge?.copyWith(height: 1.45),
       bodyMedium: outfitTheme.bodyMedium?.copyWith(height: 1.42),
       labelLarge: outfitTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),

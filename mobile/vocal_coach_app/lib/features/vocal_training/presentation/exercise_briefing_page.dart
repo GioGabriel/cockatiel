@@ -12,6 +12,7 @@ import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/scrollable_action_layout.dart';
 import '../domain/vocal_coach_catalog.dart';
 import 'training_session_page.dart';
+import 'warmup_note_explorer_page.dart';
 
 class ExerciseBriefingPage extends StatefulWidget {
   const ExerciseBriefingPage({
@@ -322,6 +323,18 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
         });
         return;
       }
+
+      if (!mounted) return;
+      final warmupSelection =
+          await Navigator.of(context).push<WarmupNoteSelection>(
+        slideUpRoute(
+          builder: (_) => WarmupNoteExplorerPage(
+            tonicKey: _selectedKey,
+            octave: _selectedOctave,
+          ),
+        ),
+      );
+      if (!mounted || warmupSelection == null) return;
     }
 
     setState(() {
@@ -761,7 +774,11 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
                   child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.play_arrow_rounded),
           label: Text(
-            _isStarting ? 'Starting...' : 'Start Session',
+            _isStarting
+                ? 'Starting...'
+                : _requiresMicrophone
+                    ? 'Warm up & start'
+                    : 'Start Session',
             style: const TextStyle(fontSize: 16),
           ),
         ),

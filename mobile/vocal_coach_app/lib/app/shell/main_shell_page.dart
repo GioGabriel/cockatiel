@@ -150,7 +150,7 @@ class _FloatingNavBar extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.music_note_rounded,
-                label: 'Karaoke',
+                label: 'Songs',
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
               ),

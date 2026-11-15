@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vocal_coach_app/core/scoring/vocal_metric_scorer.dart';
+import 'package:vocal_coach_app/shared/utils/vocal_utils.dart';
 
 void _addFrames(
   VocalMetricAccumulator accumulator, {
@@ -73,6 +74,26 @@ void main() {
 
     expect(summary.pitchAccuracy, lessThan(80));
     expect(summary.pitchStability, greaterThan(90));
+  });
+
+  test('reports signed segment bias using the canonical cents relationship',
+      () {
+    final accumulator = VocalMetricAccumulator();
+    final sharpFrequency = 440 * math.pow(2, 35 / 1200);
+    _addFrames(
+      accumulator,
+      count: 40,
+      frequencyHz: sharpFrequency.toDouble(),
+    );
+
+    final segment =
+        accumulator.build().evidence['segments'].single as Map<String, dynamic>;
+
+    expect(
+      segment['pitch_bias_cents'],
+      closeTo(centsErrorForFrequencies(sharpFrequency.toDouble(), 440), 0.01),
+    );
+    expect(segment['pitch_bias_cents'], greaterThan(0));
   });
 
   test('treats missing voice as missing evidence, not a perfect attempt', () {

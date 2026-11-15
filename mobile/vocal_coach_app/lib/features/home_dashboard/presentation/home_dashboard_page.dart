@@ -15,6 +15,8 @@ import '../../../shared/animations/micro_interaction.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../analytics_dashboard/presentation/analytics_dashboard_page.dart';
 import '../../history/presentation/practice_history_page.dart';
+import '../../vocal_training/presentation/practice_plan_page.dart';
+import '../../../shared/widgets/voice_studio.dart';
 
 class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({
@@ -142,7 +144,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vocal Coach'),
+        title: const Text('Cockatiel'),
         actions: [
           IconButton(
             onPressed: () {
@@ -209,7 +211,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: VoiceStageBackground(
+          child: RefreshIndicator(
         onRefresh: () async {
           setState(() {
             _loadingDashboard = true;
@@ -230,6 +233,9 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
               const SizedBox(height: 16),
             ],
 
+            _buildPracticeActions(theme),
+            const SizedBox(height: 20),
+
             // Recent Activity Shortcut
             _buildRecentActivityShortcut(theme),
             const SizedBox(height: 24),
@@ -242,7 +248,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
             _buildRecommendations(theme),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -271,6 +277,65 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
         ),
       ],
     );
+  }
+
+  Widget _buildPracticeActions(ThemeData theme) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text('Your voice.\nYour next chapter.',
+          style: theme.textTheme.headlineLarge),
+      const SizedBox(height: 20),
+      Semantics(
+          button: true,
+          label: 'Open guided vocal training',
+          child: StudioCard(
+              accent: true,
+              onTap: () => TabSwitchNotification(1).dispatch(context),
+              child: Row(children: [
+                const VoiceHero(size: 100),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text('Voice studio',
+                          style: theme.textTheme.titleLarge
+                              ?.copyWith(color: Colors.white)),
+                      const SizedBox(height: 6),
+                      const Text('Warm up. Follow a note. Find your flow.',
+                          style: TextStyle(color: Colors.white)),
+                    ])),
+                const Icon(Icons.north_east_rounded, color: Colors.white),
+              ]))),
+      const SizedBox(height: 12),
+      StudioCard(
+          child: Column(children: [
+        ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.music_note_rounded),
+            title: const Text('Song Practice'),
+            subtitle: const Text('Church songs · backing tracks · live lyrics'),
+            trailing: const Icon(Icons.arrow_forward_rounded),
+            onTap: () => TabSwitchNotification(2).dispatch(context)),
+        const Divider(),
+        ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.calendar_month_rounded),
+            title: const Text('Build a practice rhythm'),
+            subtitle: const Text('A short routine, one goal at a time'),
+            trailing: const Icon(Icons.arrow_forward_rounded),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => PracticePlanPage(
+                      onTrain: () {
+                        Navigator.of(context).pop();
+                        TabSwitchNotification(1).dispatch(context);
+                      },
+                      onSong: () {
+                        Navigator.of(context).pop();
+                        TabSwitchNotification(2).dispatch(context);
+                      },
+                    )))),
+      ])),
+    ]);
   }
 
   String _getGreeting() {
@@ -515,9 +580,11 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
               ],
             ),
             const SizedBox(height: 16),
-            // Practice history and analytics links
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Let the navigation actions wrap on compact displays.
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 TextButton.icon(
                   onPressed: () {

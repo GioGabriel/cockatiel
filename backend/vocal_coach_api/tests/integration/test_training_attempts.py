@@ -284,3 +284,25 @@ def test_karaoke_attempt_saves_and_finalizes(client, auth_headers):
   )
   assert attempt_resp.status_code == 201
   assert attempt_resp.json()["attempt"]["score"] > 0
+
+
+def test_song_attempts_accept_full_length_recordings_and_enforce_duration_bounds(client, auth_headers, monkeypatch):
+  catalog = client.get('/v1/karaoke/catalog', headers=auth_headers).json()
+  drill = {**catalog['categories'][0]['drills'][0], 'duration_sec': 600}
+  drill_id = drill['drill_id']
+  monkeypatch.setattr('app.modules.karaoke.service.get_drill_by_id', lambda _: drill)
+  for duration, expected_status in [(480, 201), (600, 201), (601, 422), (9, 422)]:
+    created = client.post('/v1/sessions', headers=auth_headers,
+      json={'mode': 'karaoke', 'exercise_type': drill_id})
+    assert created.status_code == 201
+    session_id = created.json()['session_id']
+    payload = _voice_attempt_payload(index=1, score_seed=70)
+    payload['duration_sec'] = duration
+    response = client.post(f'/v1/sessions/{session_id}/attempts', headers=auth_headers, json=payload)
+    assert response.status_code == expected_status
+    if expected_status == 201:
+      assert response.json()['attempt']['duration_sec'] == duration
+      detail = client.get(f'/v1/sessions/{session_id}', headers=auth_headers)
+      assert detail.status_code == 200
+      assert detail.json()['training_config']['duration_sec'] == 600
+      assert detail.json()['attempts'][0]['duration_sec'] == duration

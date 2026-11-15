@@ -4,6 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vocal_coach_app/core/audio/live_audio_analyzer.dart';
 
 void main() {
+  test('default live detector covers the full practical singing envelope', () {
+    expect(defaultLivePitchMinFrequencyHz, 60);
+    expect(defaultLivePitchMaxFrequencyHz, 1200);
+  });
+
   test('extracts bounded acoustic evidence from a voiced frame', () {
     const sampleRate = 16000;
     final frame = List<int>.generate(
@@ -36,5 +41,25 @@ void main() {
     expect(features.spectralCentroidHz, 0);
     expect(features.spectralRolloffHz, 0);
     expect(features.clippingRatio, 0);
+  });
+
+  test('calibrates a bounded gate from a robust ambient-noise percentile', () {
+    expect(
+      calibratedLoudnessFloorDb(<double>[
+        -60,
+        -52,
+        -50,
+        -49,
+        -48,
+        -10,
+        double.nan,
+      ]),
+      closeTo(-42, 0.001),
+    );
+    expect(calibratedLoudnessFloorDb(const <double>[]), isNull);
+    expect(
+      calibratedLoudnessFloorDb([-48], percentile: 1.1),
+      isNull,
+    );
   });
 }

@@ -684,24 +684,24 @@ class TrainingAttemptMetricSummary {
     if (metricMode == 'breathing') {
       return {
         'metric_mode': metricMode,
-        'sample_count': sampleCount,
-        'phase_completion_rate': phaseCompletionRate,
-        'pace_adherence': paceAdherence,
-        'cycle_consistency': cycleConsistency,
-        'completion_rate': completionRate,
-        'interruption_count': interruptionCount,
+        'sample_count': _wireSampleCount(sampleCount),
+        'phase_completion_rate': _wireScore(phaseCompletionRate),
+        'pace_adherence': _wireScore(paceAdherence),
+        'cycle_consistency': _wireScore(cycleConsistency),
+        'completion_rate': _wireScore(completionRate),
+        'interruption_count': _wireInterruptionCount(interruptionCount),
         if (evidence != null) 'evidence': evidence,
       };
     }
     return {
       'metric_mode': metricMode,
-      'sample_count': sampleCount,
-      'pitch_accuracy': pitchAccuracy,
-      'timing_accuracy': timingAccuracy,
-      'breath_control': breathControl,
-      'pitch_stability': pitchStability,
-      'vibrato_consistency': vibratoConsistency,
-      'note_transition_smoothness': noteTransitionSmoothness,
+      'sample_count': _wireSampleCount(sampleCount),
+      'pitch_accuracy': _wireScore(pitchAccuracy),
+      'timing_accuracy': _wireScore(timingAccuracy),
+      'breath_control': _wireScore(breathControl),
+      'pitch_stability': _wireScore(pitchStability),
+      'vibrato_consistency': _wireScore(vibratoConsistency),
+      'note_transition_smoothness': _wireScore(noteTransitionSmoothness),
       if (evidence != null) 'evidence': _normalizedVoiceEvidence(evidence!),
     };
   }
@@ -773,11 +773,12 @@ Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
 
   final rawSegments = normalized['segments'];
   if (rawSegments is List) {
-    normalized['segments'] = rawSegments.map((item) {
-      if (item is! Map) {
-        return item;
-      }
+    final validSegments = <Map<String, dynamic>>[];
+    for (final item in rawSegments) {
+      if (item is! Map) continue;
       final rawSegment = Map<String, dynamic>.from(item);
+      final segmentId = rawSegment['segment_id'];
+      if (segmentId is! String || segmentId.trim().isEmpty) continue;
       final segment = <String, dynamic>{
         for (final entry in rawSegment.entries)
           if (_legacyCompatibleSegmentKeys.contains(entry.key))
@@ -789,18 +790,36 @@ Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
       segment['p95_abs_cents'] = _finiteNumberOrZero(
         segment['p95_abs_cents'],
       );
-      return segment;
-    }).toList(growable: false);
+      validSegments.add(segment);
+    }
+    normalized['segments'] = validSegments;
+  } else if (rawSegments != null) {
+    // The deployed contract expects an array. Dropping an invalid optional
+    // field is safer than sending null or an arbitrary object and receiving a
+    // union-validation error from the server.
+    normalized.remove('segments');
   }
 
   return normalized;
 }
 
 num _finiteNumberOrZero(Object? value) {
-  if (value is num && value.isFinite) {
-    return value;
+  if (value is num && value.isFinite && value >= 0) {
+    return value.toDouble().clamp(0.0, 1200.0).toDouble();
   }
   return 0.0;
+}
+
+int _wireSampleCount(int value) => value < 1 ? 1 : value;
+
+double _wireScore(double? value) {
+  if (value == null || !value.isFinite) return 0.0;
+  return value.clamp(0.0, 100.0).toDouble();
+}
+
+int _wireInterruptionCount(int? value) {
+  if (value == null || value < 0) return 0;
+  return value.clamp(0, 20);
 }
 
 Map<String, dynamic>? _mapFromJson(Object? value) {

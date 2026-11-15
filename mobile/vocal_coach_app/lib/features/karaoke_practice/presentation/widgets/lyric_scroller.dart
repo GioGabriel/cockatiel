@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../karaoke_singing_page.dart';
+import '../../domain/song_content_parser.dart';
 
 class LyricScroller extends StatefulWidget {
   const LyricScroller({

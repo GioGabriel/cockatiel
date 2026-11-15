@@ -54,6 +54,25 @@ class TestGetUserProfile:
 
 
 class TestUpdateVocalPreferences:
+  @pytest.mark.parametrize('gender', ['male', 'female', 'non_binary', 'prefer_not_to_say', None])
+  def test_optional_gender_is_persisted_without_restricting_voice_range(self, gender) -> None:
+    _create_user('u1')
+    prefs = {
+      'vocal_range': 'tenor',
+      'preferred_categories': ['karaoke'],
+      'training_goal': 'pitch_improvement',
+      'gender': gender,
+    }
+    result = update_vocal_preferences('u1', prefs)
+    assert result['vocal_preferences'] == prefs
+
+  @pytest.mark.parametrize('gender', ['invalid', [], {}, True])
+  def test_invalid_gender_is_rejected(self, gender) -> None:
+    _create_user('u1')
+    with pytest.raises(ApiError) as error:
+      update_vocal_preferences('u1', {'gender': gender})
+    assert error.value.status_code == 422
+
   def test_returns_canonical_profile_when_legacy_repository_response_omits_access_tier(
     self,
     monkeypatch: pytest.MonkeyPatch,

@@ -21,6 +21,11 @@ import '../../../shared/widgets/glass_card.dart';
 import '../../ai_feedback_display/presentation/analysis_queue_page.dart';
 import '../../ai_feedback_display/presentation/feedback_page.dart';
 import 'widgets/karaoke_pitch_visualizer.dart';
+import '../../../shared/widgets/practice_focus.dart';
+
+bool _isUsableFrequency(double? frequencyHz) {
+  return frequencyHz != null && frequencyHz.isFinite && frequencyHz > 0;
+}
 
 class TrainingSessionPage extends StatefulWidget {
   const TrainingSessionPage({
@@ -61,15 +66,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     'Tip: Aim to land notes from below for smoother intonation.',
     'Tip: Keep phrases connected; avoid sudden breath drops.',
   ];
-  static const Map<String, double> _targetFrequenciesHz = {
-    'Do': 261.63,
-    'Re': 293.66,
-    'Mi': 329.63,
-    'Fa': 349.23,
-    'Sol': 392.00,
-    'La': 440.00,
-    'Ti': 493.88,
-  };
   static const List<String> _keyOptions = [
     'C',
     'C#',
@@ -84,20 +80,6 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     'A#',
     'B',
   ];
-  static const Map<String, int> _keySemitoneOffsets = {
-    'C': 0,
-    'C#': 1,
-    'D': 2,
-    'D#': 3,
-    'E': 4,
-    'F': 5,
-    'F#': 6,
-    'G': 7,
-    'G#': 8,
-    'A': 9,
-    'A#': 10,
-    'B': 11,
-  };
   bool _isLoadingSessionMeta = true;
   bool _isSavingAttempt = false;
   bool _isFinalizing = false;
@@ -120,7 +102,9 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   int _attemptDurationSec = 20;
   int _maxAttempts = 3;
   int _secondsRemaining = 0;
-  double _loudnessFloorDb = -42;
+  double _loudnessFloorDb = -50;
+  late final double _configuredMinFrequencyHz;
+  late final double _configuredMaxFrequencyHz;
   bool _isAttemptRunning = false;
   bool _isCalibratingLoudness = false;
   String? _error;
@@ -145,8 +129,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   final List<PitchPoint> _pitchHistory = [];
 
   int _onTargetFrameStreak = 0;
-  int _calibrationFrameCount = 0;
-  double _calibrationLoudnessTotal = 0;
+  final List<double> _calibrationLoudnessSamples = <double>[];
   String? _announcedStageId;
   int _breathingCompletedPhaseCount = 0;
   int _breathingInterruptionCount = 0;
@@ -155,33 +138,24 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
   void initState() {
     super.initState();
     final prefs = widget.appState.currentUser?.vocalPreferences;
-    int minFreq = 80;
-    int maxFreq = 520;
-    if (prefs != null) {
-      final range = prefs.vocalRange.name.toLowerCase();
-      if (range.contains('bass')) {
-        minFreq = 70;
-        maxFreq = 330;
-      } else if (range.contains('baritone')) {
-        minFreq = 90;
-        maxFreq = 400;
-      } else if (range.contains('tenor')) {
-        minFreq = 130;
-        maxFreq = 520;
-      } else if (range.contains('alto')) {
-        minFreq = 170;
-        maxFreq = 700;
-      } else if (range.contains('mezzo')) {
-        minFreq = 200;
-        maxFreq = 900;
-      } else if (range.contains('soprano')) {
-        minFreq = 250;
-        maxFreq = 1100;
-      }
-    }
+    final configuredRange = prefs == null
+        ? const <String, double>{'min': 80, 'max': 520}
+        : vocalRangeFrequencyBounds(prefs.vocalRange.name);
+    _configuredMinFrequencyHz = configuredRange['min'] ?? 80;
+    _configuredMaxFrequencyHz = configuredRange['max'] ?? 520;
     _liveAudioAnalyzer = LiveAudioAnalyzer(
-      minFrequencyHz: minFreq,
-      maxFrequencyHz: maxFreq,
+      // Keep the detector broad enough to identify a note outside the selected
+      // profile range. The profile still controls the map envelope; detection
+      // headroom lets guidance say "higher/lower" instead of hiding a valid
+      // fundamental behind "no clear note".
+      minFrequencyHz: min(
+        _configuredMinFrequencyHz.round(),
+        defaultLivePitchMinFrequencyHz,
+      ),
+      maxFrequencyHz: max(
+        _configuredMaxFrequencyHz.round(),
+        defaultLivePitchMaxFrequencyHz,
+      ),
     );
     _metricAccumulator = VocalMetricAccumulator();
     _livePitchGuidance = LivePitchGuidanceController();
@@ -324,6 +298,19 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     final activeStage = _activeRuntimeStage;
     final isRest = _activeStageIsRest;
     final targetHz = isRest ? null : _activeTargetFrequency();
+    final measuredFrequencyHz =
+        _isUsableFrequency(frame.frequencyHz) ? frame.frequencyHz : null;
+    final loudnessDb = frame.loudnessDb.isFinite ? frame.loudnessDb : -120.0;
+    final confidence = frame.confidence.isFinite
+        ? frame.confidence.clamp(0.0, 1.0).toDouble()
+        : 0.0;
+    final clippingRatio =
+        frame.clippingRatio != null && frame.clippingRatio!.isFinite
+            ? frame.clippingRatio!
+            : 0.0;
+    final frameIsVoiced = frame.voiced &&
+        _isUsableFrequency(measuredFrequencyHz) &&
+        loudnessDb > _loudnessFloorDb;
     double? nextFrequency = _liveFrequencyHz;
     String? nextDetectedLabel = _detectedNoteLabel;
     var nextCentsError = _currentCentsError;
@@ -332,34 +319,31 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     if (_isCalibratingLoudness) {
       // Calibration measures the quiet room/microphone floor, not vocal power.
       if (!frame.voiced && frame.loudnessDb.isFinite) {
-        _calibrationFrameCount += 1;
-        _calibrationLoudnessTotal += frame.loudnessDb;
+        _calibrationLoudnessSamples.add(frame.loudnessDb);
       }
     }
 
     final guidance = _livePitchGuidance.update(
       isAttemptRunning: _isAttemptRunning,
       hasTarget: targetHz != null,
-      voiced: frame.voiced &&
-          frame.frequencyHz != null &&
-          frame.loudnessDb > _loudnessFloorDb,
-      confidence: frame.confidence,
-      loudnessDb: frame.loudnessDb,
-      centsError: targetHz == null || frame.frequencyHz == null
+      voiced: frameIsVoiced,
+      confidence: confidence,
+      loudnessDb: loudnessDb,
+      centsError: targetHz == null || measuredFrequencyHz == null
           ? 0
-          : _centsDifference(frame.frequencyHz!, targetHz),
-      clippingRatio: frame.clippingRatio ?? 0,
+          : centsErrorForFrequencies(measuredFrequencyHz, targetHz),
+      clippingRatio: clippingRatio,
       quietFloorDb: _loudnessFloorDb,
     );
 
-    if (frame.frequencyHz != null &&
-        frame.voiced &&
+    if (measuredFrequencyHz != null &&
+        frameIsVoiced &&
         targetHz != null &&
         _livePitchGuidance.lastFrameMeasurable) {
-      final frequencyHz = frame.frequencyHz!;
-      final centsError = _centsDifference(frequencyHz, targetHz);
+      final frequencyHz = measuredFrequencyHz;
+      final centsError = centsErrorForFrequencies(frequencyHz, targetHz);
       final absCents = centsError.abs();
-      final loudEnough = frame.loudnessDb > _loudnessFloorDb;
+      final loudEnough = loudnessDb > _loudnessFloorDb;
       final onPitch = absCents <= 30 && loudEnough;
 
       if (onPitch) {
@@ -369,7 +353,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
       }
 
       if (_runtimePlan == null && _onTargetFrameStreak >= 4) {
-        _solfegeIndex = (_solfegeIndex + 1) % _targetFrequenciesHz.length;
+        _solfegeIndex = (_solfegeIndex + 1) % canonicalSolfegeLabels.length;
         _onTargetFrameStreak = 0;
         nextStatus = 'On target. Move to ${_activeTargetLabel()}';
       } else {
@@ -403,12 +387,10 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                 ? null
                 : activeStage?.targetLabel ?? _activeTargetLabel(),
             targetFrequencyHz: targetHz,
-            frequencyHz: frame.frequencyHz,
-            loudnessDb: frame.loudnessDb,
-            voiced: frame.voiced &&
-                frame.loudnessDb > _loudnessFloorDb &&
-                _livePitchGuidance.lastFrameMeasurable,
-            confidence: frame.confidence,
+            frequencyHz: measuredFrequencyHz,
+            loudnessDb: loudnessDb,
+            voiced: frameIsVoiced && _livePitchGuidance.lastFrameMeasurable,
+            confidence: confidence,
             zeroCrossingRate: frame.zeroCrossingRate,
             spectralCentroidHz: frame.spectralCentroidHz,
             spectralRolloffHz: frame.spectralRolloffHz,
@@ -421,24 +403,23 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     }
 
     setState(() {
-      _liveLoudnessDb = frame.loudnessDb;
+      _liveLoudnessDb = loudnessDb;
       _liveFrequencyHz = nextFrequency;
       _detectedNoteLabel = nextDetectedLabel;
       _currentCentsError = nextCentsError;
-      _livePitchConfidence = frame.confidence;
-      _liveFrameMeasurable = nextFrequency != null &&
+      _livePitchConfidence = confidence;
+      _liveFrameMeasurable = _isUsableFrequency(nextFrequency) &&
           targetHz != null &&
           _livePitchGuidance.lastFrameMeasurable;
       _microphoneStatus = nextStatus;
 
       if (_isAttemptRunning && _attemptStopwatch.isRunning) {
         final elapsed = _attemptStopwatch.elapsedMilliseconds / 1000.0;
-        final double pitchToSave = (frame.frequencyHz != null &&
-                frame.voiced &&
-                frame.confidence >= 0.45 &&
-                frame.loudnessDb > _loudnessFloorDb &&
+        final double pitchToSave = (measuredFrequencyHz != null &&
+                frameIsVoiced &&
+                confidence >= 0.45 &&
                 _livePitchGuidance.lastFrameMeasurable)
-            ? frame.frequencyHz!
+            ? measuredFrequencyHz
             : 0.0;
         _pitchHistory.add(PitchPoint(elapsed, pitchToSave));
         // Keep last 6 seconds of history (so it scrolls off screen smoothly)
@@ -494,20 +475,15 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     _metricAccumulator.reset();
   }
 
-  double _centsDifference(double frequencyHz, double targetHz) {
-    if (frequencyHz <= 0 || targetHz <= 0) {
-      return 0;
-    }
-    return 1200 * (log(frequencyHz / targetHz) / ln2);
-  }
-
   String _closestNoteLabel(double frequencyHz) {
     var bestLabel = 'Do';
     var bestDistance = double.infinity;
-    for (final label in _targetFrequenciesHz.keys) {
-      final cents = _centsDifference(
+    for (final label in canonicalSolfegeLabels) {
+      final targetFrequency = _targetFrequencyForLabel(label);
+      if (targetFrequency == null) continue;
+      final cents = centsErrorForFrequencies(
         frequencyHz,
-        _targetFrequencyForLabel(label),
+        targetFrequency,
       ).abs();
       if (cents < bestDistance) {
         bestDistance = cents;
@@ -654,8 +630,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
 
     setState(() {
       _isCalibratingLoudness = true;
-      _calibrationFrameCount = 0;
-      _calibrationLoudnessTotal = 0;
+      _calibrationLoudnessSamples.clear();
       _error = null;
       _status =
           'Measuring room noise... stay quiet for 3 seconds, then sing normally.';
@@ -667,7 +642,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         return;
       }
 
-      if (_calibrationFrameCount < 6) {
+      if (_calibrationLoudnessSamples.length < 6) {
         setState(() {
           _isCalibratingLoudness = false;
           _error = 'Noise check failed. Stay quiet and try again.';
@@ -675,10 +650,16 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         return;
       }
 
-      final averageLoudness =
-          _calibrationLoudnessTotal / _calibrationFrameCount;
-      // The margin is a provisional engineering gate above the measured noise.
-      final calibratedFloor = (averageLoudness + 8).clamp(-52.0, -28.0);
+      final calibratedFloor = calibratedLoudnessFloorDb(
+        _calibrationLoudnessSamples,
+      );
+      if (calibratedFloor == null) {
+        setState(() {
+          _isCalibratingLoudness = false;
+          _error = 'Noise check failed. Stay quiet and try again.';
+        });
+        return;
+      }
 
       setState(() {
         _isCalibratingLoudness = false;
@@ -924,6 +905,21 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     );
   }
 
+  void _stopAttemptWithoutSaving() {
+    if (!_isAttemptRunning) return;
+    _attemptTimer?.cancel();
+    _attemptStopwatch.stop();
+    _resetMetricsWindow();
+    setState(() {
+      _isAttemptRunning = false;
+      _secondsRemaining = 0;
+      _announcedStageId = null;
+      _error = null;
+      _status =
+          'Take stopped. No score was saved. Start again when you feel ready.';
+    });
+  }
+
   Future<void> _completeAttempt() async {
     _attemptTimer?.cancel();
     _attemptStopwatch.stop();
@@ -1091,8 +1087,8 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
     if (runtimeStage != null) {
       return _activeStageIsRest ? 'Rest' : runtimeStage.targetLabel;
     }
-    return _targetFrequenciesHz.keys.elementAt(
-      _solfegeIndex % _targetFrequenciesHz.length,
+    return canonicalSolfegeLabels.elementAt(
+      _solfegeIndex % canonicalSolfegeLabels.length,
     );
   }
 
@@ -1109,84 +1105,34 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         'Stay relaxed, centered, and connected to the target note.';
   }
 
-  double _activeTargetFrequency() {
+  double? _activeTargetFrequency() {
     final runtimeStage = _activeRuntimeStage;
     final canonicalFrequency = runtimeStage?.target.frequencyHz;
-    if (canonicalFrequency != null && canonicalFrequency > 0) {
+    if (_isUsableFrequency(canonicalFrequency)) {
       return canonicalFrequency;
     }
-    return _targetFrequencyForLabel(_activeTargetLabel());
+    final target = runtimeStage?.target;
+    return frequencyHzForPitchLabel(
+      target?.solfege ?? _activeTargetLabel(),
+      key: target?.key ?? _selectedKey,
+      octave: target?.octave ?? _selectedOctave,
+    );
   }
 
-  double _targetFrequencyForLabel(String label) {
-    final pitchRegex = RegExp(r'^([A-G][#b]?)([0-9])$', caseSensitive: false);
-    final match = pitchRegex.firstMatch(label);
-    if (match != null) {
-      final noteName = match.group(1)!.toUpperCase();
-      final octave = int.parse(match.group(2)!);
-
-      const absoluteOffsets = {
-        'C': 0,
-        'C#': 1,
-        'DB': 1,
-        'D': 2,
-        'D#': 3,
-        'EB': 3,
-        'E': 4,
-        'F': 5,
-        'F#': 6,
-        'GB': 6,
-        'G': 7,
-        'G#': 8,
-        'AB': 8,
-        'A': 9,
-        'A#': 10,
-        'BB': 10,
-        'B': 11,
-      };
-
-      final noteOffset = absoluteOffsets[noteName] ?? 0;
-      final targetMidi = ((octave + 1) * 12) + noteOffset;
-      return 440.0 * pow(2.0, (targetMidi - 69) / 12).toDouble();
-    }
-
-    final keyOffset = _keySemitoneOffsets[_selectedKey] ?? 0;
-    final scaleOffset = _solfegeSemitoneOffset(label) ?? 0;
-    final tonicMidi = ((_selectedOctave + 1) * 12) + keyOffset;
-    final targetMidi = tonicMidi + scaleOffset;
-    return 440.0 * pow(2.0, (targetMidi - 69) / 12).toDouble();
-  }
-
-  int? _solfegeSemitoneOffset(String label) {
-    var normalized = label.trim().toLowerCase().replaceAll('′', "'");
-    final isHigh = normalized.contains('high') || normalized.endsWith("'");
-    normalized = normalized.replaceAll('high', '').replaceAll("'", '').trim();
-    const offsets = {
-      'do': 0,
-      're': 2,
-      'mi': 4,
-      'fa': 5,
-      'sol': 7,
-      'so': 7,
-      'la': 9,
-      'ti': 11,
-      'si': 11,
-    };
-    final offset = offsets[normalized];
-    if (offset == null) {
-      return null;
-    }
-    return offset + (isHigh ? 12 : 0);
+  double? _targetFrequencyForLabel(String label) {
+    return frequencyHzForPitchLabel(
+      label,
+      key: _selectedKey,
+      octave: _selectedOctave,
+    );
   }
 
   double _pitchVisualizerMinHz() {
-    final root = _targetFrequencyForLabel('C4');
-    return root * 0.5;
+    return _configuredMinFrequencyHz;
   }
 
   double _pitchVisualizerMaxHz() {
-    final root = _targetFrequencyForLabel('C4');
-    return root * 4.0;
+    return _configuredMaxFrequencyHz;
   }
 
   String _liveCoachStatus() {
@@ -1403,6 +1349,48 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         ? _exerciseName
         : (widget.exerciseName ?? 'Session In Progress');
 
+    if (_isAttemptRunning) {
+      return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _onBackPressed();
+          },
+          child: PracticeFocus(
+            title: exerciseTitle,
+            cue: _currentActionTitle,
+            secondsRemaining: _secondsRemaining,
+            progress: attemptProgressValue,
+            onFinish: _stopAttemptWithoutSaving,
+            finishLabel: 'Stop take',
+            visual: _requiresMicrophone && _runtimePlan != null
+                ? KaraokePitchVisualizer(
+                    stages: _runtimePlan!.stages,
+                    currentElapsedSec:
+                        _attemptStopwatch.elapsedMilliseconds / 1000,
+                    pitchHistory: _pitchHistory,
+                    minHz: _pitchVisualizerMinHz(),
+                    maxHz: _pitchVisualizerMaxHz(),
+                    getTargetFrequency: _targetFrequencyForLabel,
+                    isRunning: true,
+                    targetLabel: _activeTargetLabel(),
+                    detectedNoteLabel: _detectedNoteLabel,
+                    detectedFrequencyHz:
+                        _liveFrameMeasurable ? _liveFrequencyHz : null,
+                    detectedCents:
+                        _liveFrameMeasurable ? _currentCentsError : null,
+                    guidance: _livePitchGuidance.current)
+                : Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.air_rounded,
+                        size: 90, color: theme.colorScheme.primary),
+                    const SizedBox(height: 20),
+                    Text(_activeStageInstruction(),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleLarge),
+                  ])),
+          ));
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -1529,7 +1517,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                                 value: _activeTargetLabel(),
                                 supporting: _activeStageIsRest
                                     ? 'Reset before the next note'
-                                    : '${_activeTargetFrequency().toStringAsFixed(1)} Hz · Key $_selectedKey$_selectedOctave',
+                                    : '${_activeTargetFrequency()?.toStringAsFixed(1) ?? '—'} Hz · Key $_selectedKey$_selectedOctave',
                               ),
                             ),
                             if (_nextRuntimeStage != null) ...[
@@ -1980,7 +1968,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                                 _CoachMiniChip(
                                   label: _activeStageIsRest
                                       ? 'Target: rest / breath'
-                                      : 'Target ${_activeTargetFrequency().toStringAsFixed(1)} Hz',
+                                      : 'Target ${_activeTargetFrequency()?.toStringAsFixed(1) ?? '—'} Hz',
                                 ),
                                 _CoachMiniChip(
                                   label:

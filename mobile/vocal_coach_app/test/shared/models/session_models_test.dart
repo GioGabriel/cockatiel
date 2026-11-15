@@ -401,4 +401,88 @@ void main() {
     expect(segment.containsKey('interrupted'), isFalse);
     expect(segment.containsKey('recommendation'), isFalse);
   });
+
+  test(
+      'voice request projection omits malformed segments instead of sending 422 data',
+      () {
+    final summary = TrainingAttemptMetricSummary.voice(
+      sampleCount: 24,
+      pitchAccuracy: 72,
+      timingAccuracy: 68,
+      breathControl: 75,
+      pitchStability: 70,
+      vibratoConsistency: 60,
+      noteTransitionSmoothness: 66,
+      evidence: {
+        'segments': [
+          {'segment_id': 'valid'},
+          {'p95_abs_cents': null},
+          'not-a-segment',
+        ],
+      },
+    );
+
+    final evidence = summary.toCreateJson()['evidence'] as Map<String, dynamic>;
+    final segments = evidence['segments'] as List<dynamic>;
+
+    expect(segments, hasLength(1));
+    expect((segments.single as Map<String, dynamic>)['segment_id'], 'valid');
+    expect((segments.single as Map<String, dynamic>)['mean_abs_cents'], 0.0);
+    expect((segments.single as Map<String, dynamic>)['p95_abs_cents'], 0.0);
+  });
+
+  test('voice and breathing request summaries contain finite contract values',
+      () {
+    final voice = TrainingAttemptMetricSummary.voice(
+      sampleCount: 0,
+      pitchAccuracy: double.nan,
+      timingAccuracy: double.infinity,
+      breathControl: -10,
+      pitchStability: 120,
+      vibratoConsistency: 50,
+      noteTransitionSmoothness: 50,
+      evidence: {
+        'mean_abs_cents': double.nan,
+        'p95_abs_cents': double.infinity,
+        'segments': [
+          {
+            'segment_id': 'stage-1',
+            'mean_abs_cents': -1,
+            'p95_abs_cents': 1300,
+          },
+        ],
+      },
+    );
+    final voiceJson = voice.toCreateJson();
+    final voiceEvidence = voiceJson['evidence'] as Map<String, dynamic>;
+    final voiceSegment = (voiceEvidence['segments'] as List<dynamic>).single
+        as Map<String, dynamic>;
+
+    expect(voiceJson['sample_count'], 1);
+    expect(voiceJson['pitch_accuracy'], 0.0);
+    expect(voiceJson['timing_accuracy'], 0.0);
+    expect(voiceJson['breath_control'], 0.0);
+    expect(voiceJson['pitch_stability'], 100.0);
+    expect(voiceEvidence['mean_abs_cents'], 0.0);
+    expect(voiceEvidence['p95_abs_cents'], 0.0);
+    expect(voiceSegment['mean_abs_cents'], 0.0);
+    expect(voiceSegment['p95_abs_cents'], 1200.0);
+
+    final breathing = TrainingAttemptMetricSummary.breathing(
+      sampleCount: 0,
+      phaseCompletionRate: double.nan,
+      paceAdherence: double.infinity,
+      cycleConsistency: -4,
+      completionRate: 105,
+      interruptionCount: -2,
+    );
+    final breathingJson = breathing.toCreateJson();
+
+    expect(breathingJson['sample_count'], 1);
+    expect(breathingJson['phase_completion_rate'], 0.0);
+    expect(breathingJson['pace_adherence'], 0.0);
+    expect(breathingJson['cycle_consistency'], 0.0);
+    expect(breathingJson['completion_rate'], 100.0);
+    expect(breathingJson['interruption_count'], 0);
+  });
 }

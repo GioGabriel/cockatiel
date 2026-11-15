@@ -154,7 +154,7 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
                   child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.play_arrow_rounded),
           label: Text(
-            _isStarting ? 'Loading...' : 'Start Karaoke',
+            _isStarting ? 'Loading...' : 'Start Song Practice',
             style: const TextStyle(fontSize: 16),
           ),
         ),

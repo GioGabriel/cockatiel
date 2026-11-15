@@ -5,6 +5,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../shared/models/user_models.dart';
 import '../../user_profile/presentation/voice_calibration_page.dart';
+import '../../../shared/widgets/profile_gender_field.dart';
 
 /// A short, optional post-auth step that turns the existing calibration flow
 /// into a discoverable first-run setup without blocking the rest of the app.
@@ -28,6 +29,7 @@ class _VoiceProfileSetupPageState extends State<VoiceProfileSetupPage> {
   bool _isSaving = false;
   String? _errorMessage;
   VoiceTypeResult? _pendingResult;
+  ProfileGender? _gender;
 
   Future<void> _startSetup() async {
     final result = await Navigator.of(context).push<VoiceTypeResult>(
@@ -47,6 +49,7 @@ class _VoiceProfileSetupPageState extends State<VoiceProfileSetupPage> {
 
     try {
       final update = VocalPreferencesUpdate(
+        gender: _gender,
         vocalRange: _rangeFromVoiceType(result.voiceType),
         preferredCategories: const ['vocal_training'],
         trainingGoal: TrainingGoal.generalSkillBuilding,
@@ -148,6 +151,10 @@ class _VoiceProfileSetupPageState extends State<VoiceProfileSetupPage> {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            const SizedBox(height: 20),
+            ProfileGenderField(
+                value: _gender,
+                onChanged: (value) => setState(() => _gender = value)),
             const SizedBox(height: 28),
             FilledButton.icon(
               onPressed: _isSaving ? null : _startSetup,

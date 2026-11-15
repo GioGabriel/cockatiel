@@ -29,7 +29,7 @@ class TrainingSessionConfigIn(BaseModel):
   pace: TrainingPace = "standard"
   phrase_mode: TrainingPhraseMode = "full"
   max_attempts: int | None = Field(default=None, ge=1, le=10)
-  duration_sec: int | None = Field(default=None, ge=10, le=300)
+  duration_sec: int | None = Field(default=None, ge=10, le=600)
 
 
 class MetricSegmentEvidence(BaseModel):
@@ -172,7 +172,7 @@ class BreathingTrainingAttemptMetricSummaryIn(BaseModel):
 class TrainingAttemptCreateIn(BaseModel):
   attempt_index: int = Field(ge=1, le=10)
   difficulty: TrainingDifficulty
-  duration_sec: int = Field(ge=10, le=300)
+  duration_sec: int = Field(ge=10, le=600)
   metric_summary: VoiceTrainingAttemptMetricSummaryIn | BreathingTrainingAttemptMetricSummaryIn
 
 
@@ -205,7 +205,7 @@ class TrainingAttemptOut(BaseModel):
   attempt_id: str
   attempt_index: int = Field(ge=1)
   difficulty: TrainingDifficulty
-  duration_sec: int = Field(ge=10, le=300)
+  duration_sec: int = Field(ge=10, le=600)
   score: float = Field(ge=0, le=100)
   metric_summary: VoiceTrainingAttemptMetricSummaryOut | BreathingTrainingAttemptMetricSummaryOut
   score_breakdown: dict[str, Any] | None = None
@@ -588,6 +588,7 @@ class VoiceCalibration(BaseModel):
 class VocalPreferencesIn(BaseModel):
   model_config = ConfigDict(extra="forbid")
 
+  gender: Literal["male", "female", "non_binary", "prefer_not_to_say"] | None = None
   vocal_range: VocalRange
   preferred_categories: list[str] = Field(min_length=1, max_length=3)
   training_goal: TrainingGoal
@@ -595,6 +596,7 @@ class VocalPreferencesIn(BaseModel):
 
 
 class VocalPreferencesOut(BaseModel):
+  gender: Literal["male", "female", "non_binary", "prefer_not_to_say"] | None = None
   vocal_range: VocalRange
   preferred_categories: list[str]
   training_goal: TrainingGoal

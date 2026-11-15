@@ -79,6 +79,23 @@ void main() {
   });
 
   group('VocalPreferences', () {
+    test(
+        'optional gender survives the profile round trip without changing range',
+        () {
+      final prefs = VocalPreferences.fromJson({
+        'vocal_range': 'tenor',
+        'preferred_categories': ['karaoke'],
+        'training_goal': 'pitch_improvement',
+        'gender': 'female',
+      });
+      expect(prefs.gender, ProfileGender.female);
+      expect(prefs.vocalRange, VocalRange.tenor);
+      expect(prefs.toJson()['gender'], 'female');
+      expect(
+          const VocalPreferencesUpdate(gender: ProfileGender.preferNotToSay)
+              .toJson()['gender'],
+          'prefer_not_to_say');
+    });
     final Map<String, dynamic> sampleJson = {
       'vocal_range': 'tenor',
       'preferred_categories': ['pop', 'jazz'],

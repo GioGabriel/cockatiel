@@ -44,6 +44,21 @@ void main() {
     expect(estimate!.frequencyHz, closeTo(220, 2.0));
   });
 
+  test('does not promote a strong second harmonic to the detected note', () {
+    final samples = List<int>.generate(4096, (index) {
+      final phase = 2 * math.pi * 220 * index / 16000;
+      final sample = 0.08 * math.sin(phase) +
+          0.65 * math.sin(phase * 2) +
+          0.25 * math.sin(phase * 3);
+      return (sample * 32767).round();
+    });
+
+    final estimate = estimator.estimate(samples);
+
+    expect(estimate, isNotNull);
+    expect(estimate!.frequencyHz, closeTo(220, 4.0));
+  });
+
   test('tracks representative vocal frequencies across the configured range',
       () {
     for (final frequencyHz in <double>[100, 196, 330, 523, 880]) {
@@ -54,6 +69,30 @@ void main() {
       expect(estimate, isNotNull, reason: 'missing $frequencyHz Hz estimate');
       expect(estimate!.frequencyHz, closeTo(frequencyHz, 4.0));
     }
+  });
+
+  test('tracks the upper octave used by a full ladder target', () {
+    const fullRangeEstimator = YinPitchEstimator(
+      sampleRate: 16000,
+      minFrequencyHz: 60,
+      maxFrequencyHz: 1200,
+    );
+
+    final estimate = fullRangeEstimator.estimate(
+      _sineWave(frequencyHz: 1046.50),
+    );
+
+    expect(estimate, isNotNull);
+    expect(estimate!.frequencyHz, closeTo(1046.50, 8.0));
+  });
+
+  test('accepts a clean quiet fundamental without requiring shouting', () {
+    final estimate = estimator.estimate(
+      _sineWave(frequencyHz: 440, amplitude: 0.005),
+    );
+
+    expect(estimate, isNotNull);
+    expect(estimate!.frequencyHz, closeTo(440, 2.0));
   });
 
   test('rejects silence and very short frames', () {

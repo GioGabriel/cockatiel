@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
-import '../../../shared/widgets/full_bleed_image_background.dart';
+import '../../../shared/widgets/voice_studio.dart';
 
 enum _AuthView { signIn, signUp, forgotPassword }
 
@@ -142,7 +142,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Welcome\nBack 👋',
+            'Welcome\nback.',
             style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w900,
               height: 1.15,
@@ -609,53 +609,36 @@ class _FullScreenAuthLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FullBleedImageBackground(
-      assetPath: 'assets/images/auth_3d_elements.jpg',
-      semanticLabel: 'Microphone and music notes',
-      child: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 45,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 16, 28, 20),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: topContent,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 55,
-                  child: SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-                    child: bottomContent,
-                  ),
-                ),
-              ],
-            ),
-            if (showBack)
-              Positioned(
-                top: 12,
-                left: 16,
-                child: IconButton(
-                  onPressed: onBack,
-                  tooltip: 'Back to sign in',
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black45,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+    return VoiceStageBackground(
+        child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
+      return SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        child: Center(
+            child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(children: [
+                      if (showBack)
+                        IconButton(
+                            onPressed: onBack,
+                            tooltip: 'Back to sign in',
+                            icon: const Icon(Icons.arrow_back_rounded)),
+                      Text('COCKATIEL',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(letterSpacing: 3)),
+                    ]),
+                    const Center(child: VoiceHero(size: 170)),
+                    topContent,
+                    const SizedBox(height: 24),
+                    StudioCard(child: bottomContent),
+                  ],
+                ))),
+      );
+    })));
   }
 }

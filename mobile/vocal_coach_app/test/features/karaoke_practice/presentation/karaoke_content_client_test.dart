@@ -6,6 +6,29 @@ import 'package:http/testing.dart';
 import 'package:vocal_coach_app/features/karaoke_practice/presentation/karaoke_singing_page.dart';
 
 void main() {
+  test('retains untimed lyrics for the matching recording', () async {
+    final client = KaraokeContentClient(httpClient: MockClient((_) async {
+      return http.Response(
+          jsonEncode([
+            {
+              'trackName': 'A Place at Your Altar',
+              'artistName': 'Randy Rothwell',
+              'duration': 224,
+              'syncedLyrics': null,
+              'plainLyrics': 'First line\nSecond line'
+            },
+          ]),
+          200);
+    }));
+    final result = await client.fetchLyrics(
+        title: 'A Place at Your Altar',
+        artist: 'Randy Rothwell',
+        durationSec: 224);
+    expect(result?.syncedLyrics, isNull);
+    expect(result?.plainLyrics, 'First line\nSecond line');
+    client.dispose();
+  });
+
   test(
       'selects the exact title and artist instead of the first lyricful result',
       () async {
@@ -38,11 +61,12 @@ void main() {
     );
 
     expect(
-      await contentClient.fetchSyncedLyrics(
+      (await contentClient.fetchLyrics(
         title: 'Glorify Your Name',
         durationSec: 300,
         artist: 'Hillsong Worship',
-      ),
+      ))
+          ?.syncedLyrics,
       '[00:01.00]exact recording',
     );
     contentClient.dispose();
@@ -67,11 +91,12 @@ void main() {
     );
 
     expect(
-      await contentClient.fetchSyncedLyrics(
+      (await contentClient.fetchLyrics(
         title: 'All For Love',
         durationSec: 300,
         artist: 'Hillsong UNITED',
-      ),
+      ))
+          ?.syncedLyrics,
       '[00:01.00]live lyrics',
     );
     contentClient.dispose();
@@ -101,11 +126,12 @@ void main() {
     );
 
     expect(
-      await contentClient.fetchSyncedLyrics(
+      (await contentClient.fetchLyrics(
         title: 'Hosanna',
         durationSec: 300,
         artist: 'Hillsong UNITED',
-      ),
+      ))
+          ?.syncedLyrics,
       isNull,
     );
     contentClient.dispose();
@@ -129,11 +155,12 @@ void main() {
     );
 
     expect(
-      await contentClient.fetchSyncedLyrics(
+      (await contentClient.fetchLyrics(
         title: 'A Pure Heart',
         durationSec: 300,
         artist: 'Rusty Nelson',
-      ),
+      ))
+          ?.syncedLyrics,
       isNull,
     );
     contentClient.dispose();
@@ -166,10 +193,11 @@ void main() {
           200);
     }));
     expect(
-        await client.fetchSyncedLyrics(
-            title: 'A Man After Your Own Heart',
-            artist: 'Gary Chapman',
-            durationSec: 294),
+        (await client.fetchLyrics(
+                title: 'A Man After Your Own Heart',
+                artist: 'Gary Chapman',
+                durationSec: 294))
+            ?.syncedLyrics,
         'album recording');
     client.dispose();
   });
@@ -190,10 +218,11 @@ void main() {
             200);
       }));
       expect(
-          await client.fetchSyncedLyrics(
-              title: 'A Man After Your Own Heart',
-              artist: 'Gary Chapman',
-              durationSec: 294),
+          (await client.fetchLyrics(
+                  title: 'A Man After Your Own Heart',
+                  artist: 'Gary Chapman',
+                  durationSec: 294))
+              ?.syncedLyrics,
           isNull,
           reason: 'duration=$duration');
       client.dispose();

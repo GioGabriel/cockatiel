@@ -71,6 +71,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   bool _hasInstrumentalAudio = false;
 
   List<LyricLine> _lyrics = [];
+  String? _plainLyrics;
   List<TrainingRuntimeStage> _stages = [];
 
   final List<PitchPoint> _pitchHistory = [];
@@ -101,16 +102,17 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     try {
       final notices = <String>[];
 
-      final syncedLyrics = await _contentClient.fetchSyncedLyrics(
+      final lyricContent = await _contentClient.fetchLyrics(
         title: widget.drill.title,
         artist: widget.drill.artistName,
         durationSec: widget.drill.durationSec,
       );
       if (!mounted) return;
-      if (syncedLyrics != null) {
-        _lyrics = parseSongLyrics(syncedLyrics);
+      if (lyricContent?.syncedLyrics != null) {
+        _lyrics = parseSongLyrics(lyricContent!.syncedLyrics!);
       }
-      if (_lyrics.isEmpty) {
+      _plainLyrics = lyricContent?.plainLyrics;
+      if (_lyrics.isEmpty && _plainLyrics == null) {
         notices.add(
             'Synchronized lyrics are unavailable. You can still follow the pitch guide.');
       }
@@ -463,6 +465,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
                   height: (constraints.maxHeight * .3).clamp(150, 300),
                   child: LyricScroller(
                       lyrics: _lyrics,
+                      plainLyrics: _plainLyrics,
                       currentPosition: _currentPosition,
                       emptyMessage:
                           'Synchronized lyrics are unavailable. Follow the pitch guide or practice by ear.')),
@@ -643,6 +646,13 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 }
 
 /// Testable boundary for optional third-party song content.
+class SongLyrics {
+  const SongLyrics({this.syncedLyrics, this.plainLyrics});
+
+  final String? syncedLyrics;
+  final String? plainLyrics;
+}
+
 class KaraokeContentClient {
   KaraokeContentClient({http.Client? httpClient})
       : _httpClient = httpClient ?? http.Client(),
@@ -651,7 +661,7 @@ class KaraokeContentClient {
   final http.Client _httpClient;
   final bool _ownsClient;
 
-  Future<String?> fetchSyncedLyrics({
+  Future<SongLyrics?> fetchLyrics({
     required String title,
     required String artist,
     required int durationSec,
@@ -669,13 +679,19 @@ class KaraokeContentClient {
       final decoded = json.decode(response.body);
       if (decoded is! List) return null;
 
-      String? bestLyrics;
+      SongLyrics? bestLyrics;
       var bestMatchRank = 0;
       var bestDurationDifference = double.infinity;
       for (final item in decoded) {
         if (item is! Map) continue;
         final lyrics = item['syncedLyrics'];
-        if (lyrics is! String || lyrics.trim().isEmpty) continue;
+        final plainLyrics = item['plainLyrics'];
+        final synced =
+            lyrics is String && lyrics.trim().isNotEmpty ? lyrics.trim() : null;
+        final plain = plainLyrics is String && plainLyrics.trim().isNotEmpty
+            ? plainLyrics.trim()
+            : null;
+        if (synced == null && plain == null) continue;
         final duration = item['duration'];
         if (duration is! num || !duration.isFinite || duration <= 0) continue;
         final durationDifference = (duration - durationSec).abs().toDouble();
@@ -691,10 +707,13 @@ class KaraokeContentClient {
         if (matchRank > bestMatchRank ||
             (matchRank > 0 &&
                 matchRank == bestMatchRank &&
-                durationDifference < bestDurationDifference)) {
+                (durationDifference < bestDurationDifference ||
+                    (durationDifference == bestDurationDifference &&
+                        bestLyrics?.syncedLyrics == null &&
+                        synced != null)))) {
           bestMatchRank = matchRank;
           bestDurationDifference = durationDifference;
-          bestLyrics = lyrics;
+          bestLyrics = SongLyrics(syncedLyrics: synced, plainLyrics: plain);
         }
       }
       return bestLyrics;

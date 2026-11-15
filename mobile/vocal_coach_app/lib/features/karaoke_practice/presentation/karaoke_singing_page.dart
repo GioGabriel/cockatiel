@@ -104,6 +104,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       final syncedLyrics = await _contentClient.fetchSyncedLyrics(
         title: widget.drill.title,
         artist: widget.drill.artistName,
+        durationSec: widget.drill.durationSec,
       );
       if (!mounted) return;
       if (syncedLyrics != null) {
@@ -653,7 +654,9 @@ class KaraokeContentClient {
   Future<String?> fetchSyncedLyrics({
     required String title,
     required String artist,
+    required int durationSec,
   }) async {
+    if (durationSec <= 0) return null;
     try {
       final query = '$title $artist'.trim();
       final response = await _httpClient.get(
@@ -668,18 +671,29 @@ class KaraokeContentClient {
 
       String? bestLyrics;
       var bestMatchRank = 0;
+      var bestDurationDifference = double.infinity;
       for (final item in decoded) {
         if (item is! Map) continue;
         final lyrics = item['syncedLyrics'];
         if (lyrics is! String || lyrics.trim().isEmpty) continue;
+        final duration = item['duration'];
+        if (duration is! num || !duration.isFinite || duration <= 0) continue;
+        final durationDifference = (duration - durationSec).abs().toDouble();
+        // Catalog durations are rounded to seconds. A small tolerance covers
+        // rounding/encoder padding while rejecting shorter edits and versions.
+        if (durationDifference > 2) continue;
 
         final matchRank = _lrcLibMatchRank(
           item,
           requestedTitle: title,
           requestedArtist: artist,
         );
-        if (matchRank > bestMatchRank) {
+        if (matchRank > bestMatchRank ||
+            (matchRank > 0 &&
+                matchRank == bestMatchRank &&
+                durationDifference < bestDurationDifference)) {
           bestMatchRank = matchRank;
+          bestDurationDifference = durationDifference;
           bestLyrics = lyrics;
         }
       }

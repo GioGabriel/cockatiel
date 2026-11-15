@@ -33,6 +33,12 @@ jobs:
         run: ruff check app tests
       - name: Tests with coverage
         run: pytest --cov=app --cov-report=term-missing
+      - name: Content tooling checks
+        working-directory: .
+        run: |
+          ruff check --config backend/vocal_coach_api/pyproject.toml tools
+          python -m compileall -q tools
+          pytest tools/tests -q
 
   flutter:
     name: Flutter analysis and tests
@@ -42,11 +48,17 @@ jobs:
         working-directory: mobile/vocal_coach_app
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.2'
           channel: stable
           cache: true
+      - name: Use pinned Java for Android
+        run: flutter config --jdk-dir="$JAVA_HOME"
       - name: Install packages
         run: flutter pub get
       - name: Formatting

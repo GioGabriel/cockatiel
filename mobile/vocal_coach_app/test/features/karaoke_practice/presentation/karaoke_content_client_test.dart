@@ -15,16 +15,19 @@ void main() {
           jsonEncode([
             {
               'trackName': 'Glorify Your Name',
+              'duration': 300,
               'artistName': 'Another Artist',
               'syncedLyrics': '[00:01.00]wrong recording',
             },
             {
               'trackName': 'Glorify Your Name (Live)',
+              'duration': 300,
               'artistName': 'Hillsong Worship',
               'syncedLyrics': '[00:01.00]acceptable version',
             },
             {
               'trackName': 'Glorify Your Name',
+              'duration': 300,
               'artistName': 'Hillsong Worship',
               'syncedLyrics': '[00:01.00]exact recording',
             },
@@ -37,6 +40,7 @@ void main() {
     expect(
       await contentClient.fetchSyncedLyrics(
         title: 'Glorify Your Name',
+        durationSec: 300,
         artist: 'Hillsong Worship',
       ),
       '[00:01.00]exact recording',
@@ -52,6 +56,7 @@ void main() {
           jsonEncode([
             {
               'trackName': 'All For Love (Live)',
+              'duration': 300,
               'artistName': 'Hillsong UNITED',
               'syncedLyrics': '[00:01.00]live lyrics',
             },
@@ -64,6 +69,7 @@ void main() {
     expect(
       await contentClient.fetchSyncedLyrics(
         title: 'All For Love',
+        durationSec: 300,
         artist: 'Hillsong UNITED',
       ),
       '[00:01.00]live lyrics',
@@ -78,11 +84,13 @@ void main() {
           jsonEncode([
             {
               'trackName': 'A Different Song',
+              'duration': 300,
               'artistName': 'Hillsong UNITED',
               'syncedLyrics': '[00:01.00]wrong title',
             },
             {
               'trackName': 'Hosanna',
+              'duration': 300,
               'artistName': 'A Different Artist',
               'syncedLyrics': '[00:01.00]wrong artist',
             },
@@ -95,6 +103,7 @@ void main() {
     expect(
       await contentClient.fetchSyncedLyrics(
         title: 'Hosanna',
+        durationSec: 300,
         artist: 'Hillsong UNITED',
       ),
       isNull,
@@ -109,6 +118,7 @@ void main() {
           jsonEncode([
             {
               'trackName': 'A Pure Heart',
+              'duration': 300,
               'artistName': 'Rusty Nelson',
               'syncedLyrics': '',
             },
@@ -121,10 +131,72 @@ void main() {
     expect(
       await contentClient.fetchSyncedLyrics(
         title: 'A Pure Heart',
+        durationSec: 300,
         artist: 'Rusty Nelson',
       ),
       isNull,
     );
     contentClient.dispose();
+  });
+
+  test('rejects a shorter edit and selects the closest recording duration',
+      () async {
+    final client = KaraokeContentClient(httpClient: MockClient((_) async {
+      return http.Response(
+          jsonEncode([
+            {
+              'trackName': 'A Man After Your Own Heart',
+              'artistName': 'Gary Chapman',
+              'duration': 275,
+              'syncedLyrics': 'short edit'
+            },
+            {
+              'trackName': 'A Man After Your Own Heart',
+              'artistName': 'Gary Chapman',
+              'duration': 296,
+              'syncedLyrics': 'near match'
+            },
+            {
+              'trackName': 'A Man After Your Own Heart',
+              'artistName': 'Gary Chapman',
+              'duration': 294,
+              'syncedLyrics': 'album recording'
+            },
+          ]),
+          200);
+    }));
+    expect(
+        await client.fetchSyncedLyrics(
+            title: 'A Man After Your Own Heart',
+            artist: 'Gary Chapman',
+            durationSec: 294),
+        'album recording');
+    client.dispose();
+  });
+
+  test('does not guess when recording durations are missing or invalid',
+      () async {
+    for (final duration in [null, '294', -1, 0, 297]) {
+      final client = KaraokeContentClient(httpClient: MockClient((_) async {
+        return http.Response(
+            jsonEncode([
+              {
+                'trackName': 'A Man After Your Own Heart',
+                'artistName': 'Gary Chapman',
+                'duration': duration,
+                'syncedLyrics': 'unverified timing'
+              },
+            ]),
+            200);
+      }));
+      expect(
+          await client.fetchSyncedLyrics(
+              title: 'A Man After Your Own Heart',
+              artist: 'Gary Chapman',
+              durationSec: 294),
+          isNull,
+          reason: 'duration=$duration');
+      client.dispose();
+    }
   });
 }

@@ -2,6 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vocal_coach_app/features/karaoke_practice/domain/song_content_parser.dart';
 
 void main() {
+  test('enhanced LRC preserves exact word timing and strips timing tags', () {
+    final line = parseSongLyrics(
+            '[offset:500]\n[00:10.00]<00:10.00>Sing <00:10.70>with <00:12.00>me<00:14.00>')
+        .single;
+    expect(line.text, 'Sing with me');
+    expect(line.words.map((word) => word.time.inMilliseconds),
+        [9500, 10200, 11500]);
+    expect(line.words.map((word) => word.text), ['Sing ', 'with ', 'me']);
+    expect(line.endTime, const Duration(milliseconds: 13500));
+  });
+
   test('pitch points are chronological, finite, positive and unique', () {
     final stages = parseSongPitchMap([
       {'time': 2, 'pitch': 440},

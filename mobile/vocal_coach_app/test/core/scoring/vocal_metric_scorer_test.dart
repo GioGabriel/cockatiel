@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vocal_coach_app/core/scoring/vocal_metric_scorer.dart';
@@ -30,6 +32,42 @@ void _addFrames(
 }
 
 void main() {
+  test('long songs serialize bounded evidence across the entire take', () {
+    final accumulator = VocalMetricAccumulator();
+    for (var i = 0; i < 1700; i++) {
+      accumulator.addFrame(VocalMetricFrame(
+          timestampMs: i * 100,
+          targetId: 'pitch_$i',
+          targetFrequencyHz: 110,
+          frequencyHz: i.isEven ? 880 : 55,
+          loudnessDb: -24,
+          voiced: true,
+          confidence: .95));
+    }
+    final summary = accumulator.build();
+    final wire = summary.toTrainingAttemptMetricSummary().toCreateJson();
+    final evidence = wire['evidence'] as Map<String, dynamic>;
+    final segments = evidence['segments'] as List;
+    expect(segments, hasLength(64));
+    expect(segments.first['segment_id'], 'pitch_0');
+    expect(segments.last['segment_id'], 'pitch_1699');
+    expect(evidence['frame_count'], 1700);
+    expect(evidence['p95_abs_cents'], lessThanOrEqualTo(1200));
+    expect(evidence['pitch_bias_cents'], inInclusiveRange(-1200, 1200));
+    expect(evidence['pitch_stddev_cents'], lessThanOrEqualTo(1200));
+    // Preserve raw local diagnostics; only the wire projection is bounded.
+    expect(summary.evidence['segments'], hasLength(1700));
+    if (const bool.fromEnvironment('EXPORT_SONG_CONTRACT')) {
+      File('${Directory.systemTemp.path}/cockatiel-song-attempt.json')
+          .writeAsStringSync(jsonEncode({
+        'attempt_index': 1,
+        'difficulty': 'beginner',
+        'duration_sec': 170,
+        'metric_summary': wire,
+      }));
+    }
+  });
+
   test('requires enough voice evidence before an attempt can be saved', () {
     expect(voiceEvidenceSaveError(0), contains('didn\'t pick up any audio'));
     expect(voiceEvidenceSaveError(8), contains('8 of 16'));

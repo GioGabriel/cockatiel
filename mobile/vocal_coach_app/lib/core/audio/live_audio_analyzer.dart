@@ -276,9 +276,10 @@ class LiveAudioAnalyzer {
         encoder: AudioEncoder.pcm16bits,
         sampleRate: sampleRate,
         numChannels: 1,
-        autoGain: true,
+        // Speech enhancement can pump the level and suppress sustained notes.
+        autoGain: false,
         echoCancel: true,
-        noiseSuppress: true,
+        noiseSuppress: false,
       ),
     );
 

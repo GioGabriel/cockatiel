@@ -437,42 +437,50 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
               Text(widget.drill.artistName, style: theme.textTheme.bodyMedium),
               const SizedBox(height: 12),
               SizedBox(
-                  height: (constraints.maxHeight * .43).clamp(240, 420) +
-                      120 *
-                          (MediaQuery.textScalerOf(context).scale(1) - 1)
-                              .clamp(0, 2),
-                  child: KaraokePitchVisualizer(
-                      stages: _stages,
-                      currentElapsedSec: _currentPosition.inMilliseconds / 1000,
-                      pitchHistory: _pitchHistory,
-                      minHz: defaultLivePitchMinFrequencyHz.toDouble(),
-                      maxHz: defaultLivePitchMaxFrequencyHz.toDouble(),
-                      getTargetFrequency: frequencyHzForPitchLabel,
-                      isRunning: _isPlaying,
-                      targetLabel:
-                          _currentStage(_currentPosition.inMilliseconds / 1000)
-                                  ?.targetLabel ??
-                              'Listen and follow',
-                      detectedNoteLabel: _liveFrequencyHz == null
-                          ? null
-                          : noteLabelForFrequency(_liveFrequencyHz!),
-                      detectedFrequencyHz: _pitchGuidance.lastFrameMeasurable
-                          ? _liveFrequencyHz
-                          : null,
-                      detectedCents: _pitchGuidance.lastFrameMeasurable
-                          ? _liveCentsError
-                          : null,
-                      guidance: _pitchGuidance.current)),
-              const SizedBox(height: 12),
-              _buildLiveCoachCard(),
-              SizedBox(
-                  height: (constraints.maxHeight * .3).clamp(150, 300),
+                  height: (constraints.maxHeight * .5).clamp(240, 420),
                   child: LyricScroller(
                       lyrics: _lyrics,
+                      isPlaying: _isPlaying,
+                      songDuration: Duration(seconds: widget.drill.durationSec),
                       plainLyrics: _plainLyrics,
                       currentPosition: _currentPosition,
                       emptyMessage:
                           'Synchronized lyrics are unavailable. Follow the pitch guide or practice by ear.')),
+              ExpansionTile(
+                  title: const Text('Pitch guide (optional)'),
+                  children: [
+                    SizedBox(
+                        height: (constraints.maxHeight * .43).clamp(240, 420) +
+                            120 *
+                                (MediaQuery.textScalerOf(context).scale(1) - 1)
+                                    .clamp(0, 2),
+                        child: KaraokePitchVisualizer(
+                            stages: _stages,
+                            currentElapsedSec:
+                                _currentPosition.inMilliseconds / 1000,
+                            pitchHistory: _pitchHistory,
+                            minHz: defaultLivePitchMinFrequencyHz.toDouble(),
+                            maxHz: defaultLivePitchMaxFrequencyHz.toDouble(),
+                            getTargetFrequency: frequencyHzForPitchLabel,
+                            isRunning: _isPlaying,
+                            targetLabel: _currentStage(
+                                        _currentPosition.inMilliseconds / 1000)
+                                    ?.targetLabel ??
+                                'Listen and follow',
+                            detectedNoteLabel: _liveFrequencyHz == null
+                                ? null
+                                : noteLabelForFrequency(_liveFrequencyHz!),
+                            detectedFrequencyHz: _pitchGuidance.lastFrameMeasurable
+                                ? _liveFrequencyHz
+                                : null,
+                            detectedCents: _pitchGuidance.lastFrameMeasurable
+                                ? _liveCentsError
+                                : null,
+                            guidance:
+                                _isPlaying ? _pitchGuidance.current : null))
+                  ]),
+              const SizedBox(height: 12),
+              if (_isPlaying) _buildLiveCoachCard(),
               if (_contentNotices.isNotEmpty)
                 ExpansionTile(
                     title: const Text('Song availability'),

@@ -9,6 +9,7 @@ import 'package:just_audio/just_audio.dart';
 import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/audio/live_audio_analyzer.dart';
 import '../../../core/audio/pitch/live_pitch_guidance.dart';
+import '../../../core/audio/pitch/pitch_display_filter.dart';
 import '../../../shared/utils/vocal_utils.dart';
 import '../../../shared/widgets/scrollable_action_layout.dart';
 
@@ -111,6 +112,9 @@ class _WarmupNoteExplorerPageState extends State<WarmupNoteExplorerPage> {
   late final AudioPlayer _referencePlayer;
   StreamSubscription<LiveAudioFrame>? _audioSubscription;
   Timer? _safetyReminderTimer;
+  Timer? _audioWatchdog;
+  bool _isRestarting = false;
+  final _displayPitch = PitchDisplayFilter();
 
   var _selectedTargetIndex = 0;
   var _guidance = const LivePitchGuidance(
@@ -156,6 +160,7 @@ class _WarmupNoteExplorerPageState extends State<WarmupNoteExplorerPage> {
   @override
   void dispose() {
     _safetyReminderTimer?.cancel();
+    _audioWatchdog?.cancel();
     unawaited(_disposeAudio());
     super.dispose();
   }
@@ -167,6 +172,7 @@ class _WarmupNoteExplorerPageState extends State<WarmupNoteExplorerPage> {
         await _analyzer.stop();
         return;
       }
+      _armAudioWatchdog();
       _audioSubscription = _analyzer.frames.listen(
         _onAudioFrame,
         onError: (Object error, StackTrace trace) {
@@ -192,7 +198,8 @@ class _WarmupNoteExplorerPageState extends State<WarmupNoteExplorerPage> {
   }
 
   void _onAudioFrame(LiveAudioFrame frame) {
-    if (!mounted) return;
+    if (!mounted || _isClosing) return;
+    _armAudioWatchdog();
 
     final frequencyHz =
         _isUsableFrequency(frame.frequencyHz) ? frame.frequencyHz! : null;
@@ -223,16 +230,22 @@ class _WarmupNoteExplorerPageState extends State<WarmupNoteExplorerPage> {
       clippingRatio: clippingRatio,
       quietFloorDb: _quietFloorDb,
     );
-    final measurable = frequencyHz != null &&
+    final displayHz = _displayPitch
+        .update(_guidanceController.lastFrameMeasurable ? frequencyHz : null);
+    final measurable = displayHz != null &&
         _guidanceController.lastFrameMeasurable &&
+        _guidanceController.isMeasurable &&
         guidance.cue != LivePitchCue.noClearNote;
-    final detectedLabel =
-        measurable ? noteLabelForFrequency(frequencyHz) : null;
+    final detectedLabel = measurable ? noteLabelForFrequency(displayHz) : null;
 
     setState(() {
+      _isAudioReady = true;
+      _audioError = null;
       _guidance = guidance;
-      _detectedFrequencyHz = measurable ? frequencyHz : null;
-      _detectedCents = measurable ? centsError : null;
+      _detectedFrequencyHz = measurable ? displayHz : null;
+      _detectedCents = measurable
+          ? centsErrorForFrequencies(displayHz, _selectedTarget.frequencyHz)
+          : null;
       _detectedNoteLabel = detectedLabel;
       _detectedConfidence = confidence;
       _detectedLoudnessDb = loudnessDb;
@@ -240,9 +253,53 @@ class _WarmupNoteExplorerPageState extends State<WarmupNoteExplorerPage> {
     });
   }
 
+  void _armAudioWatchdog() {
+    _audioWatchdog?.cancel();
+    _audioWatchdog = Timer(const Duration(seconds: 3), () {
+      if (!mounted || _isClosing || _audioDisposed) return;
+      _guidanceController.reset();
+      _displayPitch.update(null);
+      setState(() {
+        _isAudioReady = false;
+        _guidance = _guidanceController.current;
+        _displayPitch.update(null);
+        _isMeasurable = false;
+        _detectedFrequencyHz = null;
+        _detectedCents = null;
+        _detectedNoteLabel = null;
+        _audioError =
+            'No microphone audio received. Check your input device, then restart the microphone.';
+      });
+    });
+  }
+
+  Future<void> _restartMicrophone() async {
+    try {
+      _audioWatchdog?.cancel();
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
+      await _analyzer.stop();
+      if (!mounted || _isClosing) return;
+      _guidanceController.reset();
+      _displayPitch.update(null);
+      setState(() {
+        _isMeasurable = false;
+        _detectedFrequencyHz = null;
+        _detectedCents = null;
+        _detectedNoteLabel = null;
+        _guidance = _guidanceController.current;
+        _audioError = null;
+      });
+      await _startAudio();
+    } finally {
+      if (mounted) setState(() => _isRestarting = false);
+    }
+  }
+
   void _selectTarget(int index) {
     if (_isClosing || index == _selectedTargetIndex) return;
     _guidanceController.reset();
+    _displayPitch.update(null);
     unawaited(_referencePlayer.stop());
     setState(() {
       _selectedTargetIndex = index;
@@ -570,13 +627,27 @@ class _WarmupNoteExplorerPageState extends State<WarmupNoteExplorerPage> {
                       child: Text(
                         _isAudioReady
                             ? 'Microphone active · normal singing volume'
-                            : 'Starting microphone…',
+                            : _audioError != null
+                                ? 'Microphone needs attention'
+                                : 'Starting microphone…',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
                   ],
+                ),
+                TextButton.icon(
+                  onPressed: _isRestarting || _isClosing
+                      ? null
+                      : () {
+                          setState(() => _isRestarting = true);
+                          _audioStartFuture = _restartMicrophone();
+                        },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(_isRestarting
+                      ? 'Restarting microphone…'
+                      : 'Restart microphone'),
                 ),
                 if (_showSafetyReminder) ...[
                   const SizedBox(height: 12),

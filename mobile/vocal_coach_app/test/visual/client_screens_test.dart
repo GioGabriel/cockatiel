@@ -965,6 +965,7 @@ void main() {
         }
         if (screen.key == 'song-session') {
           expect(find.text('Cockatiel Practice Library'), findsOneWidget);
+          expect(find.text('Pitch guide (optional)'), findsOneWidget);
         }
         expect(tester.takeException(), isNull);
         if (width == 1440 &&

@@ -117,3 +117,13 @@ Observed local integration responses; counts are requests across the full backen
 Before publication, backend lint/compilation, all 374 backend tests, all 24 content-tool tests, and the Python wheel build were rerun successfully. The Flutter studio redesign, distinct three-step onboarding artwork, recovery states and reduced-motion changes pass 469 tests, including 216 responsive matrix cases; Dart formatting, analysis and production web build pass. Gallery renders use fixtures, not live microphone or authenticated production sessions.
 
 The earlier statements about local/uncommitted changes and approval-service outages describe the November 15–16 snapshot. GitHub publication is now authorized; live Render deployment and its resulting health must be verified separately. Render serves the API; publishing Flutter source does not distribute a new mobile release.
+
+## November 18 karaoke and microphone regression fixes
+
+The screenshot's generic request-validation failure is reproducible when a long song emits more than the API's 64 segment records or pitch diagnostics exceed the wire limits. The Flutter request projection now samples at most 64 segments evenly across the take, including both ends, and bounds pitch diagnostics to the existing contract. Full local segment diagnostics, frame counts and scores remain intact. A Dart-generated 1,700-note request was accepted by `TrainingAttemptCreateIn` with all 1,700 frames and 64 sampled segments.
+
+Karaoke now gives lyrics the primary screen area and places the pitch chart in an optional expanding section. Enhanced LRC word tags drive exact word changes when present. Existing line-only LRC uses explicitly labelled estimated word cues; this does not establish recording-accurate word alignment. Current words have a contrasting background and underline. Intro/replay handling and enlarged-text layout have regression coverage.
+
+Warm-up clears stale pitch measurements after three seconds without audio frames and offers microphone restart. The pitch display requires repeated estimates before accepting a new note or large jump; this filter does not alter scoring evidence. Automatic gain and speech noise suppression are disabled to avoid level pumping and suppression of sustained tones. Browser/device processing can still vary; real microphone responsiveness requires a fresh device check.
+
+Verification: all 476 Flutter tests pass, including stalled-stream recovery, startup/outlier filtering, exact and estimated word cues, 1,700-note serialization and the existing 216 responsive layout cases. Dart formatting and analyzer are clean. Production web build and GitHub publication are tracked separately from these fixture-based tests.

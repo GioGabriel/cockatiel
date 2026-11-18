@@ -81,6 +81,57 @@ void main() {
     expect(targets.last.frequencyHz, closeTo(523.251, 0.01));
   });
 
+  testWidgets('stalled microphone clears stale measurements and can restart',
+      (tester) async {
+    final analyzer = _FakeLiveAudioAnalyzer();
+    await tester.pumpWidget(_page(analyzer));
+    await tester.pump();
+    analyzer.emit(frequencyHz: 261.6256);
+    analyzer.emit(frequencyHz: 261.6256);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 4));
+    expect(find.textContaining('No microphone audio received'), findsOneWidget);
+    expect(
+        tester
+            .widget<WarmupPitchMeter>(find.byType(WarmupPitchMeter))
+            .measurable,
+        isFalse);
+    await tester.ensureVisible(find.text('Restart microphone'));
+    await tester.tap(find.text('Restart microphone'));
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pumpAndSettle();
+    analyzer.emit(frequencyHz: 261.6256);
+    analyzer.emit(frequencyHz: 261.6256);
+    await tester.pump();
+    await tester.scrollUntilVisible(find.text('On target'), -250,
+        scrollable: find
+            .byWidgetPredicate((widget) =>
+                widget is Scrollable &&
+                widget.axisDirection == AxisDirection.down)
+            .first);
+    expect(find.text('On target'), findsOneWidget);
+    expect(find.textContaining('No microphone audio received'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('isolated startup pitch does not move the meter', (tester) async {
+    final analyzer = _FakeLiveAudioAnalyzer();
+    await tester.pumpWidget(_page(analyzer));
+    await tester.pump();
+    analyzer.emit(frequencyHz: 900);
+    await tester.pump();
+    expect(
+        tester
+            .widget<WarmupPitchMeter>(find.byType(WarmupPitchMeter))
+            .measurable,
+        isFalse);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
   testWidgets('starts safely with no measurable microphone frame',
       (tester) async {
     final analyzer = _FakeLiveAudioAnalyzer();

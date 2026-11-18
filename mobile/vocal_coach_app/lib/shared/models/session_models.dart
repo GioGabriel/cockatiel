@@ -771,6 +771,18 @@ Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
     normalized['p95_abs_cents'],
   );
 
+  // The API caps pitch diagnostics at one octave and 64 segment records.
+  // Scores and aggregate counts still describe every captured frame.
+  for (final key in ['pitch_stddev_cents', 'vibrato_amplitude_cents']) {
+    if (normalized[key] != null) {
+      normalized[key] = _finiteNumberOrZero(normalized[key]);
+    }
+  }
+  final bias = normalized['pitch_bias_cents'];
+  if (bias is num) {
+    normalized['pitch_bias_cents'] =
+        bias.isFinite ? bias.clamp(-1200.0, 1200.0) : 0.0;
+  }
   final rawSegments = normalized['segments'];
   if (rawSegments is List) {
     final validSegments = <Map<String, dynamic>>[];
@@ -792,7 +804,13 @@ Map<String, dynamic> _normalizedVoiceEvidence(Map<String, dynamic> source) {
       );
       validSegments.add(segment);
     }
-    normalized['segments'] = validSegments;
+    // Sample evenly, retaining both ends rather than discarding the ending.
+    normalized['segments'] = validSegments.length <= 64
+        ? validSegments
+        : List.generate(
+            64,
+            (index) => validSegments[
+                (index * (validSegments.length - 1) / 63).round()]);
   } else if (rawSegments != null) {
     // The deployed contract expects an array. Dropping an invalid optional
     // field is safer than sending null or an arbitrary object and receiving a

@@ -1,7 +1,19 @@
 import '../../../shared/models/session_models.dart';
 
 class LyricLine {
-  const LyricLine({required this.time, required this.text});
+  const LyricLine(
+      {required this.time,
+      required this.text,
+      this.words = const [],
+      this.endTime});
+  final Duration time;
+  final String text;
+  final List<LyricWord> words;
+  final Duration? endTime;
+}
+
+class LyricWord {
+  const LyricWord({required this.time, required this.text});
   final Duration time;
   final String text;
 }
@@ -69,7 +81,10 @@ List<LyricLine> parseSongLyrics(String lrc) {
   for (final line in lrc.split('\n')) {
     final matches = timestamp.allMatches(line).toList();
     if (matches.isEmpty) continue;
-    final text = line.substring(matches.last.end).trim();
+    final content = line.substring(matches.last.end).trim();
+    final wordTag = RegExp(r'<(\d+):(\d{2})(?:\.(\d{1,3}))?>');
+    final tags = wordTag.allMatches(content).toList();
+    final text = content.replaceAll(wordTag, '').trim();
     if (text.isEmpty) continue;
     for (final match in matches) {
       final seconds = int.parse(match.group(2)!);
@@ -79,8 +94,38 @@ List<LyricLine> parseSongLyrics(String lrc) {
           seconds * 1000 +
           milliseconds -
           offset;
+      final words = <LyricWord>[];
+      Duration? endTime;
+      for (var i = 0; i < tags.length; i++) {
+        final tag = tags[i];
+        final seconds = int.parse(tag.group(2)!);
+        if (seconds >= 60) continue;
+        final wordTime = Duration(
+            milliseconds: (int.parse(tag.group(1)!) * 60000 +
+                    seconds * 1000 +
+                    int.parse((tag.group(3) ?? '0').padRight(3, '0')) -
+                    offset)
+                .clamp(0, 86400000));
+        final wordText = content.substring(
+            tag.end, i + 1 < tags.length ? tags[i + 1].start : content.length);
+        if (wordText.trim().isEmpty) {
+          endTime = wordTime;
+        } else {
+          words.add(LyricWord(time: wordTime, text: wordText));
+        }
+      }
+      // Ignore malformed enhanced timing rather than showing tagged text.
+      final validWords = words.isNotEmpty &&
+          words.map((word) => word.text).join().trim() == text &&
+          words.first.time.inMilliseconds >= time &&
+          List.generate(
+                  words.length - 1, (i) => words[i].time <= words[i + 1].time)
+              .every((v) => v);
       lines.add(LyricLine(
-          time: Duration(milliseconds: time.clamp(0, 86400000)), text: text));
+          time: Duration(milliseconds: time.clamp(0, 86400000)),
+          text: text,
+          words: validWords ? words : const [],
+          endTime: validWords ? endTime : null));
     }
   }
   lines.sort((a, b) => a.time.compareTo(b.time));

@@ -1,3 +1,5 @@
+import 'package:vocal_coach_app/shared/widgets/entry_identity.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -163,7 +165,8 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 720,
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Voice Type Detection'),
@@ -219,20 +222,7 @@ class _VoiceCalibrationPageState extends State<VoiceCalibrationPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: theme.colorScheme.primary.withValues(alpha: 0.12),
-            ),
-            child: Icon(
-              Icons.mic_rounded,
-              size: 48,
-              color: theme.colorScheme.primary,
-              semanticLabel: 'Microphone',
-            ),
-          ),
+          const EntryArtwork(height: 200),
           const SizedBox(height: 32),
           Text(
             'Let\'s find your voice type',

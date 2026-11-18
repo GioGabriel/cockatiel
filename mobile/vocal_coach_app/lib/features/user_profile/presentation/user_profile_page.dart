@@ -1,3 +1,5 @@
+import 'package:vocal_coach_app/shared/widgets/studio_recovery_view.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -153,7 +155,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 800,
       appBar: AppBar(
         title: const Text('Account Settings'),
       ),
@@ -170,25 +173,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildError(ThemeData theme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cloud_off_rounded,
-                size: 48, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: _loadProfile,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
+    return StudioRecoveryView(
+        title: 'Your profile could not load.',
+        message: _error ?? 'Check your connection and try again.',
+        onRetry: _loadProfile);
   }
 
   Widget _buildContent(ThemeData theme) {
@@ -208,6 +196,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _SettingsItem(
           icon: Icons.person_outline_rounded,
           label: 'Display name',
+          trailing: const Icon(Icons.copy_outlined, size: 18),
           value: profile.name,
           onTap: () {
             Clipboard.setData(ClipboardData(text: profile.name));
@@ -219,6 +208,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _SettingsItem(
           icon: Icons.mail_outline_rounded,
           label: 'Email',
+          trailing: const Icon(Icons.copy_outlined, size: 18),
           value: profile.email,
           onTap: () {
             Clipboard.setData(ClipboardData(text: profile.email));
@@ -230,6 +220,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _SettingsItem(
           icon: Icons.badge_outlined,
           label: 'User ID',
+          trailing: const Icon(Icons.copy_outlined, size: 18),
           value: profile.uid.length > 12
               ? '${profile.uid.substring(0, 12)}...'
               : profile.uid,
@@ -298,51 +289,31 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildProfileHeader(ThemeData theme, UserProfileFull profile) {
-    return Center(
-      child: Column(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const StudioHeading(eyebrow: 'YOUR SPACE', title: 'Make it personal.'),
+      Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Container(
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: theme.colorScheme.primary,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(2.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: theme.colorScheme.surface,
-                ),
-                child: Center(
-                  child: Text(
-                    _getInitials(profile.name),
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            profile.name,
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(22)),
+            child: Center(
+                child: Text(_getInitials(profile.name),
+                    style: theme.textTheme.headlineSmall
+                        ?.copyWith(color: theme.colorScheme.onPrimary)))),
+        const SizedBox(width: 18),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(profile.name, style: theme.textTheme.titleLarge),
           const SizedBox(height: 4),
-          Text(
-            profile.email,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
+          Text(profile.email,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ])),
+      ]),
+    ]);
   }
 
   String _getInitials(String name) {
@@ -389,11 +360,10 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: theme.textTheme.labelLarge?.copyWith(
           color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -426,14 +396,10 @@ class _SettingsItem extends StatelessWidget {
     final itemIconColor = iconColor ?? theme.colorScheme.primary;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant,
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),

@@ -38,6 +38,7 @@ class ShimmerSkeleton extends StatelessWidget {
         highlightColor ?? theme.colorScheme.surface.withValues(alpha: 0.4);
 
     return Shimmer.fromColors(
+      enabled: !MediaQuery.disableAnimationsOf(context),
       baseColor: base,
       highlightColor: highlight,
       period: period,

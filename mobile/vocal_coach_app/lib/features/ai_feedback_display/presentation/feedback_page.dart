@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_theme_tokens.dart';
@@ -64,7 +65,8 @@ class FeedbackPage extends StatelessWidget {
     final scoreBreakdown = feedback?.scoreBreakdown;
 
     final theme = Theme.of(context);
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 760,
       appBar: AppBar(title: const Text('Your practice review')),
       body: VoiceStageBackground(
           child: feedback == null
@@ -80,7 +82,12 @@ class FeedbackPage extends StatelessWidget {
                             onPressed: () => Navigator.of(context).pop(),
                             child: const Text('Back')),
                       ])))
-              : ListView(padding: const EdgeInsets.all(20), children: [
+              : ListView(padding: const EdgeInsets.all(24), children: [
+                  const StudioHeading(
+                      eyebrow: 'YOUR SESSION, REFLECTED',
+                      title: 'A step forward.',
+                      description:
+                          'Take one useful thing into your next practice.'),
                   StudioCard(
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -93,32 +100,41 @@ class FeedbackPage extends StatelessWidget {
                           const Text('Your practice score',
                               textAlign: TextAlign.center),
                           const SizedBox(height: 20),
-                          Center(
-                              child: SizedBox.square(
-                                  dimension: 156,
-                                  child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        SizedBox.expand(
-                                            child: CircularProgressIndicator(
-                                                value: (feedback.overallScore /
-                                                        100)
-                                                    .clamp(0, 1),
-                                                strokeWidth: 10,
-                                                backgroundColor: theme
-                                                    .colorScheme.outlineVariant,
-                                                strokeCap: StrokeCap.round)),
-                                        Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              AnimatedScoreDisplay(
-                                                  score: feedback.overallScore
-                                                      .round(),
-                                                  style: theme
-                                                      .textTheme.displayMedium),
-                                              const Text('out of 100'),
-                                            ]),
-                                      ]))),
+                          LayoutBuilder(
+                              builder: (context, constraints) => Center(
+                                  child: SizedBox.square(
+                                      dimension: (156 *
+                                              MediaQuery.textScalerOf(context)
+                                                  .scale(1))
+                                          .clamp(0, constraints.maxWidth)
+                                          .toDouble(),
+                                      child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            SizedBox.expand(
+                                                child: CircularProgressIndicator(
+                                                    value:
+                                                        (feedback.overallScore /
+                                                                100)
+                                                            .clamp(0, 1),
+                                                    strokeWidth: 10,
+                                                    backgroundColor: theme
+                                                        .colorScheme
+                                                        .outlineVariant,
+                                                    strokeCap:
+                                                        StrokeCap.round)),
+                                            Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  AnimatedScoreDisplay(
+                                                      score: feedback
+                                                          .overallScore
+                                                          .round(),
+                                                      style: theme.textTheme
+                                                          .displayMedium),
+                                                  const Text('out of 100'),
+                                                ]),
+                                          ])))),
                         ],
                         if (feedback.summary?.trim().isNotEmpty ?? false) ...[
                           const SizedBox(height: 20),

@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 // ignore_for_file: unused_field, unused_element, unused_local_variable
 
 import 'package:flutter/material.dart';
@@ -54,6 +55,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
 
   static const _vocalRanges = {
     'Soprano': {'key': 'C', 'octave': 5},
+    'Mezzo-Soprano': {'key': 'A', 'octave': 4},
     'Alto': {'key': 'F', 'octave': 4},
     'Tenor': {'key': 'C', 'octave': 4},
     'Baritone': {'key': 'G', 'octave': 3},
@@ -85,7 +87,7 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
     if (prefs != null) {
       final rangeStr = prefs.vocalRange.name.toLowerCase();
       for (final key in _vocalRanges.keys) {
-        if (rangeStr.contains(key.toLowerCase())) {
+        if (rangeStr == key.toLowerCase().replaceAll('-', '')) {
           _selectedRange = key;
           _selectedKey = _vocalRanges[key]!['key'] as String;
           _selectedOctave = _vocalRanges[key]!['octave'] as int;
@@ -392,7 +394,8 @@ class _ExerciseBriefingPageState extends State<ExerciseBriefingPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 800,
       appBar: AppBar(title: Text(_exerciseName)),
       body: ScrollableActionLayout(
         content: Card(

@@ -1,3 +1,5 @@
+import 'package:vocal_coach_app/shared/widgets/studio_recovery_view.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -124,14 +126,14 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
+    return StudioScaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Practice History',
           style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5),
         ),
-        centerTitle: true,
+        centerTitle: false,
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
@@ -153,7 +155,7 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
               decoration: BoxDecoration(
                 color:
                     colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                 ),
@@ -162,7 +164,7 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
                 controller: _tabController,
                 indicator: BoxDecoration(
                   color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: colorScheme.onPrimary,
@@ -205,37 +207,11 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
     }
 
     if (_error != null && _sessions.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline_rounded,
-                  size: 48, color: colorScheme.error),
-              const SizedBox(height: 16),
-              Text(
-                'Failed to load activity logs',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: () => _fetchHistory(forceRefresh: true),
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
-              ),
-            ],
-          ),
-        ),
-      );
+      return StudioRecoveryView(
+          title: 'Your history could not load.',
+          message: _error!,
+          retryLabel: 'Try Again',
+          onRetry: () => _fetchHistory(forceRefresh: true));
     }
 
     final filtered = _filteredSessions;
@@ -247,6 +223,7 @@ class _PracticeHistoryPageState extends State<PracticeHistoryPage>
               ? 'Karaoke'
               : 'Practice';
       return EmptyStateView(
+        illustrationSize: 112,
         headline: 'No $tabName logs yet',
         body:
             'Start a vocal exercise or karaoke song to build your history and receive understandable coaching feedback.',
@@ -433,52 +410,27 @@ class _SessionLogCardState extends State<_SessionLogCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header row: Mode badge + Date
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: modeColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                        color: modeColor.withValues(alpha: 0.5), width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
+            Wrap(
+                spacing: 16,
+                runSpacing: 10,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
                         isKaraoke
                             ? Icons.mic_external_on_rounded
                             : Icons.graphic_eq_rounded,
-                        size: 14,
-                        color: modeColor,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        modeLabel,
-                        style: TextStyle(
-                          color: modeColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                Icon(Icons.access_time_rounded,
-                    size: 14, color: colorScheme.onSurfaceVariant),
-                const SizedBox(width: 4),
-                Text(
-                  dateStr,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+                        size: 16,
+                        color: modeColor),
+                    const SizedBox(width: 6),
+                    Text(modeLabel,
+                        style: theme.textTheme.labelMedium
+                            ?.copyWith(color: modeColor)),
+                  ]),
+                  Text(dateStr,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: colorScheme.onSurfaceVariant)),
+                ]),
             const SizedBox(height: 12),
 
             // Main info: Title + Score Badge
@@ -554,7 +506,10 @@ class _SessionLogCardState extends State<_SessionLogCard> {
             const SizedBox(height: 14),
 
             // Status bar and Action button
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Container(
                   width: 8,
@@ -575,7 +530,9 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                 if (widget.session.failureReason != null &&
                     widget.session.failureReason!.isNotEmpty) ...[
                   const SizedBox(width: 4),
-                  Flexible(
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxWidth: MediaQuery.sizeOf(context).width - 80),
                     child: Text(
                       '(${widget.session.failureReason})',
                       maxLines: 1,
@@ -586,7 +543,6 @@ class _SessionLogCardState extends State<_SessionLogCard> {
                     ),
                   ),
                 ],
-                const Spacer(),
                 if (isCompleted)
                   FilledButton.tonalIcon(
                     onPressed: _isActionLoading ? null : _reviewFeedback,

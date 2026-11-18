@@ -1,0 +1,2116 @@
+{
+  "module_id": "vocal_coach",
+  "title": "Vocal Coach",
+  "subtitle": "Structured, AI-guided vocal development",
+  "description": "Practice targeted drills with real-time guidance and async AI feedback.",
+  "attempt_policy": {
+    "max_attempts": 3,
+    "duration_sec_by_difficulty": {
+      "beginner": 20,
+      "intermediate": 30,
+      "advanced": 45
+    }
+  },
+  "categories": [
+    {
+      "category_id": "vocal_training",
+      "title": "Vocal Training",
+      "subtitle": "Tone, placement, control, and transitions",
+      "description": "Core vocal technique drills for stable and expressive singing.",
+      "exercises": [
+        {
+          "exercise_id": "resonance_placement",
+          "name": "Resonance Placement",
+          "description": "Place tone forward while keeping neck and jaw relaxed.",
+          "objective": "Practice a stable, forward-feeling tone without adding throat tension.",
+          "what_you_do": "Hum and sustain light notes while keeping the tone bright, relaxed, and easy to observe.",
+          "requires_microphone": true,
+          "exercise_mode": "voice",
+          "instructions": [
+            "Stand tall and relaxed.",
+            "Sustain open vowels with an even, comfortable tone.",
+            "Keep tone bright without throat squeeze."
+          ],
+          "ai_focus": "Tone consistency, projection efficiency, and resonance stability",
+          "training_basis": [
+            "Humming and other semi-occluded vocal-tract exercises are used as gentle warm-up and coordination tasks.",
+            "Sustained vowels make pitch steadiness and repeatable tone easier to observe."
+          ],
+          "measurement_plan": [
+            "Fundamental frequency (pitch) error in cents against each target note.",
+            "Voiced coverage, onset delay, pitch settling time, and pitch variation per target.",
+            "Relative loudness consistency and additional microphone acoustic descriptors when available."
+          ],
+          "measurement_limits": [
+            "A phone microphone cannot directly measure vocal-tract resonance, throat tension, or airflow.",
+            "Resonance and breath-control feedback is an acoustic proxy, not a clinical voice assessment."
+          ],
+          "default_difficulty": "beginner",
+          "recommended_order": 1,
+          "focus_metrics": [
+            "breath_control",
+            "pitch_stability",
+            "pitch_accuracy"
+          ],
+          "metric_weights": {
+            "pitch_accuracy": 0.2,
+            "timing_accuracy": 0.1,
+            "breath_control": 0.3,
+            "pitch_stability": 0.25,
+            "vibrato_consistency": 0.05,
+            "note_transition_smoothness": 0.1
+          },
+          "success_thresholds": {
+            "overall_score": 75.0,
+            "metric_floors": {
+              "breath_control": 72.0,
+              "pitch_stability": 68.0
+            }
+          },
+          "coach_cues": {
+            "ready": "Keep the tone forward and the throat easy.",
+            "too_soft": "Use a clear, comfortable sound without pushing the throat.",
+            "on_pitch": "Bright and steady - keep the buzz forward.",
+            "low_pitch": "Lift resonance slightly without adding tension.",
+            "high_pitch": "Release jaw pressure and let the tone settle."
+          },
+          "patterns_by_difficulty": {
+            "beginner": {
+              "pattern_id": "placement_foundation",
+              "pattern_type": "sustain",
+              "summary": "Five relaxed tones that build forward placement across the complete beginner sequence.",
+              "teaching_note": "This beginner pattern uses the five-note pentachord foundation: Do, Re, Mi, Fa, Sol. Higher levels add La, Ti, and high Do.",
+              "stages": [
+                {
+                  "stage_id": "forward_hum",
+                  "title": "Forward Hum",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Begin with a light hum and feel vibration near the lips and nose.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "forward_re",
+                  "title": "Re Lift",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Move gently upward while keeping the forward buzz.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "open_vowel",
+                  "title": "Open Vowel",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Open to a clean vowel without losing the forward buzz.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "forward_fa",
+                  "title": "Fa Lift",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Stay relaxed as the tone rises through the vowel.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "bright_hold",
+                  "title": "Bright Hold",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Keep the tone bright and lifted while staying relaxed.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "intermediate": {
+              "pattern_id": "placement_arc",
+              "pattern_type": "sustain",
+              "summary": "Sustain and return through a wider resonance arc with smooth resets.",
+              "teaching_note": "This pattern starts with the five-note pentachord foundation and expands through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do.",
+              "stages": [
+                {
+                  "stage_id": "hum_reset",
+                  "title": "Reset Hum",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Start with a clean hum and stable support.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "lifted_re",
+                  "title": "Gentle Rise",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Move up while keeping the same easy support.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "lifted_mi",
+                  "title": "Lifted Placement",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Keep the tone forward as the vowel opens.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "lifted_fa",
+                  "title": "Supported Rise",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Keep the vowel open without adding throat pressure.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ringing_sol",
+                  "title": "Ringing Sustain",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Maintain ring without tightening the throat.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "placement_arc_full_6",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the La before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "placement_arc_full_7",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare the Ti before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "placement_arc_full_8",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "release_mi",
+                  "title": "Easy Return",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Return smoothly and keep the same placement quality.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "advanced": {
+              "pattern_id": "placement_control_loop",
+              "pattern_type": "sustain",
+              "summary": "Sustained resonance loop with longer holds and placement consistency checks.",
+              "teaching_note": "This pattern starts with the five-note pentachord foundation and expands through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do.",
+              "stages": [
+                {
+                  "stage_id": "advanced_do",
+                  "title": "Centered Start",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Start with low breath support and immediate forward placement.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "advanced_re_start",
+                  "title": "Measured Rise",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Prepare the next pitch while keeping placement forward.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "advanced_mi",
+                  "title": "Lifted Vowel",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Keep brightness steady as the pitch rises.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "advanced_fa",
+                  "title": "Supported Rise",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Keep support even as the pitch rises.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "advanced_sol",
+                  "title": "Focused Ring",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Preserve ring and avoid spreading the vowel.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "placement_control_loop_full_6",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the La before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "placement_control_loop_full_7",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare the Ti before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "placement_control_loop_full_8",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "advanced_fa_return",
+                  "title": "Controlled Return",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Return while keeping support even and relaxed.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "advanced_re_finish",
+                  "title": "Balanced Finish",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "End with the same easy, forward placement.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "exercise_id": "warmup_pitch",
+          "name": "Pitch Warmup",
+          "description": "Warm the voice with controlled pitch center and gentle onset.",
+          "objective": "Center the voice with clean onsets and stable pitch in a gentle warmup.",
+          "what_you_do": "Sing a short note ladder softly, landing each note cleanly before moving to the next one.",
+          "requires_microphone": true,
+          "exercise_mode": "voice",
+          "instructions": [
+            "Begin softly and increase gradually.",
+            "Hold each target note for 2-3 seconds.",
+            "Avoid force; prioritize stability."
+          ],
+          "ai_focus": "Pitch center, onset consistency, and warmup control",
+          "training_basis": [
+            "Gentle, progressively wider pitch patterns are a practical way to prepare pitch coordination without forcing volume.",
+            "Short repeated targets provide immediate external feedback while keeping practice blocks repeatable."
+          ],
+          "measurement_plan": [
+            "Pitch error in cents, target-note coverage, and confident voiced-frame coverage.",
+            "Onset delay, pitch settling time, pitch variability, and loudness consistency per note."
+          ],
+          "measurement_limits": [
+            "This does not verify vocal-fold health, range safety, or absence of strain.",
+            "The pitch detector can be less reliable with noise, breathy tone, very low volume, or overlapping sound."
+          ],
+          "default_difficulty": "beginner",
+          "recommended_order": 2,
+          "focus_metrics": [
+            "pitch_accuracy",
+            "timing_accuracy",
+            "pitch_stability"
+          ],
+          "metric_weights": {
+            "pitch_accuracy": 0.35,
+            "timing_accuracy": 0.2,
+            "breath_control": 0.15,
+            "pitch_stability": 0.2,
+            "vibrato_consistency": 0.05,
+            "note_transition_smoothness": 0.05
+          },
+          "success_thresholds": {
+            "overall_score": 76.0,
+            "metric_floors": {
+              "pitch_accuracy": 74.0,
+              "timing_accuracy": 68.0
+            }
+          },
+          "coach_cues": {
+            "ready": "Start gently and keep every onset clean.",
+            "too_soft": "Support a little more air for a clear start.",
+            "on_pitch": "Clean pitch center - stay easy.",
+            "low_pitch": "Prepare the note mentally before you sing it.",
+            "high_pitch": "Release pressure and enter the note more gently."
+          },
+          "patterns_by_difficulty": {
+            "beginner": {
+              "pattern_id": "warmup_ladder",
+              "pattern_type": "ladder",
+              "summary": "Five-note Do Re Mi Fa Sol warmup foundation for clean, steady onset.",
+              "teaching_note": "This beginner pattern uses the five-note pentachord foundation: Do, Re, Mi, Fa, Sol. Higher levels add La, Ti, and high Do.",
+              "stages": [
+                {
+                  "stage_id": "warmup_do",
+                  "title": "Do Start",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Start softly and settle on pitch right away.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_re",
+                  "title": "Re Lift",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Move up without pushing volume.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_mi",
+                  "title": "Mi Center",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Keep the vowel aligned and centered.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_fa",
+                  "title": "Fa Lift",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Stay relaxed as the ladder rises.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_sol",
+                  "title": "Sol Peak",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Finish the ladder with a clear, steady tone.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "intermediate": {
+              "pattern_id": "warmup_arc",
+              "pattern_type": "ladder",
+              "summary": "Ascend and descend with clean pitch entry and stable tone.",
+              "teaching_note": "This pattern starts with the five-note pentachord foundation and expands through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do.",
+              "stages": [
+                {
+                  "stage_id": "warmup_arc_do",
+                  "title": "Do Start",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Begin with a balanced onset.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_arc_re",
+                  "title": "Re Rise",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Keep the move light and precise.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_arc_mi",
+                  "title": "Mi Lock",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Hold the center before moving on.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_arc_fa",
+                  "title": "Fa Lift",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Stay easy through the rise.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_arc_sol",
+                  "title": "Sol Peak",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Reach the top note without pressing or lifting the chin.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_arc_full_6",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the La before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_arc_full_7",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare the Ti before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_arc_full_8",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_arc_mi_return",
+                  "title": "Mi Return",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Return without scooping into the note.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "advanced": {
+              "pattern_id": "warmup_full_ladder",
+              "pattern_type": "ladder",
+              "summary": "Longer ladder that tests clean entry, release, and pitch steadiness.",
+              "teaching_note": "This pattern starts with the five-note pentachord foundation and expands through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do.",
+              "stages": [
+                {
+                  "stage_id": "warmup_full_do",
+                  "title": "Do Start",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Start with low effort and clean center.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_full_re",
+                  "title": "Re Rise",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Prepare before each move.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_full_mi",
+                  "title": "Mi Lock",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Hold stable before advancing.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_full_fa",
+                  "title": "Fa Lift",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Stay tall and avoid tension.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_full_sol",
+                  "title": "Sol Peak",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Maintain control at the top.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_full_ladder_full_6",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the La before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_full_ladder_full_7",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare the Ti before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_full_ladder_full_8",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "warmup_full_mi_finish",
+                  "title": "Mi Finish",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Return cleanly and stay centered.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "exercise_id": "note_transition_drill",
+          "name": "Note Transition Drill",
+          "description": "Improve smooth movement between adjacent target notes.",
+          "objective": "Connect notes with controlled transitions and fast pitch settling.",
+          "what_you_do": "Sing connected note changes without scooping, dragging, or jumping too hard between pitches.",
+          "requires_microphone": true,
+          "exercise_mode": "voice",
+          "instructions": [
+            "Connect notes legato.",
+            "Minimize sudden pitch jumps.",
+            "Keep the phrase connection even during transitions."
+          ],
+          "ai_focus": "Transition smoothness, settling speed, and stability",
+          "training_basis": [
+            "Adjacent-note legato work isolates the coordination needed to move between pitches without an uncontrolled slide.",
+            "Progressing from steps to a wider octave exposes both small transitions and larger register changes."
+          ],
+          "measurement_plan": [
+            "Target-to-target interval, onset delay, pitch settling time, and cents error after each transition.",
+            "Completed versus failed transitions, voiced coverage, and pitch stability for each target window."
+          ],
+          "measurement_limits": [
+            "The app estimates acoustic pitch movement; it does not see laryngeal motion or diagnose vocal tension.",
+            "Transition scores need calibrated recordings before they should be interpreted as a proficiency grade."
+          ],
+          "default_difficulty": "intermediate",
+          "recommended_order": 3,
+          "focus_metrics": [
+            "note_transition_smoothness",
+            "timing_accuracy",
+            "pitch_stability"
+          ],
+          "metric_weights": {
+            "pitch_accuracy": 0.15,
+            "timing_accuracy": 0.2,
+            "breath_control": 0.05,
+            "pitch_stability": 0.2,
+            "vibrato_consistency": 0.05,
+            "note_transition_smoothness": 0.35
+          },
+          "success_thresholds": {
+            "overall_score": 78.0,
+            "metric_floors": {
+              "note_transition_smoothness": 74.0,
+              "timing_accuracy": 68.0
+            }
+          },
+          "coach_cues": {
+            "ready": "Connect each note smoothly without rushing.",
+            "too_soft": "Keep the sound connected through the change.",
+            "on_pitch": "Smooth landing - keep the line connected.",
+            "low_pitch": "Prepare the next note earlier and guide upward.",
+            "high_pitch": "Release the jump and settle through the breath."
+          },
+          "patterns_by_difficulty": {
+            "beginner": {
+              "pattern_id": "transition_steps",
+              "pattern_type": "transition",
+              "summary": "Complete five-note ladder with controlled legato transitions.",
+              "teaching_note": "This beginner pattern uses the five-note pentachord foundation: Do, Re, Mi, Fa, Sol. Higher levels add La, Ti, and high Do.",
+              "stages": [
+                {
+                  "stage_id": "transition_do",
+                  "title": "Do Start",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Start balanced and ready to move.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_re",
+                  "title": "Re Connect",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Move smoothly without a hard jump.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_mi",
+                  "title": "Mi Settle",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Let the pitch settle quickly and evenly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_fa",
+                  "title": "Fa Reach",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Keep the sound connected as you continue upward.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_sol",
+                  "title": "Sol Finish",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Finish the ladder without tightening the throat.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "intermediate": {
+              "pattern_id": "transition_arc",
+              "pattern_type": "transition",
+              "summary": "Complete five-note ladder with a controlled return through the connected line.",
+              "teaching_note": "This pattern starts with the five-note pentachord foundation and expands through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do.",
+              "stages": [
+                {
+                  "stage_id": "transition_arc_do",
+                  "title": "Do Start",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Center the line before moving.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_arc_re",
+                  "title": "Re Connect",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Move smoothly into the next pitch.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_arc_mi",
+                  "title": "Mi Lift",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Travel smoothly into the next pitch.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_arc_fa",
+                  "title": "Fa Reach",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Keep the sound connected through the reach.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_arc_sol",
+                  "title": "Sol Peak",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Reach the top without breaking the connected line.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_arc_full_6",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the La before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_arc_full_7",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare the Ti before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_arc_full_8",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_arc_mi_finish",
+                  "title": "Mi Finish",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Land and stabilize quickly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "advanced": {
+              "pattern_id": "transition_skips",
+              "pattern_type": "transition",
+              "summary": "Complete five-note ladder followed by controlled return transitions.",
+              "teaching_note": "This pattern starts with the five-note pentachord foundation and expands through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do.",
+              "stages": [
+                {
+                  "stage_id": "transition_skip_do",
+                  "title": "Do Start",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Stay poised and ready to connect the line.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skip_re",
+                  "title": "Re Connect",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Move smoothly without breaking the line.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skip_mi",
+                  "title": "Mi Lift",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Travel upward with a steady vowel.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skip_fa",
+                  "title": "Fa Reach",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Keep the sound connected through the reach.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skip_sol",
+                  "title": "Sol Extend",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Keep the line connected through the top note.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skips_full_6",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the La before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skips_full_7",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare the Ti before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skips_full_8",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skip_fa_return",
+                  "title": "Fa Return",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Return smoothly without collapsing support.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skip_re_return",
+                  "title": "Re Balance",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Settle quickly into the lower pitch.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "transition_skip_mi_finish",
+                  "title": "Mi Finish",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Finish with the same connected tone.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "category_id": "do_re_mi",
+      "title": "Do Re Mi Fa Sol La Ti Do",
+      "subtitle": "Pitch-target drills and interval control",
+      "description": "Strengthen ear-voice mapping and note accuracy.",
+      "exercises": [
+        {
+          "exercise_id": "do_re_mi_basic_ladder",
+          "name": "Basic Ladder",
+          "description": "Step through scale tones with clean pitch locks.",
+          "objective": "Build scale awareness and clean pitch locks on simple note ladders.",
+          "what_you_do": "Sing one target note at a time in order, matching each step before climbing to the next one.",
+          "requires_microphone": true,
+          "exercise_mode": "voice",
+          "instructions": [
+            "Follow target notes in sequence.",
+            "Hold each note until it stabilizes.",
+            "Reset breath between phrases."
+          ],
+          "ai_focus": "Cents error reduction and note-hit consistency",
+          "training_basis": [
+            "Movable-do solf\u00e8ge links scale-degree hearing to the voice; Do\u2013Sol is a useful beginner pentachord before the full octave.",
+            "Intermediate and advanced levels add La, Ti, and high Do so the progression does not stop at Sol."
+          ],
+          "measurement_plan": [
+            "Per-note cents error, on-target rate, onset timing, settling time, and pitch stability.",
+            "Coverage and confidence are reported so a missing or noisy recording cannot look like a perfect score."
+          ],
+          "measurement_limits": [
+            "The drill measures matching to the selected tonic and target notes; it does not prove aural skill outside this pattern.",
+            "A numeric score is an engineering measure and still needs human-rated calibration for proficiency claims."
+          ],
+          "default_difficulty": "beginner",
+          "recommended_order": 1,
+          "focus_metrics": [
+            "pitch_accuracy",
+            "timing_accuracy",
+            "pitch_stability"
+          ],
+          "metric_weights": {
+            "pitch_accuracy": 0.35,
+            "timing_accuracy": 0.2,
+            "breath_control": 0.1,
+            "pitch_stability": 0.2,
+            "vibrato_consistency": 0.05,
+            "note_transition_smoothness": 0.1
+          },
+          "success_thresholds": {
+            "overall_score": 75.0,
+            "metric_floors": {
+              "pitch_accuracy": 72.0
+            }
+          },
+          "coach_cues": {
+            "ready": "Track each note before you sing it.",
+            "too_soft": "Use a clear, comfortable sound so the pitch can be detected reliably.",
+            "on_pitch": "Nice lock - hold it steady.",
+            "low_pitch": "Aim a touch higher into the note.",
+            "high_pitch": "Relax the attack and settle into center."
+          },
+          "patterns_by_difficulty": {
+            "beginner": {
+              "pattern_id": "basic_ladder",
+              "pattern_type": "ladder",
+              "summary": "Straight scale ladder to reinforce note recognition.",
+              "teaching_note": "This beginner pattern uses the five-note pentachord foundation: Do, Re, Mi, Fa, Sol. Higher levels add La, Ti, and high Do.",
+              "stages": [
+                {
+                  "stage_id": "ladder_do",
+                  "title": "Do",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Lock the tonic cleanly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_re",
+                  "title": "Re",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Move up without sliding.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_mi",
+                  "title": "Mi",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Keep the center steady.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_fa",
+                  "title": "Fa",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Stay relaxed as you rise.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_sol",
+                  "title": "Sol",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Lock the top note clearly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "intermediate": {
+              "pattern_id": "basic_ladder_extended",
+              "pattern_type": "ladder",
+              "summary": "Complete scale ladder with a controlled return pattern.",
+              "teaching_note": "This pattern starts with the five-note pentachord foundation and expands through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do.",
+              "stages": [
+                {
+                  "stage_id": "ladder_ext_do",
+                  "title": "Do",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Start cleanly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_ext_re",
+                  "title": "Re",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Prepare before moving.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_ext_mi",
+                  "title": "Mi",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Hold the center.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_ext_fa",
+                  "title": "Fa",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Stay relaxed as you rise.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_ext_sol",
+                  "title": "Sol",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Lock the top note clearly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "basic_ladder_extended_full_6",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the La before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "basic_ladder_extended_full_7",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare the Ti before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "basic_ladder_extended_full_8",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_ext_mi_return",
+                  "title": "Mi",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Return without scooping.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "advanced": {
+              "pattern_id": "basic_ladder_full",
+              "pattern_type": "ladder",
+              "summary": "Full ladder through a wider pitch span.",
+              "teaching_note": "This pattern starts with the five-note pentachord foundation and expands through the full octave: Do, Re, Mi, Fa, Sol, La, Ti, high Do.",
+              "stages": [
+                {
+                  "stage_id": "ladder_full_do",
+                  "title": "Do",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Start centered.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_full_re",
+                  "title": "Re",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Keep the move direct.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_full_mi",
+                  "title": "Mi",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Hold stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_full_fa",
+                  "title": "Fa",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Stay tall in the rise.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_full_sol",
+                  "title": "Sol",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Lock the top note clearly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "basic_ladder_full_full_6",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the La before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "basic_ladder_full_full_7",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare the Ti before moving to the next scale degree.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "basic_ladder_full_full_8",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "ladder_full_fa_return",
+                  "title": "Fa",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Descend with control.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "exercise_id": "do_re_mi_interval_jumps",
+          "name": "Interval Jumps",
+          "description": "Land non-adjacent notes with precision.",
+          "objective": "Improve interval anticipation and direct note landing.",
+          "what_you_do": "Hear the next note in your mind, then jump directly to it without sliding into the pitch.",
+          "requires_microphone": true,
+          "exercise_mode": "voice",
+          "instructions": [
+            "Visualize the target note before singing.",
+            "Attack cleanly; avoid sliding.",
+            "Check stability after each jump."
+          ],
+          "ai_focus": "Interval landing precision and recovery speed",
+          "training_basis": [
+            "Non-adjacent scale-degree jumps train anticipation and direct landing rather than relying only on stepwise sliding.",
+            "The advanced pattern samples La, Ti, and high Do so interval work covers the full octave."
+          ],
+          "measurement_plan": [
+            "Interval size, landing error in cents, onset delay, settling time, and post-landing stability.",
+            "Transition completion rate and recovery time after each guided jump."
+          ],
+          "measurement_limits": [
+            "The detector cannot determine whether a singer internally heard the note before singing it.",
+            "Large jumps can exceed the configured vocal range; practice range must remain comfortable for the singer."
+          ],
+          "default_difficulty": "advanced",
+          "recommended_order": 2,
+          "focus_metrics": [
+            "pitch_accuracy",
+            "note_transition_smoothness",
+            "timing_accuracy"
+          ],
+          "metric_weights": {
+            "pitch_accuracy": 0.35,
+            "timing_accuracy": 0.2,
+            "breath_control": 0.05,
+            "pitch_stability": 0.15,
+            "vibrato_consistency": 0.05,
+            "note_transition_smoothness": 0.2
+          },
+          "success_thresholds": {
+            "overall_score": 78.0,
+            "metric_floors": {
+              "pitch_accuracy": 75.0
+            }
+          },
+          "coach_cues": {
+            "ready": "Hear the interval before you sing it.",
+            "too_soft": "Support enough air to land the jump cleanly.",
+            "on_pitch": "Direct landing - keep it stable.",
+            "low_pitch": "Prepare the leap higher in your mind.",
+            "high_pitch": "Release the jump and land with less force."
+          },
+          "patterns_by_difficulty": {
+            "beginner": {
+              "pattern_id": "interval_jumps_short",
+              "pattern_type": "jump",
+              "summary": "Simple interval jumps for controlled landing.",
+              "teaching_note": "This is an interval exercise: the notes intentionally skip steps so you can practice accurate leaps.",
+              "stages": [
+                {
+                  "stage_id": "jump_short_do",
+                  "title": "Do",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Set the tonic clearly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_short_mi",
+                  "title": "Mi",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Jump directly into the note.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_short_do_return",
+                  "title": "Do",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Return without sliding.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "intermediate": {
+              "pattern_id": "interval_jumps_medium",
+              "pattern_type": "jump",
+              "summary": "Alternating interval jumps with fast recovery.",
+              "teaching_note": "This is an interval exercise: the notes intentionally skip steps so you can practice accurate leaps.",
+              "stages": [
+                {
+                  "stage_id": "jump_medium_do",
+                  "title": "Do",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Start centered.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_medium_fa",
+                  "title": "Fa",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Leap directly and stabilize.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_medium_re",
+                  "title": "Re",
+                  "target_label": "Re",
+                  "solfege": "Re",
+                  "instruction": "Return cleanly.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_medium_sol",
+                  "title": "Sol",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Keep the landing direct.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_medium_mi",
+                  "title": "Mi",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Recover into the next center.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "advanced": {
+              "pattern_id": "interval_jumps_full",
+              "pattern_type": "jump",
+              "summary": "Full-octave interval jumps that test anticipation and pitch control.",
+              "teaching_note": "This interval exercise intentionally skips scale steps; the advanced range includes La, Ti, and high Do so the full octave is tested.",
+              "stages": [
+                {
+                  "stage_id": "jump_full_do",
+                  "title": "Do",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Set a stable tonic.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_full_sol",
+                  "title": "Sol",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Land directly on the top note.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_full_mi",
+                  "title": "Mi",
+                  "target_label": "Mi",
+                  "solfege": "Mi",
+                  "instruction": "Recover with the same clarity.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_full_la",
+                  "title": "La",
+                  "target_label": "La",
+                  "solfege": "La",
+                  "instruction": "Prepare the wider leap before you sing.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_full_ti",
+                  "title": "Ti",
+                  "target_label": "Ti",
+                  "solfege": "Ti",
+                  "instruction": "Prepare mentally before the leap.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_full_fa",
+                  "title": "Fa",
+                  "target_label": "Fa",
+                  "solfege": "Fa",
+                  "instruction": "Return without dropping support.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_full_high_do",
+                  "title": "High Do",
+                  "target_label": "Do\u2032",
+                  "solfege": "Do\u2032",
+                  "instruction": "Reach the octave gently and keep the landing stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_full_sol_return",
+                  "title": "Sol",
+                  "target_label": "Sol",
+                  "solfege": "Sol",
+                  "instruction": "Recover from the octave without sliding.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "jump_full_do_finish",
+                  "title": "Do",
+                  "target_label": "Do",
+                  "solfege": "Do",
+                  "instruction": "Finish centered and stable.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "category_id": "breathing",
+      "title": "Breathing",
+      "subtitle": "Breath pacing, body awareness, and phrase endurance",
+      "description": "Develop breath management for sustained and stable singing.",
+      "exercises": [
+        {
+          "exercise_id": "breath_support_ladder",
+          "name": "Support Ladder",
+          "description": "Follow guided inhale and exhale counts to practice repeatable breath pacing.",
+          "objective": "Practice repeatable breath timing through gradually longer inhale and exhale cycles.",
+          "what_you_do": "Follow the timer to inhale, hold briefly if prompted, and exhale slowly through each guided cycle.",
+          "requires_microphone": false,
+          "exercise_mode": "breathing_timer",
+          "instructions": [
+            "Inhale low and quiet.",
+            "Exhale at steady pressure for the full count.",
+            "Keep shoulders relaxed while the timer guides you."
+          ],
+          "ai_focus": "Breath pacing, routine consistency, and phase completion quality",
+          "training_basis": [
+            "Paced inhale, settle, and exhale phases build repeatable breath timing and body-awareness habits.",
+            "The routine is a coordination exercise, not a claim that one breathing pattern fits every singer."
+          ],
+          "measurement_plan": [
+            "Phase completion, interruptions, elapsed duration, and consistency of following the guided sequence.",
+            "Optional microphone audio proxy: audible-frame coverage, loudness trend, and stream quality."
+          ],
+          "measurement_limits": [
+            "A phone microphone cannot measure airflow, lung volume, rib movement, subglottal pressure, or true breath support.",
+            "Audio evidence is optional and cannot replace respiratory or airflow sensors."
+          ],
+          "default_difficulty": "beginner",
+          "recommended_order": 1,
+          "focus_metrics": [
+            "phase_completion_rate",
+            "pace_adherence",
+            "cycle_consistency"
+          ],
+          "metric_weights": {
+            "phase_completion_rate": 0.35,
+            "pace_adherence": 0.3,
+            "cycle_consistency": 0.2,
+            "completion_rate": 0.15
+          },
+          "success_thresholds": {
+            "overall_score": 74.0,
+            "metric_floors": {
+              "phase_completion_rate": 72.0,
+              "pace_adherence": 68.0
+            }
+          },
+          "coach_cues": {
+            "ready": "Set the ribs low and get ready to follow the next breath phase.",
+            "too_soft": "Keep the exhale even all the way through the release.",
+            "on_pitch": "Nice pacing - keep the inhale quiet and the exhale even.",
+            "low_pitch": "Take a fuller, calmer inhale before the next release.",
+            "high_pitch": "Slow the air down and soften the pressure on the exhale."
+          },
+          "patterns_by_difficulty": {
+            "beginner": {
+              "pattern_id": "support_ladder_short",
+              "pattern_type": "breathing",
+              "summary": "Short guided breathing ladder with simple inhale and longer exhale pacing.",
+              "teaching_note": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
+              "stages": [
+                {
+                  "stage_id": "support_inhale_short",
+                  "title": "Inhale",
+                  "target_label": "Inhale",
+                  "solfege": "Inhale",
+                  "instruction": "Breathe in quietly through the nose for the full count.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_hold_short",
+                  "title": "Settle",
+                  "target_label": "Settle",
+                  "solfege": "Settle",
+                  "instruction": "Pause briefly and stay relaxed through the ribs.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_exhale_short",
+                  "title": "Exhale",
+                  "target_label": "Exhale",
+                  "solfege": "Exhale",
+                  "instruction": "Release the air slowly and evenly until the timer ends.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "intermediate": {
+              "pattern_id": "support_ladder_medium",
+              "pattern_type": "breathing",
+              "summary": "Medium breathing ladder with longer exhale pacing and posture control.",
+              "teaching_note": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
+              "stages": [
+                {
+                  "stage_id": "support_medium_inhale",
+                  "title": "Inhale",
+                  "target_label": "Inhale",
+                  "solfege": "Inhale",
+                  "instruction": "Fill low and wide without lifting the shoulders.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_medium_hold",
+                  "title": "Anchor",
+                  "target_label": "Anchor",
+                  "solfege": "Anchor",
+                  "instruction": "Keep the ribs open and avoid throat tension.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_medium_exhale",
+                  "title": "Exhale",
+                  "target_label": "Exhale",
+                  "solfege": "Exhale",
+                  "instruction": "Let the air out in a slow, controlled stream.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_medium_release",
+                  "title": "Recover",
+                  "target_label": "Recover",
+                  "solfege": "Recover",
+                  "instruction": "Stay tall and reset calmly before the next cycle.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "advanced": {
+              "pattern_id": "support_ladder_full",
+              "pattern_type": "breathing",
+              "summary": "Long guided breathing cycle for advanced support pacing and controlled release.",
+              "teaching_note": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
+              "stages": [
+                {
+                  "stage_id": "support_full_inhale",
+                  "title": "Inhale",
+                  "target_label": "Inhale",
+                  "solfege": "Inhale",
+                  "instruction": "Take a low, silent inhale without rushing.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_full_hold",
+                  "title": "Hold",
+                  "target_label": "Hold",
+                  "solfege": "Hold",
+                  "instruction": "Keep the body expanded and steady.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_full_exhale",
+                  "title": "Exhale",
+                  "target_label": "Exhale",
+                  "solfege": "Exhale",
+                  "instruction": "Release the air with the same support all the way through.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_full_extend",
+                  "title": "Extend",
+                  "target_label": "Extend",
+                  "solfege": "Extend",
+                  "instruction": "Stay calm as the exhale gets longer.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "support_full_reset",
+                  "title": "Reset",
+                  "target_label": "Reset",
+                  "solfege": "Reset",
+                  "instruction": "Relax, recover, and prepare for the next cycle.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "exercise_id": "long_phrase_breathing",
+          "name": "Long Phrase Breathing",
+          "description": "Practice longer inhale-to-exhale cycles that mimic the pacing needed for long singing phrases.",
+          "objective": "Improve phrase planning and exhale pacing through guided long-breath timing.",
+          "what_you_do": "Use the timer to inhale, then stretch a calm, even exhale for longer phrase-style counts.",
+          "requires_microphone": false,
+          "exercise_mode": "breathing_timer",
+          "instructions": [
+            "Inhale quietly before each cycle.",
+            "Pace the exhale instead of pushing air out early.",
+            "Stay relaxed until the end of the count."
+          ],
+          "ai_focus": "Exhale pacing, endurance, and guided phrase completion",
+          "training_basis": [
+            "Longer paced exhale phases rehearse planning and endurance for phrase-length timing.",
+            "Professional breathing is variable; the routine is a repeatable practice target, not a universal physiological prescription."
+          ],
+          "measurement_plan": [
+            "Phase completion, interruption count, time spent in each guided phase, and cycle consistency.",
+            "Optional microphone audio proxy: audible-frame coverage, loudness trend, and stream quality."
+          ],
+          "measurement_limits": [
+            "A phone microphone cannot prove airflow pacing or respiratory kinematics.",
+            "Stop if dizzy, uncomfortable, or strained; this app is not medical or respiratory therapy."
+          ],
+          "default_difficulty": "intermediate",
+          "recommended_order": 2,
+          "focus_metrics": [
+            "phase_completion_rate",
+            "pace_adherence",
+            "completion_rate"
+          ],
+          "metric_weights": {
+            "phase_completion_rate": 0.3,
+            "pace_adherence": 0.3,
+            "cycle_consistency": 0.15,
+            "completion_rate": 0.25
+          },
+          "success_thresholds": {
+            "overall_score": 76.0,
+            "metric_floors": {
+              "phase_completion_rate": 74.0,
+              "completion_rate": 72.0
+            }
+          },
+          "coach_cues": {
+            "ready": "Plan the breath now and stay calm through the longer release.",
+            "too_soft": "Keep the support connected as the phrase keeps going.",
+            "on_pitch": "That pacing is steady - keep the exhale smooth to the end.",
+            "low_pitch": "Reset calmly so the next long release stays comfortable.",
+            "high_pitch": "Back off the pressure and spread the air across the full phrase."
+          },
+          "patterns_by_difficulty": {
+            "beginner": {
+              "pattern_id": "long_phrase_short",
+              "pattern_type": "breathing",
+              "summary": "Short phrase-style breathing cycle with a measured inhale and longer exhale.",
+              "teaching_note": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
+              "stages": [
+                {
+                  "stage_id": "phrase_short_inhale",
+                  "title": "Inhale",
+                  "target_label": "Inhale",
+                  "solfege": "Inhale",
+                  "instruction": "Take a quiet inhale and keep the chest relaxed.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_short_exhale",
+                  "title": "Exhale",
+                  "target_label": "Exhale",
+                  "solfege": "Exhale",
+                  "instruction": "Let the air out evenly through the whole count.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_short_finish",
+                  "title": "Finish",
+                  "target_label": "Finish",
+                  "solfege": "Finish",
+                  "instruction": "Stay steady through the final seconds of the exhale.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "intermediate": {
+              "pattern_id": "long_phrase_medium",
+              "pattern_type": "breathing",
+              "summary": "Longer phrase-style breathing drill with endurance emphasis.",
+              "teaching_note": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
+              "stages": [
+                {
+                  "stage_id": "phrase_medium_inhale",
+                  "title": "Inhale",
+                  "target_label": "Inhale",
+                  "solfege": "Inhale",
+                  "instruction": "Set the breath low and calm before the long exhale.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_medium_release",
+                  "title": "Release",
+                  "target_label": "Release",
+                  "solfege": "Release",
+                  "instruction": "Begin the exhale smoothly without dumping air.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_medium_extend",
+                  "title": "Extend",
+                  "target_label": "Extend",
+                  "solfege": "Extend",
+                  "instruction": "Keep the exhale even as the count gets longer.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_medium_finish",
+                  "title": "Finish",
+                  "target_label": "Finish",
+                  "solfege": "Finish",
+                  "instruction": "Stay supported right to the end.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            },
+            "advanced": {
+              "pattern_id": "long_phrase_full",
+              "pattern_type": "breathing",
+              "summary": "Advanced long-breath routine with multiple pacing checkpoints and a controlled finish.",
+              "teaching_note": "This is a breathing exercise: follow the inhale and exhale phases instead of singing a note sequence.",
+              "stages": [
+                {
+                  "stage_id": "phrase_full_inhale",
+                  "title": "Inhale",
+                  "target_label": "Inhale",
+                  "solfege": "Inhale",
+                  "instruction": "Prepare the body with a slow, quiet inhale.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_full_anchor",
+                  "title": "Anchor",
+                  "target_label": "Anchor",
+                  "solfege": "Anchor",
+                  "instruction": "Hold the expansion briefly without tightening.",
+                  "beats": 1,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_full_release",
+                  "title": "Release",
+                  "target_label": "Release",
+                  "solfege": "Release",
+                  "instruction": "Start the exhale in a controlled, even stream.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_full_extend",
+                  "title": "Extend",
+                  "target_label": "Extend",
+                  "solfege": "Extend",
+                  "instruction": "Resist the urge to push as the count lengthens.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_full_finish",
+                  "title": "Finish",
+                  "target_label": "Finish",
+                  "solfege": "Finish",
+                  "instruction": "Stay calm and supported through the final seconds.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                },
+                {
+                  "stage_id": "phrase_full_reset",
+                  "title": "Reset",
+                  "target_label": "Reset",
+                  "solfege": "Reset",
+                  "instruction": "Release tension and prepare for the next cycle.",
+                  "beats": 2,
+                  "target_type": null,
+                  "rest_after_beats": null,
+                  "breath_cue": false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

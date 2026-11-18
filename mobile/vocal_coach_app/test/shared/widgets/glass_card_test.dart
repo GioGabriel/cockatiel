@@ -41,7 +41,8 @@ void main() {
       );
     });
 
-    testWidgets('default border radius is 24', (tester) async {
+    testWidgets('default border radius follows the 20 pixel studio surface',
+        (tester) async {
       await tester.pumpWidget(
         buildApp(
           const GlassCard(
@@ -54,7 +55,7 @@ void main() {
       final decoration = container.decoration! as BoxDecoration;
       expect(
         decoration.borderRadius,
-        BorderRadius.circular(24.0),
+        BorderRadius.circular(20.0),
       );
     });
 
@@ -75,7 +76,7 @@ void main() {
   });
 
   group('GlassCard.dark', () {
-    testWidgets('uses the raised dark theme surface', (tester) async {
+    testWidgets('uses the same matte surface in dark mode', (tester) async {
       final theme = ThemeData.dark();
       await tester.pumpWidget(
         MaterialApp(
@@ -90,7 +91,7 @@ void main() {
 
       final container = tester.widget<Container>(find.byType(Container).last);
       final decoration = container.decoration! as BoxDecoration;
-      expect(decoration.color, theme.colorScheme.surfaceContainerHighest);
+      expect(decoration.color, theme.colorScheme.surface);
     });
 
     testWidgets('does NOT have BackdropFilter in widget tree', (tester) async {

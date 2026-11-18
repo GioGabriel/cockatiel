@@ -100,9 +100,14 @@ void main() {
     expect(find.text('How this score is calculated'), findsNothing);
     await tester.scrollUntilVisible(find.text('Read full feedback'), 200,
         scrollable: find.byType(Scrollable).first);
+    await tester.ensureVisible(find.text('Read full feedback'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Read full feedback'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+        find.text('How this score is calculated'), 200,
+        scrollable: find.byType(Scrollable).first);
     expect(find.text('How this score is calculated'), findsOneWidget);
     expect(find.text('Focus first'), findsOneWidget);
     expect(find.textContaining('Pitch accuracy'), findsWidgets);

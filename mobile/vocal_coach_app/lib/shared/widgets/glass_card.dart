@@ -10,7 +10,7 @@ class GlassCard extends StatelessWidget {
     required this.child,
     this.blurSigma = 0.0,
     this.fillColor,
-    this.borderRadius = 24.0,
+    this.borderRadius = 20.0,
     this.borderOpacity = 0.08,
   }) : _isDisabled = false;
 
@@ -18,7 +18,7 @@ class GlassCard extends StatelessWidget {
   const GlassCard.dark({
     super.key,
     required this.child,
-    this.borderRadius = 24.0,
+    this.borderRadius = 20.0,
     this.borderOpacity = 0.12,
   })  : blurSigma = 0.0,
         fillColor = null,
@@ -28,7 +28,7 @@ class GlassCard extends StatelessWidget {
   const GlassCard.disabled({
     super.key,
     required this.child,
-    this.borderRadius = 24.0,
+    this.borderRadius = 20.0,
   })  : blurSigma = 0.0,
         fillColor = null,
         borderOpacity = 0.0,
@@ -53,7 +53,7 @@ class GlassCard extends StatelessWidget {
     final theme = Theme.of(context);
     final resolvedFillColor = fillColor ??
         (theme.brightness == Brightness.dark
-            ? theme.colorScheme.surfaceContainerHighest
+            ? theme.colorScheme.surface
             : theme.colorScheme.surface);
     final radius = BorderRadius.circular(borderRadius);
 

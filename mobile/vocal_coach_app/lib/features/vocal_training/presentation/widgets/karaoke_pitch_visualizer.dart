@@ -184,9 +184,7 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    widget.isRunning
-                        ? 'REAL-TIME PITCH TRACKER'
-                        : 'SONG PITCH MAP',
+                    widget.isRunning ? 'LIVE PITCH' : 'PITCH GUIDE',
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.onSurface,
@@ -195,7 +193,7 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
                     ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 12),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -208,7 +206,9 @@ class _KaraokePitchVisualizerState extends State<KaraokePitchVisualizer>
                     ),
                   ),
                   child: Text(
-                    '${widget.stages.length} TARGET NOTES',
+                    widget.stages.isEmpty
+                        ? 'MIC ONLY'
+                        : '${widget.stages.length} NOTES',
                     style: TextStyle(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontSize: 10,

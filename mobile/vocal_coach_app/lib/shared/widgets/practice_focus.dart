@@ -1,3 +1,4 @@
+import 'studio_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'voice_studio.dart';
 
@@ -22,7 +23,7 @@ class PracticeFocus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
+    return StudioScaffold(
       appBar: AppBar(title: Text(title), automaticallyImplyLeading: false),
       body: VoiceStageBackground(
           child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
@@ -34,8 +35,19 @@ class PracticeFocus extends StatelessWidget {
             Row(children: [
               const Icon(Icons.mic_rounded),
               const SizedBox(width: 8),
-              const Expanded(child: Text('LIVE PRACTICE')),
-              Text('${secondsRemaining}s', style: theme.textTheme.titleLarge)
+              Expanded(
+                  child: Text('LIVE PRACTICE',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                          letterSpacing: 1.5,
+                          color: theme.colorScheme.primary))),
+              Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Text('${secondsRemaining}s',
+                      style: theme.textTheme.titleMedium))
             ]),
             const SizedBox(height: 12),
             LinearProgressIndicator(
@@ -49,7 +61,13 @@ class PracticeFocus extends StatelessWidget {
             SizedBox(
                 key: const Key('practice-focus-visual'),
                 height: constraints.maxHeight * .52,
-                child: visual),
+                child: DecoratedBox(
+                    decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(20)),
+                    child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: visual))),
             const SizedBox(height: 16),
             const Text('Keep it comfortable. Stop if you feel strain.',
                 textAlign: TextAlign.center),

@@ -1,12 +1,13 @@
+import 'package:vocal_coach_app/shared/widgets/studio_recovery_view.dart';
+import 'package:vocal_coach_app/shared/widgets/song_artwork.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
-import '../../../shared/animations/micro_interaction.dart';
 import '../../../shared/models/karaoke_models.dart';
 import '../../../shared/models/training_models.dart';
 import '../../../shared/utils/vocal_utils.dart';
-import '../../../shared/widgets/difficulty_badge.dart';
 import '../../../shared/widgets/shimmer_skeleton.dart';
 import 'karaoke_song_briefing_page.dart';
 import '../domain/song_library.dart';
@@ -95,7 +96,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return StudioScaffold(
       appBar: AppBar(title: const Text('Song Practice')),
       body: _buildBody(theme),
     );
@@ -117,7 +118,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: ShimmerSkeleton(
-        child: Column(
+        child: ListView(
           children: List.generate(
             5,
             (index) => Padding(
@@ -131,35 +132,10 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
   }
 
   Widget _buildErrorState(ThemeData theme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.cloud_off,
-              size: 48,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Catalog temporarily unavailable',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 54,
-              child: FilledButton(
-                onPressed: _loadData,
-                child: const Text('Retry'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return StudioRecoveryView(
+        title: 'Your songs could not load.',
+        message: 'Check your connection, then try opening the library again.',
+        onRetry: _loadData);
   }
 
   Widget _buildCatalogList(ThemeData theme) {
@@ -198,9 +174,22 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
     final selectedCategory =
         categories[_selectedCategoryIndex.clamp(0, categories.length - 1)];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    final filteredDrills = selectedCategory.drills.where((drill) {
+      if (_searchQuery.isEmpty) return true;
+      return drill.title.toLowerCase().contains(_searchQuery) ||
+          drill.artistName.toLowerCase().contains(_searchQuery);
+    }).toList();
+    return CustomScrollView(slivers: [
+      SliverToBoxAdapter(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24),
+            child: StudioHeading(
+                eyebrow: 'YOUR SONG LIBRARY',
+                title: 'Sing what you love.',
+                description:
+                    'Choose a song. Find your rhythm. Enjoy the take.')),
         // Search Bar
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -233,7 +222,7 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
 
         // Filter Chips
         SizedBox(
-          height: 60,
+          height: 64 * MediaQuery.textScalerOf(context).scale(1).clamp(1, 1.5),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -256,75 +245,34 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
             },
           ),
         ),
-
-        // Grid View
-        Expanded(
-          child: Builder(
-            builder: (context) {
-              final filteredDrills = selectedCategory.drills.where((drill) {
-                if (_searchQuery.isEmpty) return true;
-                final q = _searchQuery.toLowerCase();
-                return drill.title.toLowerCase().contains(q) ||
-                    drill.artistName.toLowerCase().contains(q);
-              }).toList();
-
-              if (filteredDrills.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      _searchQuery.isEmpty
-                          ? 'No songs are available in this category yet.'
-                          : 'No songs match your search. Try another title or artist.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth < 380 ||
-                          MediaQuery.textScalerOf(context).scale(1) > 1.3
-                      ? 1
-                      : constraints.maxWidth >= 1100
-                          ? 4
-                          : constraints.maxWidth >= 720
-                              ? 3
-                              : 2;
-                  return GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      mainAxisExtent: crossAxisCount == 1 ? 390 : null,
-                      childAspectRatio: crossAxisCount >= 3 ? 0.82 : 0.70,
-                    ),
-                    itemCount: filteredDrills.length,
-                    itemBuilder: (context, index) {
-                      final drill = filteredDrills[index];
-                      final progress = _progressByDrill[drill.drillId];
-                      return _buildDrillCard(drill, progress, theme);
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
+      ])),
+      if (filteredDrills.isEmpty)
+        SliverToBoxAdapter(
+            child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                    _searchQuery.isEmpty
+                        ? 'No songs are available in this category yet.'
+                        : 'No songs match your search. Try another title or artist.',
+                    textAlign: TextAlign.center)))
+      else
+        SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
+            sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+              final drill = filteredDrills[index];
+              return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildDrillCard(
+                      drill, _progressByDrill[drill.drillId], theme));
+            }, childCount: filteredDrills.length))),
+    ]);
   }
 
   Widget _buildDrillCard(
       KaraokeDrill drill, TrainingExerciseProgress? progress, ThemeData theme) {
     final durationLabel = formatDuration(drill.durationSec);
     final formattedTitle = formatSnakeCaseTitle(drill.title);
-    final formattedStyle = formatSnakeCaseTitle(drill.styleCategory);
     final vocalLow = drill.vocalRange['low'] ?? drill.vocalRange['min'] ?? '';
     final vocalHigh = drill.vocalRange['high'] ?? drill.vocalRange['max'] ?? '';
     final vocalRangeLabel = vocalLow.isNotEmpty && vocalHigh.isNotEmpty
@@ -332,162 +280,64 @@ class _KaraokeCatalogPageState extends State<KaraokeCatalogPage> {
         : '';
 
     return Semantics(
-      button: true,
-      label: 'Practice $formattedTitle by ${drill.artistName}',
-      child: Pressable(
-        onTap: () => _onDrillTap(drill),
-        child: Card(
-          clipBehavior: Clip.antiAlias,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Cover Image Header
-              Expanded(
-                flex: 3,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    drill.coverUrl.isNotEmpty
-                        ? Image.network(
-                            drill.coverUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              child: Icon(
-                                Icons.music_note_rounded,
-                                color: theme.colorScheme.onSurfaceVariant,
-                                size: 36,
-                              ),
-                            ),
-                            semanticLabel: '$formattedTitle cover art',
-                          )
-                        : Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: Icon(
-                              Icons.music_note_rounded,
-                              color: theme.colorScheme.onSurfaceVariant,
-                              size: 36,
-                            ),
-                          ),
-                    ColoredBox(
-                      color: theme.colorScheme.scrim.withValues(alpha: 0.22),
-                    ),
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: DifficultyBadge(difficulty: drill.difficulty),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Icon(
-                        Icons.play_circle_fill_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 28,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Text Content
-              Expanded(
-                flex: 4,
+        button: true,
+        label: 'Practice $formattedTitle by ${drill.artistName}',
+        child: Material(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+                onTap: () => _onDrillTap(drill),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Hero(
-                        tag: 'karaoke_song_title_${drill.drillId}',
-                        child: Material(
-                          color: Colors.transparent,
-                          child: Text(
-                            formattedTitle,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        drill.artistName,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        vocalRangeLabel.isEmpty
-                            ? formattedStyle
-                            : '$formattedStyle · $vocalRangeLabel',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const Spacer(),
-                      if (progress != null &&
-                          progress.sessionsCompleted > 0) ...[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Best: ${progress.bestScore.toInt()}%',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              '${progress.sessionsCompleted} Takes',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.timer_outlined,
-                            size: 14,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            durationLabel,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            'Practice',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                            width: 64,
+                            height: 76,
+                            child: SongArtwork(
+                                title: formattedTitle,
+                                coverUrl: drill.coverUrl)),
+                        const SizedBox(width: 16),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Hero(
+                                  tag: 'karaoke_song_title_${drill.drillId}',
+                                  child: Material(
+                                      color: Colors.transparent,
+                                      child: Text(formattedTitle,
+                                          style: theme.textTheme.titleMedium))),
+                              const SizedBox(height: 5),
+                              Text(drill.artistName,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                      color:
+                                          theme.colorScheme.onSurfaceVariant)),
+                              const SizedBox(height: 10),
+                              Wrap(spacing: 10, runSpacing: 4, children: [
+                                Text(durationLabel,
+                                    style: theme.textTheme.labelSmall),
+                                Text(drill.difficulty,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                        color: theme.colorScheme.primary)),
+                                if (vocalRangeLabel.isNotEmpty)
+                                  Text(vocalRangeLabel,
+                                      style: theme.textTheme.labelSmall),
+                              ]),
+                              if (progress != null &&
+                                  progress.sessionsCompleted > 0) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                    'Best ${progress.bestScore.round()}% · ${progress.sessionsCompleted} takes',
+                                    style: theme.textTheme.labelSmall),
+                              ],
+                            ])),
+                        const SizedBox(width: 6),
+                        Icon(Icons.play_circle_outline_rounded,
+                            size: 28, color: theme.colorScheme.primary),
+                      ]),
+                ))));
   }
 }

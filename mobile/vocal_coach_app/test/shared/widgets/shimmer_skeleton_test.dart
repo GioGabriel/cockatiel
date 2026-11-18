@@ -26,6 +26,16 @@ void main() {
       expect(find.byType(Shimmer), findsOneWidget);
     });
 
+    testWidgets('respects the reduced motion preference while data is loading',
+        (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+          home: MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: Scaffold(body: ShimmerSkeleton(child: SizedBox(height: 100))),
+      )));
+      expect(tester.widget<Shimmer>(find.byType(Shimmer)).enabled, isFalse);
+    });
+
     testWidgets('renders child widget inside shimmer', (tester) async {
       await tester.pumpWidget(
         buildApp(

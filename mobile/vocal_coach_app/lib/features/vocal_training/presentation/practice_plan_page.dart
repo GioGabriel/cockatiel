@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/voice_studio.dart';
 
@@ -9,14 +10,16 @@ class PracticePlanPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
+    return StudioScaffold(
+        maxContentWidth: 800,
         appBar: AppBar(title: const Text('Your practice rhythm')),
         body: VoiceStageBackground(
             child: ListView(padding: const EdgeInsets.all(20), children: [
-          Text('A little, often.', style: theme.textTheme.headlineLarge),
-          const SizedBox(height: 12),
-          const Text(
-              'Start with a comfortable 15–30 minute session, 4–6 days a week. Shorter sessions are welcome. Rest when your voice feels tired.'),
+          const StudioHeading(
+              eyebrow: 'BUILD YOUR RHYTHM',
+              title: 'A little, often.',
+              description:
+                  'Start with a comfortable 15–30 minute session, 4–6 days a week. Shorter sessions are welcome. Rest when your voice feels tired.'),
           const SizedBox(height: 20),
           for (final step in const [
             (

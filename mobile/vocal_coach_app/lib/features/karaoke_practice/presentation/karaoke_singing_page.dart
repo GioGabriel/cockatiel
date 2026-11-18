@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -404,7 +405,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     if (_isLoading) {
-      return Scaffold(
+      return StudioScaffold(
         body: Center(
           child: CircularProgressIndicator(color: theme.colorScheme.primary),
         ),
@@ -412,7 +413,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
     }
 
     if (_error != null) {
-      return Scaffold(
+      return StudioScaffold(
         appBar: AppBar(title: const Text('Error')),
         body: Center(
           child: Text(
@@ -424,7 +425,7 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
       );
     }
 
-    return Scaffold(
+    return StudioScaffold(
       appBar: AppBar(
           title: Text(widget.drill.title,
               maxLines: 1, overflow: TextOverflow.ellipsis)),
@@ -436,7 +437,10 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
               Text(widget.drill.artistName, style: theme.textTheme.bodyMedium),
               const SizedBox(height: 12),
               SizedBox(
-                  height: (constraints.maxHeight * .43).clamp(240, 420),
+                  height: (constraints.maxHeight * .43).clamp(240, 420) +
+                      120 *
+                          (MediaQuery.textScalerOf(context).scale(1) - 1)
+                              .clamp(0, 2),
                   child: KaraokePitchVisualizer(
                       stages: _stages,
                       currentElapsedSec: _currentPosition.inMilliseconds / 1000,
@@ -567,42 +571,14 @@ class _KaraokeSingingPageState extends State<KaraokeSingingPage> {
 
   Widget _buildStartControls() {
     final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(40)),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _startSinging,
-          borderRadius: BorderRadius.circular(40),
-          child: Ink(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(40),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.mic_rounded,
-                  color: theme.colorScheme.onPrimary,
-                  size: 26,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  _hasInstrumentalAudio
-                      ? 'START SINGING'
-                      : 'START MIC PRACTICE',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return FilledButton.icon(
+      onPressed: _startSinging,
+      icon: const Icon(Icons.mic_rounded),
+      label: Text(
+          _hasInstrumentalAudio ? 'Start singing' : 'Start mic practice',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.labelLarge
+              ?.copyWith(color: theme.colorScheme.onPrimary)),
     );
   }
 

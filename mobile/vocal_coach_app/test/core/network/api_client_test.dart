@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -29,6 +30,42 @@ AppConfig _config() {
 }
 
 void main() {
+  test('times out when headers arrive but the response body never completes',
+      () async {
+    var cancelled = false;
+    final body = StreamController<List<int>>(onCancel: () {
+      cancelled = true;
+    });
+    final client = ApiClient(
+      config: _config(),
+      tokenProvider: _FakeTokenProvider('test-token'),
+      requestTimeout: const Duration(milliseconds: 20),
+      httpClient: MockClient.streaming(
+          (_, __) async => http.StreamedResponse(body.stream, 200)),
+    );
+    final result = await catchError(client.fetchCurrentUser)
+        .timeout(const Duration(seconds: 1));
+    expect(result,
+        isA<ApiException>().having((e) => e.code, 'code', 'NETWORK_TIMEOUT'));
+    await Future<void>.delayed(Duration.zero);
+    expect(cancelled, isTrue);
+    unawaited(body.close());
+  });
+
+  test('maps a dropped response-body connection to a safe network error',
+      () async {
+    final client = ApiClient(
+      config: _config(),
+      tokenProvider: _FakeTokenProvider('test-token'),
+      httpClient: MockClient.streaming((_, __) async => http.StreamedResponse(
+          Stream.error(http.ClientException('private upstream detail')), 200)),
+    );
+    final result = await catchError(client.fetchCurrentUser);
+    expect(result,
+        isA<ApiException>().having((e) => e.code, 'code', 'NETWORK_ERROR'));
+    expect(result.toString(), isNot(contains('private upstream detail')));
+  });
+
   test('maps structured API errors without retaining the raw response body',
       () async {
     final client = ApiClient(

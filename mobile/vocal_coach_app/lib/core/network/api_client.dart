@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -47,11 +48,12 @@ class ApiClient {
     required AppConfig config,
     required AuthTokenProvider tokenProvider,
     http.Client? httpClient,
+    Duration requestTimeout = const Duration(seconds: 30),
   })  : _config = config,
         _tokenProvider = tokenProvider,
         _httpClient = _TimeoutClient(
           httpClient ?? http.Client(),
-          timeout: const Duration(seconds: 30),
+          timeout: requestTimeout,
         );
 
   final AppConfig _config;
@@ -515,8 +517,42 @@ class _TimeoutClient extends http.BaseClient {
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final elapsed = Stopwatch()..start();
     try {
-      return await _inner.send(request).timeout(timeout);
+      final response = await _inner.send(request).timeout(timeout);
+      final remaining = timeout - elapsed.elapsed;
+      if (remaining <= Duration.zero) {
+        throw TimeoutException('Request deadline');
+      }
+      // These API endpoints return JSON. Include the response body in
+      // the same deadline so receiving headers cannot leave a screen waiting
+      // indefinitely on a stalled or slowly trickling connection.
+      final chunks = StreamIterator<List<int>>(response.stream);
+      final bytes = BytesBuilder(copy: false);
+      try {
+        while (true) {
+          final remaining = timeout - elapsed.elapsed;
+          if (remaining <= Duration.zero) {
+            throw TimeoutException('Request deadline');
+          }
+          if (!await chunks.moveNext().timeout(remaining)) break;
+          bytes.add(chunks.current);
+        }
+      } finally {
+        // Stop the underlying response subscription on errors and deadlines.
+        unawaited(chunks.cancel());
+      }
+      final body = bytes.takeBytes();
+      return http.StreamedResponse(
+        Stream.value(body),
+        response.statusCode,
+        contentLength: body.length,
+        request: response.request,
+        headers: response.headers,
+        isRedirect: response.isRedirect,
+        persistentConnection: response.persistentConnection,
+        reasonPhrase: response.reasonPhrase,
+      );
     } on TimeoutException {
       throw const ApiException(
         statusCode: 0,

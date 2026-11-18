@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../domain/song_content_parser.dart';
 
@@ -22,11 +23,19 @@ class LyricScroller extends StatefulWidget {
 class _LyricScrollerState extends State<LyricScroller> {
   final ScrollController _scrollController = ScrollController();
   int _currentIndex = 0;
+  List<double> _lineOffsets = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _updateCurrentIndex();
+  }
 
   @override
   void didUpdateWidget(LyricScroller oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.currentPosition != oldWidget.currentPosition) {
+    if (widget.currentPosition != oldWidget.currentPosition ||
+        widget.lyrics != oldWidget.lyrics) {
       _updateCurrentIndex();
     }
   }
@@ -47,14 +56,24 @@ class _LyricScrollerState extends State<LyricScroller> {
       setState(() {
         _currentIndex = newIndex;
       });
-      // Scroll to the active line
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          newIndex * 58.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
+      // Extents depend on viewport width and the user's text size. Wait for
+      // layout to recalculate them before bringing the active line into view.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !_scrollController.hasClients ||
+            newIndex >= _lineOffsets.length) {
+          return;
+        }
+        final target = _lineOffsets[newIndex]
+            .clamp(0.0, _scrollController.position.maxScrollExtent);
+        if (MediaQuery.disableAnimationsOf(context)) {
+          _scrollController.jumpTo(target);
+        } else {
+          _scrollController.animateTo(target,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut);
+        }
+      });
     }
   }
 
@@ -97,38 +116,53 @@ class _LyricScrollerState extends State<LyricScroller> {
       );
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 150),
-      itemCount: widget.lyrics.length,
-      itemExtent: 58,
-      itemBuilder: (context, index) {
-        final isCurrent = index == _currentIndex;
-        final line = widget.lyrics[index];
-        final text = AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 220),
-          style: (isCurrent
-                      ? theme.textTheme.headlineSmall
-                      : theme.textTheme.titleMedium)
-                  ?.copyWith(
-                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                color: isCurrent
-                    ? theme.colorScheme.onSurface
-                    : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ) ??
-              TextStyle(
-                color: theme.colorScheme.onSurface,
-                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-              ),
-          child: Text(line.text, textAlign: TextAlign.center),
-        );
-
-        return Semantics(
-          liveRegion: isCurrent,
-          label: isCurrent ? 'Current lyric: ${line.text}' : line.text,
-          child: Center(child: text),
-        );
-      },
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final activeStyle =
+          (theme.textTheme.headlineSmall ?? const TextStyle(fontSize: 24))
+              .copyWith(fontWeight: FontWeight.w700);
+      final heights = <double>[];
+      _lineOffsets = [];
+      var offset = 0.0;
+      for (final line in widget.lyrics) {
+        _lineOffsets.add(offset);
+        final painter = TextPainter(
+            text: TextSpan(text: line.text, style: activeStyle),
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context))
+          ..layout(maxWidth: math.max(1, constraints.maxWidth - 32));
+        final height = math.max(58.0, painter.height + 24);
+        painter.dispose();
+        heights.add(height);
+        offset += height;
+      }
+      final padding =
+          math.max(0.0, (constraints.maxHeight - heights.first) / 2);
+      return ListView.builder(
+        controller: _scrollController,
+        padding: EdgeInsets.symmetric(vertical: padding, horizontal: 16),
+        itemCount: widget.lyrics.length,
+        itemExtentBuilder: (index, _) => heights[index],
+        itemBuilder: (context, index) {
+          final isCurrent = index == _currentIndex;
+          final line = widget.lyrics[index];
+          return Semantics(
+              liveRegion: isCurrent,
+              label: isCurrent ? 'Current lyric: ${line.text}' : line.text,
+              child: Center(
+                  child: AnimatedDefaultTextStyle(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
+                style: activeStyle.copyWith(
+                    color: isCurrent
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: .65),
+                    fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500),
+                child: Text(line.text, textAlign: TextAlign.center),
+              )));
+        },
+      );
+    });
   }
 }

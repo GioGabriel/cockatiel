@@ -1,0 +1,142 @@
+{
+  "module_id": "karaoke",
+  "title": "Karaoke Practice",
+  "description": "Song-based vocal drills with local live pitch guidance.",
+  "categories": [
+    {
+      "category_id": "pop_practice",
+      "style_label": "Pop Practice",
+      "description": "Pop Practice drills for guided singing practice.",
+      "drills": [
+        {
+          "drill_id": "pop_breath_control_1",
+          "title": "Open Sky Warmup",
+          "style_category": "Pop Practice",
+          "difficulty": "beginner",
+          "duration_sec": 120,
+          "tempo_bpm": 96,
+          "vocal_range": {
+            "low": "C3",
+            "high": "C5"
+          },
+          "objective": "Practice steady breath and clear pitch on a simple pop phrase.",
+          "performance_tips": [
+            "Listen for the target pitch before you sing.",
+            "Keep the jaw relaxed and follow the live cue."
+          ],
+          "melody_reference": [
+            {
+              "note": "C4",
+              "start_beat": 0.0,
+              "duration_beats": 4.0
+            },
+            {
+              "note": "E4",
+              "start_beat": 4.0,
+              "duration_beats": 4.0
+            },
+            {
+              "note": "G4",
+              "start_beat": 8.0,
+              "duration_beats": 4.0
+            }
+          ],
+          "instrumental_url": "",
+          "pitch_map_url": "",
+          "artist_name": "Cockatiel Practice Library",
+          "cover_url": ""
+        }
+      ]
+    },
+    {
+      "category_id": "acoustic_practice",
+      "style_label": "Acoustic Practice",
+      "description": "Acoustic Practice drills for guided singing practice.",
+      "drills": [
+        {
+          "drill_id": "acoustic_pitch_ladder_1",
+          "title": "Acoustic Pitch Ladder",
+          "style_category": "Acoustic Practice",
+          "difficulty": "intermediate",
+          "duration_sec": 150,
+          "tempo_bpm": 104,
+          "vocal_range": {
+            "low": "D3",
+            "high": "D5"
+          },
+          "objective": "Connect stepwise notes while keeping the tone relaxed.",
+          "performance_tips": [
+            "Listen for the target pitch before you sing.",
+            "Keep the jaw relaxed and follow the live cue."
+          ],
+          "melody_reference": [
+            {
+              "note": "C4",
+              "start_beat": 0.0,
+              "duration_beats": 4.0
+            },
+            {
+              "note": "E4",
+              "start_beat": 4.0,
+              "duration_beats": 4.0
+            },
+            {
+              "note": "G4",
+              "start_beat": 8.0,
+              "duration_beats": 4.0
+            }
+          ],
+          "instrumental_url": "",
+          "pitch_map_url": "",
+          "artist_name": "Cockatiel Practice Library",
+          "cover_url": ""
+        }
+      ]
+    },
+    {
+      "category_id": "classic_practice",
+      "style_label": "Classic Practice",
+      "description": "Classic Practice drills for guided singing practice.",
+      "drills": [
+        {
+          "drill_id": "classic_phrase_control_1",
+          "title": "Classic Phrase Control",
+          "style_category": "Classic Practice",
+          "difficulty": "advanced",
+          "duration_sec": 180,
+          "tempo_bpm": 72,
+          "vocal_range": {
+            "low": "A2",
+            "high": "E5"
+          },
+          "objective": "Build phrase control, timing, and expressive note transitions.",
+          "performance_tips": [
+            "Listen for the target pitch before you sing.",
+            "Keep the jaw relaxed and follow the live cue."
+          ],
+          "melody_reference": [
+            {
+              "note": "C4",
+              "start_beat": 0.0,
+              "duration_beats": 4.0
+            },
+            {
+              "note": "E4",
+              "start_beat": 4.0,
+              "duration_beats": 4.0
+            },
+            {
+              "note": "G4",
+              "start_beat": 8.0,
+              "duration_beats": 4.0
+            }
+          ],
+          "instrumental_url": "",
+          "pitch_map_url": "",
+          "artist_name": "Cockatiel Practice Library",
+          "cover_url": ""
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,9 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../shared/models/session_models.dart';
 import '../../../shared/widgets/voice_studio.dart';
+import '../../../shared/widgets/entry_identity.dart';
 import 'feedback_page.dart';
 
 /// Follows the saved take itself so optional queued feedback cannot disappear
@@ -79,14 +81,16 @@ class _SessionFeedbackWaitPageState extends State<SessionFeedbackWaitPage> {
   @override
   Widget build(BuildContext context) {
     if (_result != null) return FeedbackPage(result: _result!);
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 720,
       appBar: AppBar(title: const Text('Song review')),
       body: VoiceStageBackground(
           child: Center(
               child: SingleChildScrollView(
                   padding: const EdgeInsets.all(28),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const VoiceHero(size: 180),
+                    const EntryArtwork(height: 180),
+                    const SizedBox(height: 28),
                     Text('Your take is saved',
                         style: Theme.of(context).textTheme.headlineSmall,
                         textAlign: TextAlign.center),

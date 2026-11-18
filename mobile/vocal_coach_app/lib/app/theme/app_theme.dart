@@ -14,9 +14,9 @@ class AppTheme {
   static const _lightBackground = Color(0xFFF9F5FF);
 
   static const _darkBackground = Color(0xFF070419);
-  static const _darkSurface = Color(0xFF120C2B);
-  static const _darkSurfaceRaised = Color(0xFF21143C);
-  static const _darkBorder = Color(0xFF483460);
+  static const _darkSurface = Color(0xFF15121F);
+  static const _darkSurfaceRaised = Color(0xFF211B30);
+  static const _darkBorder = Color(0xFF544963);
   static const _darkPrimary = Color(0xFFC4A7FF);
   static const _darkSecondary = Color(0xFFF2A7D5);
 
@@ -67,7 +67,7 @@ class AppTheme {
       onSurface: const Color(0xFFF5EEFF),
       onSurfaceVariant: const Color(0xFFC6B9DA),
       outline: _darkBorder,
-      outlineVariant: const Color(0xFF332446),
+      outlineVariant: const Color(0xFF342C42),
     );
 
     return _buildTheme(
@@ -96,7 +96,7 @@ class AppTheme {
   }) {
     final textTheme = _buildTextTheme(brightness);
     final fieldBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(14),
       borderSide: BorderSide(color: scheme.outline),
     );
 
@@ -115,7 +115,8 @@ class AppTheme {
         backgroundColor: background,
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: textTheme.titleLarge,
+        titleTextStyle: textTheme.titleMedium,
+        toolbarHeight: 64,
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -123,7 +124,7 @@ class AppTheme {
         margin: EdgeInsets.zero,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: scheme.outlineVariant),
         ),
       ),
@@ -151,7 +152,7 @@ class AppTheme {
           minimumSize: const Size.fromHeight(50),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle:
               const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
         ),
@@ -163,7 +164,7 @@ class AppTheme {
           foregroundColor: scheme.onSurface,
           side: BorderSide(color: scheme.outline),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle:
               const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
         ),
@@ -194,7 +195,7 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: surface,
@@ -221,9 +222,9 @@ class AppTheme {
     final outfitTheme = base.apply(fontFamily: 'Inter');
     return outfitTheme.copyWith(
       displayLarge: outfitTheme.displayLarge
-          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w700),
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
       displayMedium: outfitTheme.displayMedium
-          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w700),
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
       headlineLarge: outfitTheme.headlineLarge
           ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
       headlineMedium: outfitTheme.headlineMedium
@@ -231,7 +232,7 @@ class AppTheme {
       headlineSmall: outfitTheme.headlineSmall
           ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
       titleLarge: outfitTheme.titleLarge
-          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w700),
+          ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
       titleMedium: outfitTheme.titleMedium
           ?.copyWith(fontFamily: 'Outfit', fontWeight: FontWeight.w600),
       titleSmall: outfitTheme.titleSmall

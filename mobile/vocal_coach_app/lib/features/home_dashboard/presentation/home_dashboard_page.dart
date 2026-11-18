@@ -1,3 +1,5 @@
+import 'package:vocal_coach_app/shared/widgets/entry_identity.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -142,9 +144,9 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
     final user = widget.appState.currentUser;
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return StudioScaffold(
       appBar: AppBar(
-        title: const Text('Cockatiel'),
+        title: const EntryWordmark(),
         actions: [
           IconButton(
             onPressed: () {
@@ -259,82 +261,82 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with RouteAware {
     final name = user?.name ?? 'Singer';
     final greeting = _getGreeting();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$greeting,',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          name,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
+    return StudioHeading(
+        eyebrow: '$greeting, $name',
+        title: 'What will you\nsing today?',
+        description: 'One small practice. A little more confidence.');
   }
 
   Widget _buildPracticeActions(ThemeData theme) {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text('Your voice.\nYour next chapter.',
-          style: theme.textTheme.headlineLarge),
-      const SizedBox(height: 20),
       Semantics(
           button: true,
           label: 'Open guided vocal training',
-          child: StudioCard(
-              accent: true,
-              onTap: () => TabSwitchNotification(1).dispatch(context),
-              child: Row(children: [
-                const VoiceHero(size: 100),
-                const SizedBox(width: 10),
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text('Voice studio',
-                          style: theme.textTheme.titleLarge
-                              ?.copyWith(color: Colors.white)),
-                      const SizedBox(height: 6),
-                      const Text('Warm up. Follow a note. Find your flow.',
-                          style: TextStyle(color: Colors.white)),
-                    ])),
-                const Icon(Icons.north_east_rounded, color: Colors.white),
-              ]))),
-      const SizedBox(height: 12),
+          child: Material(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(24),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                  onTap: () => TabSwitchNotification(1).dispatch(context),
+                  child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Row(children: [
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Text('YOUR DAILY PRACTICE',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onPrimary,
+                                      letterSpacing: 1.5)),
+                              const SizedBox(height: 14),
+                              Text('Step into your\nvoice studio',
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                          color: theme.colorScheme.onPrimary,
+                                          height: 1.08,
+                                          letterSpacing: -.8)),
+                              const SizedBox(height: 14),
+                              Text('Warm up. Find a note. Make it yours.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onPrimary)),
+                            ])),
+                        const SizedBox(width: 12),
+                        Icon(Icons.graphic_eq_rounded,
+                            size: 48, color: theme.colorScheme.onPrimary),
+                      ]))))),
+      const SizedBox(height: 16),
       StudioCard(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
           child: Column(children: [
-        ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.music_note_rounded),
-            title: const Text('Song Practice'),
-            subtitle: const Text('Church songs · backing tracks · live lyrics'),
-            trailing: const Icon(Icons.arrow_forward_rounded),
-            onTap: () => TabSwitchNotification(2).dispatch(context)),
-        const Divider(),
-        ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.calendar_month_rounded),
-            title: const Text('Build a practice rhythm'),
-            subtitle: const Text('A short routine, one goal at a time'),
-            trailing: const Icon(Icons.arrow_forward_rounded),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => PracticePlanPage(
-                      onTrain: () {
-                        Navigator.of(context).pop();
-                        TabSwitchNotification(1).dispatch(context);
-                      },
-                      onSong: () {
-                        Navigator.of(context).pop();
-                        TabSwitchNotification(2).dispatch(context);
-                      },
-                    )))),
-      ])),
+            ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.album_outlined,
+                    color: theme.colorScheme.secondary),
+                title: const Text('Sing a song'),
+                subtitle: const Text('Backing tracks and lyrics, at your pace'),
+                trailing: const Icon(Icons.arrow_outward_rounded, size: 20),
+                onTap: () => TabSwitchNotification(2).dispatch(context)),
+            const Divider(height: 1),
+            ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.calendar_today_outlined,
+                    color: theme.colorScheme.secondary),
+                title: const Text('Your practice rhythm'),
+                subtitle: const Text('A simple plan for a stronger habit'),
+                trailing: const Icon(Icons.arrow_outward_rounded, size: 20),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => PracticePlanPage(
+                          onTrain: () {
+                            Navigator.of(context).pop();
+                            TabSwitchNotification(1).dispatch(context);
+                          },
+                          onSong: () {
+                            Navigator.of(context).pop();
+                            TabSwitchNotification(2).dispatch(context);
+                          },
+                        )))),
+          ])),
     ]);
   }
 

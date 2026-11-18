@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
@@ -79,7 +80,8 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 720,
       appBar: AppBar(title: Text(widget.title)),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -102,6 +104,7 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedExercise,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Karaoke drill',
                       ),
@@ -109,7 +112,8 @@ class _KaraokeSessionSetupPageState extends State<KaraokeSessionSetupPage> {
                           .map(
                             (item) => DropdownMenuItem<String>(
                               value: item,
-                              child: Text(item),
+                              child: Text(item,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
                           )
                           .toList(),

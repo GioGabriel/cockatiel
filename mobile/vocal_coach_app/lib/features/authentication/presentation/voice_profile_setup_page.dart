@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/audio/pitch/voice_type_classifier.dart';
@@ -6,6 +7,7 @@ import '../../../core/state/app_state.dart';
 import '../../../shared/models/user_models.dart';
 import '../../user_profile/presentation/voice_calibration_page.dart';
 import '../../../shared/widgets/profile_gender_field.dart';
+import '../../../shared/widgets/entry_identity.dart';
 
 /// A short, optional post-auth step that turns the existing calibration flow
 /// into a discoverable first-run setup without blocking the rest of the app.
@@ -109,7 +111,8 @@ class _VoiceProfileSetupPageState extends State<VoiceProfileSetupPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 720,
       appBar: AppBar(
         title: const Text('Set up your voice profile'),
         automaticallyImplyLeading: false,
@@ -118,12 +121,7 @@ class _VoiceProfileSetupPageState extends State<VoiceProfileSetupPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
           children: [
-            Icon(
-              Icons.graphic_eq_rounded,
-              size: 56,
-              color: theme.colorScheme.primary,
-              semanticLabel: 'Voice profile',
-            ),
+            const EntryArtwork(height: 180),
             const SizedBox(height: 20),
             Text(
               'Make your practice feel personal',

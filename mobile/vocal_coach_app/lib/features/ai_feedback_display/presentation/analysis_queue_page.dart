@@ -1,3 +1,5 @@
+import 'package:vocal_coach_app/shared/widgets/empty_state_view.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_theme_tokens.dart';
@@ -19,13 +21,14 @@ class AnalysisQueuePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return StudioScaffold(
       appBar: AppBar(
         title: const Text('Feedback Processing'),
         actions: [
           IconButton(
             onPressed: appState.refreshAIJobs,
             icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh saved reviews',
           ),
         ],
       ),
@@ -34,10 +37,11 @@ class AnalysisQueuePage extends StatelessWidget {
         builder: (_, __) {
           final jobs = appState.aiJobs;
           if (jobs.isEmpty) {
-            return const Center(
-              child: Text(
-                  'No feedback is waiting. Finish a session to see your review here.'),
-            );
+            return const EmptyStateView(
+                illustrationSize: 112,
+                headline: 'All caught up.',
+                body:
+                    'Finish a practice session to see your coaching review here.');
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -148,11 +152,12 @@ class _QueueJobCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            Text('Session: ${job.sessionId}'),
-            Text('Attempts: ${job.attempt + 1}/${job.maxAttempts}'),
+            Text(job.state == 'completed'
+                ? 'Your coaching review is ready.'
+                : 'Your take is saved. We’re preparing your review.'),
             if (job.lastError != null && job.lastError!.isNotEmpty)
               Text(
-                'Last error: ${job.lastError}',
+                'The review could not finish. Your take is still saved.',
                 style: TextStyle(color: theme.colorScheme.error),
               ),
             const SizedBox(height: 8),

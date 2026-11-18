@@ -1,3 +1,5 @@
+import 'package:vocal_coach_app/shared/widgets/studio_recovery_view.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -282,7 +284,7 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
             .reduce((a, b) => a > b ? a : b);
     final trackedExercises = _progressByExercise.length;
 
-    return Scaffold(
+    return StudioScaffold(
       appBar: AppBar(
         title: const Text('Vocal Coach'),
         actions: [
@@ -396,41 +398,11 @@ class _VocalTrainingPageState extends State<VocalTrainingPage> {
   }
 
   Widget _buildUnavailableState(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              size: 48,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Training is temporarily unavailable',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _catalogError ??
-                  'We could not load the current practice library.',
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _loadCatalog,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
+    return StudioRecoveryView(
+        title: 'Training is temporarily unavailable',
+        message: _catalogError ??
+            'We could not load the current practice library. Please try again.',
+        onRetry: _loadCatalog);
   }
 
   IconData _iconForCategory(String categoryId) {
@@ -507,113 +479,46 @@ class _HeroPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.4)),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                'Premium guided studio',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _HeroStatChip(label: 'Sessions', value: '$totalSessions'),
-                _HeroStatChip(label: 'Tracked', value: '$trackedExercises'),
-                _HeroStatChip(
-                  label: 'Best score',
-                  value: bestRecentScore <= 0
-                      ? '--'
-                      : bestRecentScore.toStringAsFixed(1),
-                ),
-              ],
-            ),
-            if (recommendation != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      StudioHeading(
+          eyebrow: title,
+          title: 'One note.\nA little more confidence.',
+          description: description),
+      Wrap(spacing: 28, runSpacing: 16, children: [
+        _HeroStatChip(label: 'Sessions', value: '$totalSessions'),
+        _HeroStatChip(label: 'Exercises tried', value: '$trackedExercises'),
+        _HeroStatChip(
+            label: 'Best score',
+            value: bestRecentScore <= 0
+                ? '—'
+                : bestRecentScore.toStringAsFixed(1)),
+      ]),
+      const SizedBox(height: 24),
+      const Divider(),
+      if (recommendation != null) ...[
+        const SizedBox(height: 16),
+        Card(
+            child: Padding(
+                padding: const EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Today\'s Focus',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      recommendation!.exerciseName,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      recommendation!.reason,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.tonal(
-                      onPressed: onOpenRecommendation,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                      ),
-                      child: const Text('Open Recommended Drill'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('TODAY’S FOCUS',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              letterSpacing: 1.5)),
+                      const SizedBox(height: 10),
+                      Text(recommendation!.exerciseName,
+                          style: theme.textTheme.titleLarge),
+                      const SizedBox(height: 8),
+                      Text(recommendation!.reason),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                          onPressed: onOpenRecommendation,
+                          child: const Text('Open Recommended Drill')),
+                    ]))),
+      ],
+    ]);
   }
 }
 
@@ -626,36 +531,16 @@ class _HeroStatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.5),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
+    return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
+          Text(value, style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 4),
+          Text(label,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ]);
   }
 }
 
@@ -829,9 +714,9 @@ class _TrackCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              FilledButton.tonal(
+              OutlinedButton(
                 onPressed: onTap,
-                child: const Text('Open Track'),
+                child: const Text('Explore exercises'),
               ),
             ],
           ),
@@ -884,7 +769,7 @@ class _ExerciseCategoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
+    return StudioScaffold(
       appBar: AppBar(title: Text(category.title)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),

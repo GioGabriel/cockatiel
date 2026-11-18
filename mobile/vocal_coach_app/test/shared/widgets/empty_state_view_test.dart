@@ -3,6 +3,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vocal_coach_app/shared/widgets/empty_state_view.dart';
 
 void main() {
+  testWidgets(
+      'compact large-text empty state scrolls and honors reduced motion',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 300);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+                textScaler: const TextScaler.linear(2),
+                disableAnimations: true),
+            child: child!),
+        home: Scaffold(
+            body: EmptyStateView(
+                headline: 'No sessions yet',
+                body:
+                    'Start a guided session and return here to review your progress.',
+                ctaLabel: 'Start practicing',
+                onCtaTap: () {}))));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    await tester.ensureVisible(find.text('Start practicing'));
+    expect(find.text('Start practicing').hitTestable(), findsOneWidget);
+  });
+
   Widget buildApp(Widget child) {
     return MaterialApp(
       home: Scaffold(body: child),

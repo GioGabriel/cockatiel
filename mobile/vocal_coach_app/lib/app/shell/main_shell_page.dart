@@ -83,19 +83,69 @@ class _MainShellPageState extends State<MainShellPage> {
         }
         return false;
       },
-      child: Scaffold(
-        body: IndexedStack(
-          index: _currentIndex,
-          children: [
-            for (final page in _pages) page ?? const SizedBox.shrink(),
-          ],
-        ),
-        extendBody: true,
-        bottomNavigationBar: _FloatingNavBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabSelected,
-        ),
-      ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 1000;
+        final content = IndexedStack(index: _currentIndex, children: [
+          for (final page in _pages) page ?? const SizedBox.shrink(),
+        ]);
+        const destinations = [
+          NavigationDestination(
+              icon: Icon(Icons.space_dashboard_outlined),
+              selectedIcon: Icon(Icons.space_dashboard_rounded),
+              label: 'Home',
+              tooltip: 'Home'),
+          NavigationDestination(
+              icon: Icon(Icons.graphic_eq_rounded),
+              label: 'Train',
+              tooltip: 'Train'),
+          NavigationDestination(
+              icon: Icon(Icons.library_music_outlined),
+              selectedIcon: Icon(Icons.library_music_rounded),
+              label: 'Songs',
+              tooltip: 'Songs'),
+          NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'Profile',
+              tooltip: 'Profile'),
+        ];
+        if (wide) {
+          return Scaffold(
+              body: Row(children: [
+            NavigationRail(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              selectedIndex: _currentIndex,
+              onDestinationSelected: _onTabSelected,
+              labelType: NavigationRailLabelType.all,
+              leading: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Icon(Icons.graphic_eq_rounded, size: 28)),
+              destinations: [
+                for (final item in destinations)
+                  NavigationRailDestination(
+                      icon: item.icon,
+                      selectedIcon: item.selectedIcon,
+                      label: Text(item.label))
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(child: content),
+          ]));
+        }
+        return Scaffold(
+          body: content,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: _onTabSelected,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            indicatorColor: Theme.of(context).colorScheme.primaryContainer,
+            labelBehavior: MediaQuery.textScalerOf(context).scale(1) > 1.4
+                ? NavigationDestinationLabelBehavior.alwaysHide
+                : NavigationDestinationLabelBehavior.alwaysShow,
+            destinations: destinations,
+          ),
+        );
+      }),
     );
   }
 }
@@ -104,132 +154,4 @@ class _MainShellPageState extends State<MainShellPage> {
 class TabSwitchNotification extends Notification {
   TabSwitchNotification(this.tabIndex);
   final int tabIndex;
-}
-
-class _FloatingNavBar extends StatelessWidget {
-  const _FloatingNavBar({
-    required this.currentIndex,
-    required this.onTap,
-  });
-
-  final int currentIndex;
-  final ValueChanged<int> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-        child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.5),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.home_rounded,
-                label: 'Home',
-                isSelected: currentIndex == 0,
-                onTap: () => onTap(0),
-              ),
-              _NavItem(
-                icon: Icons.mic_rounded,
-                label: 'Train',
-                isSelected: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavItem(
-                icon: Icons.music_note_rounded,
-                label: 'Songs',
-                isSelected: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavItem(
-                icon: Icons.person_rounded,
-                label: 'Profile',
-                isSelected: currentIndex == 3,
-                onTap: () => onTap(3),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isSelected
-        ? theme.colorScheme.onPrimary
-        : theme.colorScheme.onSurfaceVariant;
-
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      label: label,
-      child: Tooltip(
-        message: label,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            padding: EdgeInsets.symmetric(
-              horizontal: isSelected ? 16 : 12,
-              vertical: 10,
-            ),
-            decoration: BoxDecoration(
-              color:
-                  isSelected ? theme.colorScheme.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: color, size: 22),
-                if (isSelected) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    label,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

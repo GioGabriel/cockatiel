@@ -1,3 +1,5 @@
+import 'package:vocal_coach_app/shared/widgets/studio_recovery_view.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -35,6 +37,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   String _selectedRange = '30d';
   AnalyticsDashboard? _dashboard;
   AnalyticsTrends? _trends;
+  String? _trendError;
+  bool _trendLoading = false;
+  int _trendRequestId = 0;
   TrainingProgress? _trainingProgress;
   Timer? _liveRefreshTimer;
   bool _refreshInFlight = false;
@@ -58,22 +63,28 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   Future<void> _loadAll({bool showLoading = true}) async {
     if (_refreshInFlight || (_isLoading && !showLoading)) return;
     _refreshInFlight = true;
+    final trendRequestId = ++_trendRequestId;
+    final range = _selectedRange;
 
     try {
       setState(() {
         if (showLoading) _isLoading = true;
         _error = null;
+        _trendError = null;
+        _trendLoading = true;
       });
 
       final results = await Future.wait([
         widget.apiClient.fetchAnalyticsDashboard(),
-        widget.apiClient.fetchAnalyticsTrends(range: _selectedRange),
+        widget.apiClient.fetchAnalyticsTrends(range: range),
         widget.apiClient.fetchTrainingProgress(),
       ]);
       if (!mounted) return;
       setState(() {
         _dashboard = results[0] as AnalyticsDashboard;
-        _trends = results[1] as AnalyticsTrends;
+        if (trendRequestId == _trendRequestId) {
+          _trends = results[1] as AnalyticsTrends;
+        }
         _trainingProgress = results[2] as TrainingProgress;
       });
     } on ApiException catch (e) {
@@ -83,26 +94,45 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       if (!mounted) return;
       setState(() => _error = 'Could not load analytics. Please try again.');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          if (trendRequestId == _trendRequestId) _trendLoading = false;
+        });
+      }
       _refreshInFlight = false;
     }
   }
 
-  Future<void> _switchRange(String range) async {
-    if (range == _selectedRange) return;
-    setState(() => _selectedRange = range);
+  Future<void> _switchRange(String range, {bool force = false}) async {
+    if (range == _selectedRange && !force) return;
+    final requestId = ++_trendRequestId;
+    setState(() {
+      _selectedRange = range;
+      _trends = null;
+      _trendError = null;
+      _trendLoading = true;
+    });
     try {
       final trends = await widget.apiClient.fetchAnalyticsTrends(range: range);
-      if (!mounted) return;
+      if (!mounted || requestId != _trendRequestId) return;
       setState(() => _trends = trends);
-    } catch (_) {}
+    } catch (_) {
+      if (!mounted || requestId != _trendRequestId) return;
+      setState(
+          () => _trendError = 'Could not load this period. Please try again.');
+    } finally {
+      if (mounted && requestId == _trendRequestId) {
+        setState(() => _trendLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return StudioScaffold(
       appBar: AppBar(
         title: const Text('Analytics'),
       ),
@@ -146,22 +176,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   }
 
   Widget _buildError(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.cloud_off_rounded,
-              size: 48, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(height: 12),
-          const Text('Could not load analytics.'),
-          const SizedBox(height: 12),
-          FilledButton.tonal(
-            onPressed: () => _loadAll(),
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
+    return StudioRecoveryView(
+        title: 'Could not load analytics.',
+        message: 'Your progress is saved. Check your connection and try again.',
+        onRetry: () => _loadAll());
   }
 
   Widget _buildContent(ThemeData theme) {
@@ -171,6 +189,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
+        const StudioHeading(
+            eyebrow: 'YOUR PROGRESS',
+            title: 'Every take counts.',
+            description: 'See the practice behind your progress.'),
         // ─── KPI CARDS ───────────────────────────────────────────
         _buildKpiSection(theme, dashboard),
         const SizedBox(height: 24),
@@ -178,6 +200,20 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         // ─── PERIOD TOGGLE ───────────────────────────────────────
         _buildPeriodToggle(theme),
         const SizedBox(height: 20),
+
+        if (_trendLoading)
+          const Text('Loading this period…')
+        else if (_trendError != null) ...[
+          Text(_trendError!, semanticsLabel: _trendError),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => _switchRange(_selectedRange, force: true),
+              child: const Text('Retry'),
+            ),
+          ),
+        ] else if (_trends?.points.isEmpty ?? true)
+          const Text('No sessions in this period yet.'),
 
         // ─── SCORE TREND CHART ───────────────────────────────────
         if (_trends != null && _trends!.points.isNotEmpty)
@@ -240,27 +276,25 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         children: _rangeOptions.map((range) {
           final isSelected = range == _selectedRange;
           return Expanded(
-            child: GestureDetector(
-              onTap: () => _switchRange(range),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+            child: TextButton(
+              onPressed: () => _switchRange(range),
+              style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
+                minimumSize: const Size(48, 48),
+                backgroundColor:
+                    isSelected ? theme.colorScheme.surface : Colors.transparent,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text(
+                _rangeLabels[range] ?? range,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
-                      ? theme.colorScheme.surface
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  _rangeLabels[range] ?? range,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                    fontSize: 13,
-                  ),
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -280,10 +314,13 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               Text('Score Trend', style: theme.textTheme.titleMedium),
-              const Spacer(),
               if (scores.length >= 2)
                 _ChangeIndicator(
                   current: scores.last,
@@ -304,8 +341,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               Text(
                 _formatDate(points.first.date),
@@ -570,8 +609,10 @@ class _MetricRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          spacing: 12,
+          runSpacing: 4,
           children: [
             Text(label, style: theme.textTheme.bodyMedium),
             Text(

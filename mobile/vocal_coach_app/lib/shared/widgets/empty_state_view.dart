@@ -45,13 +45,13 @@ class EmptyStateView extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildIllustration(theme),
+            _buildIllustration(context, theme),
             const SizedBox(height: 16),
             Text(
               headline,
@@ -80,7 +80,7 @@ class EmptyStateView extends StatelessWidget {
     );
   }
 
-  Widget _buildIllustration(ThemeData theme) {
+  Widget _buildIllustration(BuildContext context, ThemeData theme) {
     if (customAnimation != null) {
       return SizedBox(
         width: illustrationSize,
@@ -95,7 +95,8 @@ class EmptyStateView extends StatelessWidget {
         height: illustrationSize,
         child: Lottie.asset(
           lottieAsset!,
-          repeat: true,
+          repeat: !MediaQuery.disableAnimationsOf(context),
+          animate: !MediaQuery.disableAnimationsOf(context),
           errorBuilder: (context, error, stackTrace) {
             return Icon(
               Icons.inbox_outlined,
@@ -168,8 +169,17 @@ class _PulsingButtonState extends State<_PulsingButton>
         weight: 80,
       ),
     ]).animate(_controller);
+  }
 
-    _controller.repeat();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 
 import 'package:vocal_coach_app/shared/animations/spring_curves.dart';
@@ -200,7 +201,8 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.appTokens;
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 760,
       appBar: AppBar(
         title: const Text('Voice profile and preferences'),
       ),
@@ -210,6 +212,11 @@ class _VocalPreferencesPageState extends State<VocalPreferencesPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              const StudioHeading(
+                  eyebrow: 'YOUR VOICE PROFILE',
+                  title: 'Practice your way.',
+                  description:
+                      'Choose a comfortable range and the skills you want to build.'),
               ProfileGenderField(
                   value: _selectedGender,
                   onChanged: (value) =>

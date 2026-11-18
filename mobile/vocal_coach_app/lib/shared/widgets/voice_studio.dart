@@ -7,19 +7,8 @@ class VoiceStageBackground extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-          gradient: LinearGradient(
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
-        colors: dark
-            ? const [Color(0xFF382044), Color(0xFF150A2E), Color(0xFF070419)]
-            : const [Color(0xFFF4DCEB), Color(0xFFF2E9FF), Color(0xFFFAF7FF)],
-        stops: const [0, 0.4, 1],
-      )),
-      child: child,
-    );
+    return Material(
+        color: Theme.of(context).scaffoldBackgroundColor, child: child);
   }
 }
 
@@ -39,16 +28,16 @@ class StudioCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
       child: Ink(
           decoration: BoxDecoration(
             color: accent ? null : theme.colorScheme.surface,
             gradient: accent
                 ? const LinearGradient(
-                    colors: [Color(0xFF6625AF), Color(0xFFA32993)])
+                    colors: [Color(0xFF3A2858), Color(0xFF251B3D)])
                 : null,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: theme.colorScheme.outlineVariant),
           ),
           child: InkWell(

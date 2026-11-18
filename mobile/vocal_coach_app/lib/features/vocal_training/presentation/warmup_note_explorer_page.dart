@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -351,7 +352,8 @@ class _WarmupNoteExplorerPageState extends State<WarmupNoteExplorerPage> {
         ? null
         : '${_detectedCents! >= 0 ? '+' : '−'}${_detectedCents!.abs().round()} cents';
 
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 880,
       appBar: AppBar(title: const Text('Warm up before your drill')),
       body: ScrollableActionLayout(
         content: Card(

@@ -1,3 +1,4 @@
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -1336,6 +1337,69 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
 
   String get _attemptNoun => _isBreathingExercise ? 'Cycle' : 'Take';
 
+  Widget _buildAttemptHeading(ThemeData theme, double progress) {
+    final detail = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _currentActionTitle,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _currentActionDetail,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        if (_runtimePlan != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _runtimePlan!.teachingNote,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.35,
+            ),
+          ),
+        ],
+        if (_nextActionLabel != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _nextActionLabel!,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+    final countdown = _AttemptCountdownRing(
+      progress: progress.clamp(0.0, 1.0),
+      secondsRemaining:
+          _isAttemptRunning ? _secondsRemaining : _attemptDurationSec,
+      durationSec: _attemptDurationSec,
+      isRunning: _isAttemptRunning,
+      label: _isAttemptRunning
+          ? (_isBreathingExercise ? 'Breathe' : 'Live')
+          : 'Ready',
+    );
+    if (MediaQuery.textScalerOf(context).scale(1) > 1.3) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        detail,
+        const SizedBox(height: 16),
+        Center(child: countdown),
+      ]);
+    }
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Expanded(child: detail),
+      const SizedBox(width: 16),
+      countdown,
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1397,7 +1461,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
         if (didPop) return;
         _onBackPressed();
       },
-      child: Scaffold(
+      child: StudioScaffold(
         appBar: AppBar(
           title: Hero(
             tag: 'exercise_title_${widget.exerciseType}',
@@ -1449,64 +1513,7 @@ class _TrainingSessionPageState extends State<TrainingSessionPage>
                         ],
                       ),
                       const SizedBox(height: 18),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _currentActionTitle,
-                                  style:
-                                      theme.textTheme.headlineSmall?.copyWith(
-                                    color: theme.colorScheme.onSurface,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _currentActionDetail,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                                if (_runtimePlan != null) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    _runtimePlan!.teachingNote,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ],
-                                if (_nextActionLabel != null) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    _nextActionLabel!,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          _AttemptCountdownRing(
-                            progress: attemptProgressValue.clamp(0.0, 1.0),
-                            secondsRemaining: _isAttemptRunning
-                                ? _secondsRemaining
-                                : _attemptDurationSec,
-                            durationSec: _attemptDurationSec,
-                            isRunning: _isAttemptRunning,
-                            label: _isAttemptRunning
-                                ? (_isBreathingExercise ? 'Breathe' : 'Live')
-                                : 'Ready',
-                          ),
-                        ],
-                      ),
+                      _buildAttemptHeading(theme, attemptProgressValue),
                       const SizedBox(height: 18),
                       if (_requiresMicrophone)
                         Row(
@@ -2395,16 +2402,16 @@ class _AttemptCountdownRingState extends State<_AttemptCountdownRing>
     final pulseStrength = widget.isRunning ? _pulseAnimation.value : 0.0;
 
     return SizedBox(
-      width: 104,
-      height: 104,
+      width: 104 * MediaQuery.textScalerOf(context).scale(1),
+      height: 104 * MediaQuery.textScalerOf(context).scale(1),
       child: Stack(
         alignment: Alignment.center,
         children: [
           Transform.scale(
             scale: 1 + (pulseStrength * 0.03),
             child: Container(
-              width: 102,
-              height: 102,
+              width: 102 * MediaQuery.textScalerOf(context).scale(1),
+              height: 102 * MediaQuery.textScalerOf(context).scale(1),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: theme.colorScheme.primary.withValues(
@@ -2425,8 +2432,8 @@ class _AttemptCountdownRingState extends State<_AttemptCountdownRing>
             ),
           ),
           Container(
-            width: 82,
-            height: 82,
+            width: 82 * MediaQuery.textScalerOf(context).scale(1),
+            height: 82 * MediaQuery.textScalerOf(context).scale(1),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: theme.colorScheme.surfaceContainerHigh,

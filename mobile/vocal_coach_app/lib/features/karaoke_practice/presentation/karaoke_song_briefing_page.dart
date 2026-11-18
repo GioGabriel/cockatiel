@@ -1,3 +1,5 @@
+import 'package:vocal_coach_app/shared/widgets/song_artwork.dart';
+import 'package:vocal_coach_app/shared/widgets/studio_scaffold.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
@@ -79,7 +81,8 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
     final formattedTitle = formatSnakeCaseTitle(drill.title);
     final formattedStyle = formatSnakeCaseTitle(drill.styleCategory);
 
-    return Scaffold(
+    return StudioScaffold(
+      maxContentWidth: 760,
       appBar: AppBar(title: Text(formattedStyle)),
       body: ScrollableActionLayout(
         content: Card(
@@ -89,19 +92,10 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.music_note_rounded,
-                    size: 40,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
+                AspectRatio(
+                    aspectRatio: 1.6,
+                    child: SongArtwork(
+                        title: drill.title, coverUrl: drill.coverUrl)),
                 const SizedBox(height: 24),
                 DifficultyBadge(difficulty: drill.difficulty),
                 const SizedBox(height: 16),
@@ -112,13 +106,17 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
                     child: Text(
                       formattedTitle,
                       style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 12),
+                Text(drill.artistName,
+                    style: theme.textTheme.bodyLarge
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 24),
                 Wrap(
                   alignment: WrapAlignment.center,
                   spacing: 24,
@@ -134,6 +132,16 @@ class _KaraokeSongBriefingPageState extends State<KaraokeSongBriefingPage> {
                   _buildIconStat(Icons.mic_external_on_outlined,
                       '$vocalLow – $vocalHigh', theme),
                 ],
+                const SizedBox(height: 28),
+                const Divider(),
+                const SizedBox(height: 16),
+                Text('Make this take yours',
+                    style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Text(drill.objective,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               ],
             ),
           ),

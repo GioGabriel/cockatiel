@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_theme_tokens.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/state/app_state.dart';
-import '../../../shared/widgets/voice_studio.dart';
+import '../../../shared/widgets/entry_identity.dart';
 
 enum _AuthView { signIn, signUp, forgotPassword }
 
@@ -142,15 +142,17 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Welcome\nback.',
+            'Good to hear you.',
             style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              height: 1.15,
+              fontWeight: FontWeight.w600,
+              fontSize: 34,
+              letterSpacing: -1.1,
+              height: 1.08,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Sign in to continue your vocal journey.',
+            'Sign in and pick up where your voice left off.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -207,7 +209,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
               onPressed: _submitSignIn,
             ),
             _buildErrorNotice(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             _buildSwitchRow(
               prefix: "Don't have an account? ",
               linkText: 'Sign Up',
@@ -232,15 +234,17 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Create an\nAccount ✨',
+            'Make room for your voice.',
             style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              height: 1.15,
+              fontWeight: FontWeight.w600,
+              fontSize: 34,
+              letterSpacing: -1.1,
+              height: 1.08,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Start your vocal journey today.',
+            'A little practice. A little more confidence.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -311,7 +315,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
               onPressed: _submitSignUp,
             ),
             _buildErrorNotice(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             _buildSwitchRow(
               prefix: 'Already have an account? ',
               linkText: 'Sign In',
@@ -336,10 +340,12 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Reset\nPassword 🔑',
+            'Let’s get you back in.',
             style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              height: 1.15,
+              fontWeight: FontWeight.w600,
+              fontSize: 34,
+              letterSpacing: -1.1,
+              height: 1.08,
             ),
           ),
           const SizedBox(height: 8),
@@ -374,7 +380,7 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
             ),
             if (widget.appState.authNotice != null) _buildResetConfirmation(),
             _buildErrorNotice(includeNotice: false),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             _buildSwitchRow(
               prefix: 'Remember your password? ',
               linkText: 'Sign In',
@@ -410,6 +416,22 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
       style: theme.textTheme.bodyLarge,
       decoration: InputDecoration(
         labelText: label,
+        filled: true,
+        fillColor: theme.colorScheme.surface,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: theme.colorScheme.outlineVariant)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide:
+                BorderSide(color: theme.colorScheme.primary, width: 1.5)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: theme.colorScheme.error)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5)),
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),
         contentPadding:
@@ -436,8 +458,25 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
       style: theme.textTheme.bodyLarge,
       decoration: InputDecoration(
         labelText: label,
+        filled: true,
+        fillColor: theme.colorScheme.surface,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: theme.colorScheme.outlineVariant)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide:
+                BorderSide(color: theme.colorScheme.primary, width: 1.5)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: theme.colorScheme.error)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5)),
         prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
         suffixIcon: IconButton(
+          tooltip: obscure ? 'Show password' : 'Hide password',
           icon: Icon(
             obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
             size: 20,
@@ -465,7 +504,10 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
         style: FilledButton.styleFrom(
           backgroundColor: theme.colorScheme.primary,
           foregroundColor: theme.colorScheme.onPrimary,
-          textStyle: theme.textTheme.titleMedium,
+          textStyle: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: isLoading
             ? SizedBox(
@@ -487,8 +529,9 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
           prefix,
@@ -496,8 +539,8 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
-        GestureDetector(
-          onTap: onTap,
+        TextButton(
+          onPressed: onTap,
           child: Text(linkText, style: theme.textTheme.labelLarge),
         ),
       ],
@@ -609,36 +652,88 @@ class _FullScreenAuthLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return VoiceStageBackground(
-        child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
+    final theme = Theme.of(context);
+    return SafeArea(child: LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth >= 960;
+      final form = ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            if (showBack) ...[
+              IconButton(
+                  onPressed: onBack,
+                  tooltip: 'Back to sign in',
+                  icon: const Icon(Icons.arrow_back_rounded)),
+              const SizedBox(width: 8),
+            ],
+            const Flexible(child: EntryWordmark()),
+          ]),
+          SizedBox(height: wide ? 64 : 28),
+          if (!wide && !showBack) ...[
+            const EntryArtwork(height: 148),
+            const SizedBox(height: 28),
+          ],
+          topContent,
+          const SizedBox(height: 28),
+          bottomContent,
+        ]),
+      );
       return SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-        child: Center(
-            child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(children: [
-                      if (showBack)
-                        IconButton(
-                            onPressed: onBack,
-                            tooltip: 'Back to sign in',
-                            icon: const Icon(Icons.arrow_back_rounded)),
-                      Text('COCKATIEL',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelLarge
-                              ?.copyWith(letterSpacing: 3)),
-                    ]),
-                    const Center(child: VoiceHero(size: 170)),
-                    topContent,
-                    const SizedBox(height: 24),
-                    StudioCard(child: bottomContent),
-                  ],
-                ))),
+        padding: EdgeInsets.all(wide ? 40 : 24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              minHeight: (constraints.maxHeight - (wide ? 80 : 48))
+                  .clamp(0, double.infinity)),
+          child: Center(
+              child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: wide ? 1120 : 420),
+            child: wide
+                ? Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                    Expanded(
+                        child: Container(
+                            padding: const EdgeInsets.all(36),
+                            decoration: BoxDecoration(
+                                color: theme.colorScheme.surface,
+                                borderRadius: BorderRadius.circular(36),
+                                border: Border.all(
+                                    color: theme.colorScheme.outlineVariant)),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('A SPACE FOR YOUR VOICE',
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                              letterSpacing: 2,
+                                              color:
+                                                  theme.colorScheme.primary)),
+                                  const SizedBox(height: 32),
+                                  const EntryArtwork(height: 320),
+                                  const SizedBox(height: 36),
+                                  Text('Find your voice.\nMake it yours.',
+                                      style: theme.textTheme.displaySmall
+                                          ?.copyWith(
+                                              fontSize: 44,
+                                              height: 1.06,
+                                              letterSpacing: -1.6,
+                                              fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 18),
+                                  Text(
+                                      'Warm up. Find your rhythm. Sing something you love.',
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                              color: theme
+                                                  .colorScheme.onSurfaceVariant,
+                                              height: 1.6)),
+                                ]))),
+                    const SizedBox(width: 80),
+                    Flexible(child: form),
+                  ])
+                : form,
+          )),
+        ),
       );
-    })));
+    }));
   }
 }

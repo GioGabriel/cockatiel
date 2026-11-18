@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends
 
 from app.api.v1.dependencies import get_current_user
 from app.api.v1.schemas import UserProfileOut, VocalPreferencesIn
+from app.core.config import settings
+from app.core.exceptions import ApiError
 from app.modules.users.service import (
   get_user_profile,
   update_vocal_preferences,
@@ -30,6 +32,12 @@ def update_preferences(
 
 @router.post("/tier/upgrade", response_model=UserProfileOut)
 def upgrade_tier(current_user: dict = Depends(get_current_user)) -> UserProfileOut:
-  """Upgrade user to premium tier."""
+  """Keep the demo grant out of deployed environments until billing exists."""
+  if settings.app_env.strip().lower() in {"prod", "production", "staging"}:
+    raise ApiError(
+      code="ENTITLEMENT_VERIFICATION_REQUIRED",
+      message="Premium activation requires a verified entitlement. Please contact support.",
+      status_code=403,
+    )
   updated = upgrade_to_premium(current_user["uid"])
   return UserProfileOut.model_validate(updated)

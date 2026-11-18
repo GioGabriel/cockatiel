@@ -220,6 +220,8 @@ def evaluate_tone_and_get_feedback(audio_bytes: bytes, pitch_score: float, rhyth
     feedback = f"Local coaching feedback: your pitch accuracy was {pitch_score:.1f}%."
     if rhythm_delay_ms > 200:
         feedback += f" You were behind the beat by about {rhythm_delay_ms:.0f} ms. Try anticipating the rhythm slightly more."
+    elif rhythm_delay_ms < -200:
+        feedback += f" You were ahead of the beat by about {abs(rhythm_delay_ms):.0f} ms. Let the beat arrive before starting the phrase."
     else:
         feedback += " Your timing stayed close to the target."
 

@@ -1,3 +1,19 @@
+import pytest
+
+
+@pytest.mark.parametrize("delay", [-800, 800])
+def test_timing_feedback_identifies_early_and_late_singing(client, auth_headers, delay):
+  response = client.post(
+    "/v1/karaoke/evaluate-tone", headers=auth_headers,
+    files={"audio": ("sample.wav", b"unavailable audio", "audio/wav")},
+    data={"pitch_score": "80", "rhythm_delay_ms": str(delay)},
+  )
+  assert response.status_code == 200
+  feedback = response.json()["ai_feedback"].lower()
+  assert "close to the target" not in feedback
+  assert ("ahead" if delay < 0 else "behind") in feedback
+
+
 def test_karaoke_evaluation_rejects_unsupported_media_type(client, auth_headers):
   response = client.post(
     "/v1/karaoke/evaluate-tone",

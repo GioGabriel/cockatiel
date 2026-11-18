@@ -2,6 +2,8 @@ import base64
 import logging
 from typing import Any
 
+from app.core.exceptions import ApiError
+
 logger = logging.getLogger("vocal-coach-api.audio-snippets.firestore")
 
 
@@ -25,6 +27,15 @@ class FirestoreAudioSnippetStorage:
     data: bytes,
     extension: str,
   ) -> dict[str, str | int]:
+    # Firestore documents are limited to 1 MiB. Base64 grows by one third;
+    # reserve room for document fields, identifiers and Firestore overhead.
+    if len(data) > 750_000:
+      raise ApiError(
+        code="AUDIO_SNIPPET_TOO_LARGE",
+        message="This recording is too large for storage. Please record a shorter or compressed clip.",
+        status_code=413,
+        details={"max_bytes": 750_000},
+      )
     safe_snippet_id = _safe_segment(snippet_id)
     doc_ref = self._db.collection("audio_snippet_data").document(safe_snippet_id)
     doc_ref.set({
@@ -54,4 +65,6 @@ class FirestoreAudioSnippetStorage:
         storage_path,
         type(exc).__name__,
       )
-      return
+      # Keep the metadata available for retry. Suppressing this error caused
+      # the retention worker to count an undeleted recording as removed.
+      raise

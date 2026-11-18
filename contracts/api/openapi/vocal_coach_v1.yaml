@@ -266,12 +266,14 @@ paths:
           description: Validation error
   /v1/profile/tier/upgrade:
     post:
-      summary: Upgrade user to premium tier
+      summary: Development-only premium upgrade; production requires verified entitlement
       security:
         - bearerAuth: []
       responses:
         "200":
           description: Upgraded profile
+        "403":
+          description: Production entitlement verification is required; self-service grants are disabled
         "401":
           description: Unauthorized
   /v1/karaoke/catalog:

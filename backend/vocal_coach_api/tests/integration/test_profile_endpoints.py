@@ -1,5 +1,21 @@
 """Integration tests for profile endpoints."""
 from fastapi.testclient import TestClient
+from types import SimpleNamespace
+
+import pytest
+
+
+@pytest.mark.parametrize("environment", ["production", "prod", "staging"])
+def test_production_cannot_self_grant_premium_without_verified_entitlement(client, auth_headers, monkeypatch, environment):
+  from app.api.v1.endpoints import profile
+
+  client.get("/v1/auth/me", headers=auth_headers)
+  original = client.get("/v1/profile", headers=auth_headers).json()
+  monkeypatch.setattr(profile, "settings", SimpleNamespace(app_env=environment), raising=False)
+  response = client.post("/v1/profile/tier/upgrade", headers=auth_headers)
+  assert response.status_code == 403
+  assert response.json()["error"]["code"] == "ENTITLEMENT_VERIFICATION_REQUIRED"
+  assert client.get("/v1/profile", headers=auth_headers).json() == original
 
 
 class TestFetchProfile:

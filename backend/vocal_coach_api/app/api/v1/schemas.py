@@ -35,7 +35,7 @@ class TrainingSessionConfigIn(BaseModel):
 class MetricSegmentEvidence(BaseModel):
   """Compact, privacy-preserving evidence for one guided target window."""
 
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
   segment_id: str = Field(min_length=1, max_length=80)
   label: str | None = Field(default=None, max_length=80)
@@ -73,7 +73,7 @@ class MetricSegmentEvidence(BaseModel):
 class VoiceMetricEvidence(BaseModel):
   """Frame and segment aggregates used to explain a voice score."""
 
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
   duration_ms: int = Field(default=0, ge=0)
   frame_count: int = Field(default=0, ge=0)
